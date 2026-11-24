@@ -1113,6 +1113,95 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Split ----
+
+    /** A ZIP of split files waiting to be shared by the screen. */
+    var zipToShare by mutableStateOf<java.io.File?>(null)
+    /** Number of files written by the last split into a folder, for a short message. */
+    var splitCount by mutableStateOf<Int?>(null)
+
+    /**
+     * Cuts the document (with its changes) into several PDFs: into [folder] (a tree the user
+     * picked) or, when null, a ZIP to share.
+     */
+    fun split(mode: SplitMode, folder: Uri?) {
+        val r = ready ?: return
+        if (saving) return
+        saving = true
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val result = runCatching {
+                val tmp = writeToTemp(r.doc) ?: error("write")
+                val dir = java.io.File(app.cacheDir, "split").apply { deleteRecursively(); mkdirs() }
+                val copy = withContext(Dispatchers.IO) {
+                    android.os.ParcelFileDescriptor.open(tmp, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                }.use { pfd -> io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.open(pfd, password) }
+                try {
+                    suspend fun write(indices: IntArray, f: java.io.File): Boolean = withContext(Dispatchers.IO) {
+                        android.os.ParcelFileDescriptor.open(
+                            f,
+                            android.os.ParcelFileDescriptor.MODE_CREATE or android.os.ParcelFileDescriptor.MODE_TRUNCATE or android.os.ParcelFileDescriptor.MODE_WRITE_ONLY,
+                        ).use { copy.writePages(indices, it) }
+                    }
+                    val count = copy.pageCount
+                    val groups = if (mode is SplitMode.MaxSize) {
+                        val probe = java.io.File(dir, "probe.pdf")
+                        SplitMode.bySize(count, mode.bytes) { range ->
+                            if (write(range.toList().toIntArray(), probe)) probe.length() else Long.MAX_VALUE
+                        }.also { probe.delete() }
+                    } else SplitMode.groups(mode, count) ?: error("groups")
+                    val base = r.name.removeSuffix(".pdf").removeSuffix(".PDF")
+                    groups.map { g ->
+                        val label = if (g.size == 1) "${g[0] + 1}" else "${g.first() + 1}-${g.last() + 1}"
+                        val f = java.io.File(dir, io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName("$base $label"))
+                        if (!write(g, f)) error("write part")
+                        f
+                    }
+                } finally {
+                    copy.closeAsync()
+                }
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "split failed", it) }.getOrNull()
+            if (result == null) {
+                saving = false
+                exportResult = false
+                return@launch
+            }
+            if (folder != null) {
+                val written = withContext(Dispatchers.IO) {
+                    val cr = app.contentResolver
+                    val parent = android.provider.DocumentsContract.buildDocumentUriUsingTree(
+                        folder, android.provider.DocumentsContract.getTreeDocumentId(folder),
+                    )
+                    result.count { f ->
+                        runCatching {
+                            // The provider adds the extension for the MIME type.
+                            val doc = android.provider.DocumentsContract.createDocument(cr, parent, "application/pdf", f.nameWithoutExtension)
+                                ?: return@runCatching false
+                            cr.openOutputStream(doc, "w")?.use { o -> f.inputStream().use { it.copyTo(o) } } != null
+                        }.getOrDefault(false)
+                    }
+                }
+                saving = false
+                if (written == result.size) splitCount = written else exportResult = false
+            } else {
+                val zip = withContext(Dispatchers.IO) {
+                    val shareDir = java.io.File(app.cacheDir, "share").apply { mkdirs() }
+                    val z = java.io.File(shareDir, io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName(r.name.removeSuffix(".pdf").removeSuffix(".PDF") + " (split)").removeSuffix(".pdf") + ".zip")
+                    java.util.zip.ZipOutputStream(z.outputStream().buffered()).use { zos ->
+                        for (f in result) {
+                            zos.putNextEntry(java.util.zip.ZipEntry(f.name))
+                            f.inputStream().use { it.copyTo(zos) }
+                            zos.closeEntry()
+                        }
+                    }
+                    z
+                }
+                saving = false
+                zipToShare = zip
+            }
+        }
+    }
+
     /** Set by the menu: the screen opens "Save as" for a flattened copy. */
     var requestFlatten by mutableStateOf(false)
 

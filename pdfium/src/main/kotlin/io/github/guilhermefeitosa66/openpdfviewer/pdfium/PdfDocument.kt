@@ -423,6 +423,13 @@ class PdfDocument private constructor(private val handle: Long) {
             PdfiumNative.saveCopy(handle, pfd.fd, removeSecurity)
         }
 
+    /** Writes a new PDF with only pages [indices] (in that order) to [pfd]. */
+    suspend fun writePages(indices: IntArray, pfd: ParcelFileDescriptor): Boolean =
+        withContext(PdfiumThread.dispatcher) {
+            if (closed) return@withContext false
+            PdfiumNative.writePages(handle, indices, pfd.fd)
+        }
+
     /** Names of the files attached to the document, in order. */
     suspend fun attachments(): List<String> = withContext(PdfiumThread.dispatcher) {
         if (closed) emptyList() else PdfiumNative.attachmentNames(handle).toList()

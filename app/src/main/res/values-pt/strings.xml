@@ -267,4 +267,17 @@
     <string name="all_pages_n">Todas (1–%1$d)</string>
     <string name="range_hint">Por exemplo: 1-3, 5, 8-</string>
     <string name="extract">Extrair</string>
+    <string name="split">Dividir…</string>
+    <string name="split_every_n">A cada tantas páginas</string>
+    <string name="pages_per_file">Páginas por arquivo</string>
+    <string name="split_ranges">Por intervalos</string>
+    <string name="split_ranges_hint">Cada grupo vira um arquivo: 1-3, 4-10, 11-</string>
+    <string name="split_each_page">Um arquivo por página</string>
+    <string name="split_max_size">Até um tamanho de arquivo</string>
+    <string name="share_zip">Compartilhar ZIP</string>
+    <string name="save_to_folder">Salvar na pasta</string>
+    <plurals name="split_saved">
+        <item quantity="one">%1$d arquivo salvo</item>
+        <item quantity="other">%1$d arquivos salvos</item>
+    </plurals>
 </resources>

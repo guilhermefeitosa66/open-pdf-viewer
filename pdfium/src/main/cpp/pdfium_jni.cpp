@@ -1346,3 +1346,33 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_appendPagesF
 }
 
 }  // extern "C"
+
+extern "C" {
+
+// Writes a new PDF with just the given pages (by index, in that order) to fd. Unused objects of
+// the original are not carried over.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_writePages(
+        JNIEnv* env, jobject, jlong handle, jintArray indicesArr, jint fd) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    jsize len = env->GetArrayLength(indicesArr);
+    if (len <= 0) return JNI_FALSE;
+    std::vector<int> idx(len);
+    env->GetIntArrayRegion(indicesArr, 0, len, idx.data());
+    FPDF_DOCUMENT out = FPDF_CreateNewDocument();
+    if (!out) return JNI_FALSE;
+    bool ok = FPDF_ImportPagesByIndex(out, d->doc, idx.data(), static_cast<unsigned long>(len), 0);
+    if (ok) {
+        FPDF_CopyViewerPreferences(out, d->doc);
+        FdWriter w{};
+        w.version = 1;
+        w.WriteBlock = writeBlock;
+        w.fd = fd;
+        w.failed = false;
+        ok = FPDF_SaveAsCopy(out, &w, FPDF_NO_INCREMENTAL) && !w.failed;
+    }
+    FPDF_CloseDocument(out);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"

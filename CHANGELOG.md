@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.32.0 (2026-11-24)
+
+- Split (Organize pages › ⋮ › Split…): every few pages, by ranges (each group a file), one file per page, or up to a file size. The files go to a folder you choose or into a ZIP to share.
+
 ## 0.31.0 (2026-11-24)
 
 - Organize pages › Extract: the selected pages (in their order, with any rotation) become a new PDF saved where you choose; the open document does not change.

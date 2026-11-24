@@ -71,9 +71,11 @@ import io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfOpenException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
@@ -104,6 +106,8 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
     val extras = remember { mutableStateListOf<ViewerViewModel.InsertedPage>() }
     var insertMenu by remember { mutableStateOf(false) }
     var blankDialog by remember { mutableStateOf(false) }
+    var splitDialog by remember { mutableStateOf(false) }
+    var moreMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var importing by remember { mutableStateOf<ImportState?>(null) }
@@ -179,6 +183,17 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                         }
                     }
                     IconButton(onClick = { undo() }, enabled = canUndo) { Icon(AppIcons.Undo, stringResource(R.string.undo)) }
+                    Box {
+                        IconButton(onClick = { moreMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options)) }
+                        DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
+                            // Split works on the document as saved, so it waits for page changes to be saved.
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.split)) },
+                                enabled = !changed,
+                                onClick = { moreMenu = false; splitDialog = true },
+                            )
+                        }
+                    }
                     Box {
                         TextButton(onClick = { saveMenu = true }, enabled = changed) { Text(stringResource(R.string.save)) }
                         DropdownMenu(expanded = saveMenu, onDismissRequest = { saveMenu = false }) {
@@ -302,6 +317,7 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
             scope = scope,
         )
     }
+    if (splitDialog) SplitDialog(total, onSplit = { mode, folder -> splitDialog = false; vm.split(mode, folder) }, onDismiss = { splitDialog = false })
     if (askLeave) {
         AlertDialog(
             onDismissRequest = { askLeave = false },
@@ -508,6 +524,69 @@ private fun ImportDialog(
                     onClick = { PageRanges.parse(text, st.pageCount)?.let(onInsert) },
                 ) { Text(stringResource(R.string.insert)) }
                 else -> {}
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun SplitDialog(pageCount: Int, onSplit: (SplitMode, android.net.Uri?) -> Unit, onDismiss: () -> Unit) {
+    var choice by remember { mutableStateOf(0) }
+    var n by remember { mutableStateOf("1") }
+    var ranges by remember { mutableStateOf("") }
+    var mb by remember { mutableStateOf("5") }
+    val mode: SplitMode? = when (choice) {
+        0 -> n.toIntOrNull()?.takeIf { it in 1..pageCount }?.let { SplitMode.EveryN(it) }
+        1 -> SplitMode.Ranges(ranges).takeIf { SplitMode.groups(it, pageCount) != null }
+        2 -> SplitMode.EachPage
+        else -> mb.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }?.let { SplitMode.MaxSize((it * 1024 * 1024).toLong()) }
+    }
+    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+        if (tree != null && mode != null) onSplit(mode, tree)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.split)) },
+        text = {
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                @Composable
+                fun option(i: Int, label: String, field: (@Composable () -> Unit)? = null) {
+                    Row(Modifier.fillMaxWidth().clickable { choice = i }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = choice == i, onClick = { choice = i })
+                        Text(label, modifier = Modifier.weight(1f))
+                    }
+                    if (choice == i && field != null) Box(Modifier.padding(start = 48.dp, bottom = 8.dp)) { field() }
+                }
+                option(0, stringResource(R.string.split_every_n)) {
+                    OutlinedTextField(
+                        value = n, onValueChange = { n = it.filter(Char::isDigit).take(5) }, singleLine = true,
+                        label = { Text(stringResource(R.string.pages_per_file)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
+                option(1, stringResource(R.string.split_ranges)) {
+                    OutlinedTextField(
+                        value = ranges, onValueChange = { ranges = it.take(200) }, singleLine = true,
+                        label = { Text(stringResource(R.string.pages_to_insert)) },
+                        supportingText = { Text(stringResource(R.string.split_ranges_hint)) },
+                        isError = ranges.isNotBlank() && mode == null,
+                    )
+                }
+                option(2, stringResource(R.string.split_each_page))
+                option(3, stringResource(R.string.split_max_size)) {
+                    OutlinedTextField(
+                        value = mb, onValueChange = { mb = it.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(6) }, singleLine = true,
+                        label = { Text("MB") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row {
+                TextButton(enabled = mode != null, onClick = { mode?.let { onSplit(it, null) } }) { Text(stringResource(R.string.share_zip)) }
+                TextButton(enabled = mode != null, onClick = { folderPicker.launch(null) }) { Text(stringResource(R.string.save_to_folder)) }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

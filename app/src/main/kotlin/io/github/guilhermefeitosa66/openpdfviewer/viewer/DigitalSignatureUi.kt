@@ -78,6 +78,19 @@ fun DigitalSignatureEffects(vm: ViewerViewModel) {
         }
     }
     (vm.state as? DocState.Ready)?.let { if (vm.organizeOpen) PageOrganizer(vm, it) }
+    vm.zipToShare?.let { zip ->
+        LaunchedEffect(zip) {
+            vm.zipToShare = null
+            io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.shareFileFrom(ctx, zip, "application/zip")
+        }
+    }
+    vm.splitCount?.let { n ->
+        val msg = androidx.compose.ui.res.pluralStringResource(R.plurals.split_saved, n, n)
+        LaunchedEffect(n) {
+            Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+            vm.splitCount = null
+        }
+    }
     if (vm.digitalSignOpen) DigitalSignatureSheet(vm)
     vm.signatureChecks?.let { SignatureChecksDialog(it) { vm.signatureChecks = null } }
 }

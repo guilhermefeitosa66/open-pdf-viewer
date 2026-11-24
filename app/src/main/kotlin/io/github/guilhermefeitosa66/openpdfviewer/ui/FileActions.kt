@@ -85,16 +85,7 @@ class FileActions internal constructor(
     }
 
     /** Share sheet for any local file inside the cache share folder. */
-    fun shareFile(file: File, mime: String) {
-        val shared = FileProvider.getUriForFile(context, context.packageName + ".files", file)
-        val send = Intent(Intent.ACTION_SEND)
-            .setType(mime)
-            .putExtra(Intent.EXTRA_STREAM, shared)
-            .putExtra(Intent.EXTRA_TITLE, file.name)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        send.clipData = ClipData.newUri(context.contentResolver, file.name, shared)
-        context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }
+    fun shareFile(file: File, mime: String) = shareFileFrom(context, file, mime)
 
     internal fun onSaveTarget(target: Uri?) {
         val source = pendingSave ?: return
@@ -145,6 +136,18 @@ class FileActions internal constructor(
     }
 
     companion object {
+        /** Share sheet for a local file inside the cache share folder. */
+        fun shareFileFrom(context: Context, file: File, mime: String) {
+            val shared = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+            val send = Intent(Intent.ACTION_SEND)
+                .setType(mime)
+                .putExtra(Intent.EXTRA_STREAM, shared)
+                .putExtra(Intent.EXTRA_TITLE, file.name)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            send.clipData = ClipData.newUri(context.contentResolver, file.name, shared)
+            context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+
         /** A file name that is safe on any file system, ending in .pdf. */
         fun safeName(name: String): String {
             val base = name.replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]"), "_").trim().ifEmpty { "document" }
