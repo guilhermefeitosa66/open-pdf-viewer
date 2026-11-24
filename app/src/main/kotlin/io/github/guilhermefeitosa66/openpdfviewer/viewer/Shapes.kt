@@ -31,6 +31,27 @@ object Shapes {
         return listOf(shaft, listOf(wing(spread), x1 to y1, wing(-spread)))
     }
 
+    /**
+     * Marks for "fill and sign", centered on (x, y), [sizePt] points tall. Built in page points so
+     * they keep their shape on any page size.
+     */
+    fun checkMark(x: Float, y: Float, sizePt: Float, pageW: Float, pageH: Float): List<List<Pair<Float, Float>>> {
+        fun p(dx: Float, dy: Float) = (x + dx * sizePt / pageW) to (y + dy * sizePt / pageH)
+        return listOf(listOf(p(-0.45f, 0.0f), p(-0.12f, 0.35f), p(0.5f, -0.45f)))
+    }
+
+    fun crossMark(x: Float, y: Float, sizePt: Float, pageW: Float, pageH: Float): List<List<Pair<Float, Float>>> {
+        fun p(dx: Float, dy: Float) = (x + dx * sizePt / pageW) to (y + dy * sizePt / pageH)
+        return listOf(listOf(p(-0.4f, -0.4f), p(0.4f, 0.4f)), listOf(p(-0.4f, 0.4f), p(0.4f, -0.4f)))
+    }
+
+    /** Corners (normalized) of a dot of [sizePt] points centered on (x, y). */
+    fun dot(x: Float, y: Float, sizePt: Float, pageW: Float, pageH: Float): FloatArray {
+        val rx = sizePt / 2f / pageW
+        val ry = sizePt / 2f / pageH
+        return floatArrayOf(x - rx, y - ry, x + rx, y + ry)
+    }
+
     /** A closed polygon: the vertices plus the first one again. */
     fun polygon(points: List<Pair<Float, Float>>): List<List<Pair<Float, Float>>> =
         if (points.size < 2) emptyList() else listOf(points + points.first())

@@ -196,4 +196,10 @@
     <string name="save_flattened">Guardar copia aplanada…</string>
     <string name="form_field">Campo</string>
     <string name="next_field">Siguiente campo</string>
+    <string name="fill_and_sign">Rellenar y firmar</string>
+    <string name="place_date">Fecha de hoy</string>
+    <string name="place_check">Marca de verificación ✓</string>
+    <string name="place_cross">Cruz ✗</string>
+    <string name="place_dot">Punto ●</string>
+    <string name="tap_to_place_mark">Toca donde irá (cuantas veces necesites)</string>
 </resources>

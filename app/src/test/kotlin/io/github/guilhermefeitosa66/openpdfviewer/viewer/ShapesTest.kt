@@ -20,4 +20,19 @@ class ShapesTest {
         assertEquals(4, p.single().size)
         assertEquals(p.single().first(), p.single().last())
     }
+
+    @Test
+    fun marksKeepTheirSizeInPoints() {
+        // On a wide page, the same mark spans fewer normalized units across.
+        val narrow = Shapes.crossMark(0.5f, 0.5f, 20f, 200f, 800f).first()
+        val wide = Shapes.crossMark(0.5f, 0.5f, 20f, 800f, 800f).first()
+        assertEquals(4f * (wide[1].first - wide[0].first), narrow[1].first - narrow[0].first, 1e-4f)
+    }
+
+    @Test
+    fun dotIsCentered() {
+        val d = Shapes.dot(0.5f, 0.25f, 10f, 500f, 1000f)
+        assertEquals(0.5f, (d[0] + d[2]) / 2, 1e-5f)
+        assertEquals(0.25f, (d[1] + d[3]) / 2, 1e-5f)
+    }
 }

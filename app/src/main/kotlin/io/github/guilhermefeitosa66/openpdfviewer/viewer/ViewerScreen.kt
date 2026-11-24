@@ -254,8 +254,20 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
         Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp)) {
             Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.inverseSurface, contentColor = MaterialTheme.colorScheme.inverseOnSurface) {
                 Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(if (mode == ViewerViewModel.Place.NOTE) R.string.tap_to_place_note else R.string.tap_to_place_text), fontSize = 14.sp)
-                    TextButton(onClick = { vm.placing = null }) { Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.inverseOnSurface) }
+                    Text(
+                        stringResource(
+                            when (mode) {
+                                ViewerViewModel.Place.NOTE -> R.string.tap_to_place_note
+                                ViewerViewModel.Place.TEXT -> R.string.tap_to_place_text
+                                else -> R.string.tap_to_place_mark
+                            }
+                        ),
+                        fontSize = 14.sp,
+                    )
+                    val stays = mode != ViewerViewModel.Place.NOTE && mode != ViewerViewModel.Place.TEXT
+                    TextButton(onClick = { vm.placing = null }) {
+                        Text(stringResource(if (stays) R.string.done else R.string.cancel), color = MaterialTheme.colorScheme.inverseOnSurface)
+                    }
                 }
             }
         }
@@ -1368,13 +1380,22 @@ private fun PanelItem(label: String, checked: Boolean? = null, onClick: () -> Un
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(bottom = 24.dp)) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(Modifier.padding(bottom = 24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
             Text(stringResource(R.string.annotate_hint), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             PanelItem(stringResource(R.string.add_note)) { onDismiss(); vm.placing = ViewerViewModel.Place.NOTE }
             PanelItem(stringResource(R.string.add_text)) { onDismiss(); vm.placing = ViewerViewModel.Place.TEXT }
             PanelItem(stringResource(R.string.draw)) { onDismiss(); vm.startDrawing() }
             PanelItem(stringResource(R.string.shapes)) { onDismiss(); vm.startShapes() }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            Text(stringResource(R.string.fill_and_sign), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            PanelItem(stringResource(R.string.place_date)) { onDismiss(); vm.placing = ViewerViewModel.Place.DATE }
+            PanelItem(stringResource(R.string.place_check)) { onDismiss(); vm.placing = ViewerViewModel.Place.CHECK }
+            PanelItem(stringResource(R.string.place_cross)) { onDismiss(); vm.placing = ViewerViewModel.Place.CROSS }
+            PanelItem(stringResource(R.string.place_dot)) { onDismiss(); vm.placing = ViewerViewModel.Place.DOT }
         }
     }
 }
@@ -1385,7 +1406,10 @@ private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
 private fun ViewPanel(vp: Viewport, onLayout: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
             PanelItem(stringResource(R.string.fit_width), checked = kotlin.math.abs(vp.zoom - 1f) < 0.01f) { vp.setZoomAndPage(1f, vp.currentPage); onDismiss() }
             PanelItem(stringResource(R.string.fit_page)) { val p = vp.currentPage; vp.setZoomAndPage(vp.fitPageZoom(p), p); onDismiss() }

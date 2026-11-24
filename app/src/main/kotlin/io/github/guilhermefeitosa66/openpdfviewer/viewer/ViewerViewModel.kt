@@ -469,8 +469,14 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         placing?.let { mode ->
             // Placing a note or text: a tap in a gap still lands on the nearest page.
             val at = r.viewport.nearestPageHit(p) ?: return
-            placing = null
-            placementTarget = Triple(mode, at.page, Offset(at.x, at.y))
+            when (mode) {
+                Place.NOTE, Place.TEXT -> {
+                    placing = null
+                    placementTarget = Triple(mode, at.page, Offset(at.x, at.y))
+                }
+                // Marks go down right away, and the tool stays on for the next one.
+                else -> placeMark(mode, at.page, Offset(at.x, at.y))
+            }
             return
         }
         val hit = r.viewport.screenToPage(p) ?: return orElse()
@@ -673,7 +679,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Notes and text ----
 
-    enum class Place { NOTE, TEXT }
+    enum class Place { NOTE, TEXT, DATE, CHECK, CROSS, DOT }
 
     /** Waiting for a tap that says where the new note or text goes. */
     var placing by mutableStateOf<Place?>(null)
@@ -683,6 +689,33 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var openedAnnot by mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit?>(null)
 
     private val authorName get() = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication()).authorName.ifBlank { null }
+
+    /** Date, check, cross or dot at a point (fill and sign), in the pen color. */
+    private fun placeMark(mode: Place, page: Int, at: Offset) {
+        val r = ready ?: return
+        val settings = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication())
+        val color = settings.inkColor or 0xFF000000.toInt()
+        val author = authorName
+        val size = r.doc.pageSizes[page]
+        val markPt = 14f
+        val stroke = 1.6f
+        when (mode) {
+            Place.DATE -> {
+                val text = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date())
+                // The tap marks the start of the text, a little above the baseline.
+                createAnnot(page) { doc, nm ->
+                    doc.addText(page, at.x, at.y - 6f / size.height, text, io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.StandardFont.SANS, 11f, color, author, nm)
+                }
+            }
+            Place.CHECK -> createAnnot(page) { doc, nm -> doc.addPaths(page, Shapes.checkMark(at.x, at.y, markPt, size.width, size.height), color, stroke, author, nm) }
+            Place.CROSS -> createAnnot(page) { doc, nm -> doc.addPaths(page, Shapes.crossMark(at.x, at.y, markPt, size.width, size.height), color, stroke, author, nm) }
+            Place.DOT -> {
+                val d = Shapes.dot(at.x, at.y, 6f, size.width, size.height)
+                createAnnot(page) { doc, nm -> doc.addBox(page, d[0], d[1], d[2], d[3], true, color, color, 0.5f, author, nm) }
+            }
+            else -> Unit
+        }
+    }
 
     fun addNote(page: Int, at: Offset, text: String) {
         val author = authorName
