@@ -51,6 +51,15 @@ class ThemeSettings private constructor(context: Context) {
         }.apply()
     }
 
+    /** Page color for reading (normal, night, sepia). Global, like the theme: one choice to make. */
+    var pageMode by mutableStateOf(io.github.guilhermefeitosa66.openpdfviewer.viewer.PageMode.fromName(prefs.getString(KEY_PAGE_MODE, null)))
+        private set
+
+    fun choosePageMode(mode: io.github.guilhermefeitosa66.openpdfviewer.viewer.PageMode) {
+        pageMode = mode
+        prefs.edit().putString(KEY_PAGE_MODE, mode.name).apply()
+    }
+
     fun setBackground(enabled: Boolean) {
         backgroundEnabled = enabled
         prefs.edit().putBoolean(KEY_BACKGROUND, enabled).apply()
@@ -59,6 +68,7 @@ class ThemeSettings private constructor(context: Context) {
     companion object {
         private const val KEY_THEME = "theme"
         private const val KEY_BACKGROUND = "background"
+        private const val KEY_PAGE_MODE = "page_mode"
         private const val KEY_CACHE = "theme_cache"
         private const val KEY_CACHE_VERSION = "theme_cache_version"
 

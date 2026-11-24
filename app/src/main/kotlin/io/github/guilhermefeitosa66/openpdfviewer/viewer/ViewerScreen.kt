@@ -114,6 +114,7 @@ fun ViewerScreen(
         when {
             vm.selection != null -> vm.clearSelection()
             vm.searchOpen -> vm.closeSearch()
+            vm.goBack() -> Unit
             else -> leave()
         }
     }
@@ -163,12 +164,51 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
         ready = ready,
         padTop = padTop,
         padBottom = padBottom,
-        onTap = {
-            if (vm.selection != null) vm.clearSelection() else barsVisible = !barsVisible
+        onTap = { p ->
+            if (vm.selection != null) vm.clearSelection()
+            else vm.onTap(p) { barsVisible = !barsVisible }
         },
     )
 
     SelectionOverlay(vm, vp)
+
+    // After following a link or a contents entry: a way back to where the reader was.
+    vm.historyTop?.let { (page, _) ->
+        Box(Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 16.dp, bottom = 84.dp)) {
+            Surface(
+                onClick = { vm.goBack() },
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = 4.dp,
+            ) {
+                Row(Modifier.padding(start = 10.dp, end = 16.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.back_to_page, page + 1), fontSize = 14.sp)
+                }
+            }
+        }
+    }
+
+    vm.pendingWebLink?.let { link ->
+        AlertDialog(
+            onDismissRequest = vm::dismissWebLink,
+            title = { Text(stringResource(R.string.open_link_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(link, fontWeight = FontWeight.Medium, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                    Text(stringResource(R.string.open_link_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.dismissWebLink()
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
+                }) { Text(stringResource(R.string.open)) }
+            },
+            dismissButton = { TextButton(onClick = vm::dismissWebLink) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 
     if (vp.pageCount > 3) FastScroller(vp, padTop, padBottom)
 
@@ -217,9 +257,9 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     if (pagesOpen) {
         PagesSheet(
             ready = ready,
-            onGoTo = { page ->
-                vp.scrollToPage(page)
-                ready.renderer.request(vp)
+            vm = vm,
+            onGoTo = { page, offset ->
+                vm.jumpTo(page, offset)
                 pagesOpen = false
             },
             onDismiss = { pagesOpen = false },
@@ -239,6 +279,7 @@ private fun TopBar(
     onSaveCopy: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val vp = ready.viewport
     Row(
         Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
@@ -279,6 +320,22 @@ private fun TopBar(
                         vp.setZoomAndPage(vp.fitPageZoom(page), page)
                     },
                 )
+                HorizontalDivider()
+                val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+                for ((mode, label) in listOf(
+                    PageMode.NORMAL to R.string.page_normal,
+                    PageMode.NIGHT to R.string.page_night,
+                    PageMode.SEPIA to R.string.page_sepia,
+                )) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(label)) },
+                        trailingIcon = { if (settings.pageMode == mode) Icon(Icons.Filled.Check, null) },
+                        onClick = {
+                            menu = false
+                            settings.choosePageMode(mode)
+                        },
+                    )
+                }
                 HorizontalDivider()
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.share_file)) },

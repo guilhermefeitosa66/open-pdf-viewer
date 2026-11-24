@@ -66,4 +66,14 @@
     <string name="file_unavailable">Este arquivo não está mais disponível. Abra de novo pelo app que o enviou.</string>
     <string name="remove_from_list">Tirar da lista</string>
     <string name="file_options">Opções de %1$s</string>
+    <string name="contents">Sumário</string>
+    <string name="no_contents">Este documento não tem sumário.</string>
+    <string name="back_to_page">Voltar à página %1$d</string>
+    <string name="open_link_title">Abrir este link?</string>
+    <string name="open_link_body">Ele abre no seu navegador. O Open PDF Viewer em si nunca acessa a internet.</string>
+    <string name="expand">Expandir</string>
+    <string name="collapse">Recolher</string>
+    <string name="page_normal">Página: normal</string>
+    <string name="page_night">Página: noturna</string>
+    <string name="page_sepia">Página: sépia</string>
 </resources>

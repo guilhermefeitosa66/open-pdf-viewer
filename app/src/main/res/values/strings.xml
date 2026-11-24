@@ -67,4 +67,14 @@
     <string name="file_unavailable">This file is no longer available. Open it again from the app that sent it.</string>
     <string name="remove_from_list">Remove from list</string>
     <string name="file_options">Options for %1$s</string>
+    <string name="contents">Contents</string>
+    <string name="no_contents">This document has no table of contents.</string>
+    <string name="back_to_page">Back to page %1$d</string>
+    <string name="open_link_title">Open this link?</string>
+    <string name="open_link_body">It opens in your browser. Open PDF Viewer itself never goes online.</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
+    <string name="page_normal">Page: normal</string>
+    <string name="page_night">Page: night</string>
+    <string name="page_sepia">Page: sepia</string>
 </resources>

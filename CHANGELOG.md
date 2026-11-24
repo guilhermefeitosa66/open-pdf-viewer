@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.3.0 (2026-11-24)
+
+- Contents: the document outline as an expandable tree in a new tab of the pages sheet; the branch of the current page starts open.
+- Links: internal links jump inside the document and a "Back to page N" chip (or the system back) returns to where you were; web links ask before opening the browser (the app itself still has no internet permission).
+
 ## 0.2.0 (2026-11-24)
 
 - Share a PDF from the viewer or from any recent file: the system share sheet gets a copy under the file's own name (FileProvider).

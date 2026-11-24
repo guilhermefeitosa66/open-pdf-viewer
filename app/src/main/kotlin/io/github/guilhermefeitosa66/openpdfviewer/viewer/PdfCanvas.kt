@@ -55,7 +55,7 @@ fun PdfCanvas(
     ready: DocState.Ready,
     padTop: Float,
     padBottom: Float,
-    onTap: () -> Unit,
+    onTap: (Offset) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val vp = ready.viewport
@@ -64,6 +64,8 @@ fun PdfCanvas(
     val density = LocalDensity.current
     val gap = with(density) { 8.dp.toPx() }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
     var size by remember { mutableStateOf(IntSize.Zero) }
     var placed by remember(ready) { mutableStateOf(false) }
 
@@ -120,7 +122,7 @@ fun PdfCanvas(
             }
             .pointerInput(ready) {
                 detectTapGestures(
-                    onTap = { onTap() },
+                    onTap = { p -> onTap(p) },
                     onDoubleTap = { p ->
                         val target = if (abs(vp.zoom - 1f) < 0.05f) 2f else 1f
                         scope.launch {
@@ -141,15 +143,17 @@ fun PdfCanvas(
         val selection = vm.selection
         val range = vp.visiblePages()
         val shadow = Color(0x2E1E1612)
+        val mode = settings.pageMode
+        val filter = mode.filter
 
         for (i in range) {
             val r = vp.pageRect(i)
             drawRect(shadow, Offset(r.left, r.top + 1.5f), r.size)
-            drawRect(Color.White, r.topLeft, r.size)
-            renderer.base(i)?.let { drawBitmap(it, r) }
+            drawRect(mode.paper, r.topLeft, r.size)
+            renderer.base(i)?.let { drawBitmap(it, r, filter) }
         }
         for (t in renderer.tiles()) {
-            if (t.page in range) drawBitmap(t.image, vp.toScreen(t.page, t.left, t.top, t.right, t.bottom))
+            if (t.page in range) drawBitmap(t.image, vp.toScreen(t.page, t.left, t.top, t.right, t.bottom), filter)
         }
         for (i in range) {
             for (mi in vm.matchesOnPage(i)) {
@@ -157,10 +161,12 @@ fun PdfCanvas(
                 val isCurrent = mi == current
                 for (rc in m.rects) {
                     val sr = vp.toScreen(i, rc.left, rc.top, rc.right, rc.bottom).inflate(1.5f)
-                    drawRect(
-                        if (isCurrent) colors.highlightCurrent else colors.highlight,
-                        sr.topLeft, sr.size, blendMode = BlendMode.Multiply,
-                    )
+                    val tint = if (isCurrent) colors.highlightCurrent else colors.highlight
+                    if (mode.multiplyHighlights) {
+                        drawRect(tint, sr.topLeft, sr.size, blendMode = BlendMode.Multiply)
+                    } else {
+                        drawRect(tint.copy(alpha = 0.45f), sr.topLeft, sr.size)
+                    }
                     if (isCurrent) {
                         drawRect(colors.highlightCurrentRing, sr.topLeft, sr.size, style = Stroke(2f * density.density))
                     }
@@ -176,7 +182,7 @@ fun PdfCanvas(
     }
 }
 
-private fun DrawScope.drawBitmap(img: ImageBitmap, dst: Rect) {
+private fun DrawScope.drawBitmap(img: ImageBitmap, dst: Rect, filter: androidx.compose.ui.graphics.ColorFilter?) {
     drawImage(
         image = img,
         srcOffset = IntOffset.Zero,
@@ -184,5 +190,6 @@ private fun DrawScope.drawBitmap(img: ImageBitmap, dst: Rect) {
         dstOffset = IntOffset(dst.left.roundToInt(), dst.top.roundToInt()),
         dstSize = IntSize(dst.width.roundToInt().coerceAtLeast(1), dst.height.roundToInt().coerceAtLeast(1)),
         filterQuality = FilterQuality.Medium,
+        colorFilter = filter,
     )
 }

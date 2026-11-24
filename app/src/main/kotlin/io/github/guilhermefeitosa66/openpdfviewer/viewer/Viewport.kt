@@ -179,6 +179,9 @@ class Viewport(private val sizes: List<PageSize>) {
         scrollY = scrollY.coerceIn(0f, (contentHeight - height).coerceAtLeast(0f))
     }
 
+    /** The page at the top of the reading area and how far into it (normalized). */
+    fun topAnchor(): Pair<Int, Float> = currentAnchor().let { it.page to it.offset.coerceIn(0f, 1f) }
+
     private data class Anchor(val page: Int, val offset: Float)
 
     private fun currentAnchor(): Anchor {

@@ -9,6 +9,16 @@ class PdfOpenException(val reason: Reason) : Exception(reason.name) {
     enum class Reason { FILE, FORMAT, PASSWORD, SECURITY, UNKNOWN }
 }
 
+/** One entry of the document outline (table of contents), in reading order. */
+data class OutlineItem(val title: String, val level: Int, val page: Int, val offset: Float)
+
+/** What a tap on a link leads to. */
+sealed interface LinkTarget {
+    /** A place in this document: page index and normalized vertical offset in it. */
+    data class Page(val page: Int, val offset: Float) : LinkTarget
+    data class Web(val uri: String) : LinkTarget
+}
+
 /** Size of a page in points, with the page rotation applied. */
 data class PageSize(val width: Float, val height: Float)
 
@@ -107,6 +117,41 @@ class PdfDocument private constructor(private val handle: Long) {
             val t = textOf(lp)
             if (t == 0L) -1 else PdfiumNative.charIndexAt(lp.page, t, x, y, tolerancePt)
         }
+
+    /** The outline, flattened in reading order with nesting levels. Empty when there is none. */
+    suspend fun outline(): List<OutlineItem> = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext emptyList()
+        val raw = PdfiumNative.outline(handle)
+        @Suppress("UNCHECKED_CAST") val titles = raw[0] as Array<String>
+        val levels = raw[1] as IntArray
+        val pages = raw[2] as IntArray
+        val ys = raw[3] as FloatArray
+        List(titles.size) { i -> OutlineItem(titles[i].trim(), levels[i], pages[i], offsetFor(pages[i], ys[i])) }
+    }
+
+    /** The link under a normalized point of page [index], if any. */
+    suspend fun linkAt(index: Int, x: Float, y: Float): LinkTarget? = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext null
+        val lp = page(index) ?: return@withContext null
+        val s = PdfiumNative.linkAt(handle, lp.page, x, y) ?: return@withContext null
+        when {
+            s.startsWith("u:") -> LinkTarget.Web(s.substring(2))
+            s.startsWith("p:") -> {
+                val parts = s.split(':')
+                val target = parts.getOrNull(1)?.toIntOrNull() ?: return@withContext null
+                if (target !in 0 until pageCount) return@withContext null
+                LinkTarget.Page(target, offsetFor(target, parts.getOrNull(2)?.toFloatOrNull() ?: Float.NaN))
+            }
+            else -> null
+        }
+    }
+
+    /** PDF y (origin bottom-left) to a normalized offset from the top of the page. */
+    private fun offsetFor(page: Int, y: Float): Float {
+        if (y.isNaN() || page !in 0 until pageCount) return 0f
+        val h = pageSizes[page].height
+        return (1f - y / h).coerceIn(0f, 1f)
+    }
 
     /** Closes on the PDFium thread; queued work for this document finishes first. */
     suspend fun closeAsync() = withContext(PdfiumThread.dispatcher) { closeNow() }

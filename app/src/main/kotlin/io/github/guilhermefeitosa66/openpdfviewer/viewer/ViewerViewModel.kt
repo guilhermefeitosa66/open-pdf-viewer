@@ -72,6 +72,16 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     private var searchJob: Job? = null
     private val normalized = HashMap<Int, NormalizedText>()
 
+    // Outline and links
+    var outline by mutableStateOf<List<io.github.guilhermefeitosa66.openpdfviewer.pdfium.OutlineItem>?>(null)
+        private set
+    private val history = ArrayDeque<Pair<Int, Float>>()
+    var historyTop by mutableStateOf<Pair<Int, Float>?>(null)
+        private set
+    /** A web link waiting for the user to confirm before the browser opens. */
+    var pendingWebLink by mutableStateOf<String?>(null)
+        private set
+
     // Selection
     var selection by mutableStateOf<Selection?>(null)
         private set
@@ -254,6 +264,51 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         r.renderer.request(r.viewport)
     }
 
+    // ---- Outline and links ----
+
+    fun loadOutline() {
+        val r = ready ?: return
+        if (outline != null) return
+        viewModelScope.launch { outline = r.doc.outline() }
+    }
+
+    /** Jumps inside the document, remembering where the reader was so "back" can return. */
+    fun jumpTo(page: Int, offset: Float) {
+        val r = ready ?: return
+        history.addLast(r.viewport.topAnchor())
+        if (history.size > 50) history.removeFirst()
+        historyTop = history.lastOrNull()
+        r.viewport.scrollToPage(page, offset)
+        r.renderer.request(r.viewport)
+    }
+
+    /** Returns to the place before the last jump; false when there is none. */
+    fun goBack(): Boolean {
+        val r = ready ?: return false
+        val (page, offset) = history.removeLastOrNull() ?: return false
+        historyTop = history.lastOrNull()
+        r.viewport.scrollToPage(page, offset)
+        r.renderer.request(r.viewport)
+        return true
+    }
+
+    /** A tap on the page: follows a link under the finger, otherwise runs [orElse]. */
+    fun onTap(p: Offset, orElse: () -> Unit) {
+        val r = ready ?: return orElse()
+        val hit = r.viewport.screenToPage(p) ?: return orElse()
+        viewModelScope.launch {
+            when (val link = r.doc.linkAt(hit.page, hit.x, hit.y)) {
+                is io.github.guilhermefeitosa66.openpdfviewer.pdfium.LinkTarget.Page -> jumpTo(link.page, link.offset)
+                is io.github.guilhermefeitosa66.openpdfviewer.pdfium.LinkTarget.Web -> pendingWebLink = link.uri
+                null -> orElse()
+            }
+        }
+    }
+
+    fun dismissWebLink() {
+        pendingWebLink = null
+    }
+
     // ---- Selection ----
 
     fun selectWordAt(p: Offset) {
@@ -330,6 +385,10 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         closeSearch()
         selection = null
         normalized.clear()
+        outline = null
+        history.clear()
+        historyTop = null
+        pendingWebLink = null
         val r = ready
         state = DocState.Loading
         uri = null

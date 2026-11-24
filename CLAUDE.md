@@ -79,5 +79,10 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
 - **Handles nativos são opacos.** No arm64 os ponteiros do heap têm tag no byte alto e viram
   `jlong` negativo: nunca usar sinal de handle como erro (só `0` = falha). O emulador x86_64 não
   pega isso; mudança na camada JNI se testa também num aparelho arm64.
+- **Modo da página** (normal/noturno/sépia) é global, como o tema, e é só um filtro de cor no
+  desenho (rampa de luminância tinta→papel): troca na hora, sem re-renderizar. Fotos ficam
+  monocromáticas nos modos noturno/sépia, de propósito.
+- **Links**: internos pulam e empilham a posição anterior (chip "Voltar à página N" e o voltar do
+  sistema); externos pedem confirmação e abrem no navegador (o app continua sem `INTERNET`).
 - **Seleção** limitada a uma página por vez na v0.1.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

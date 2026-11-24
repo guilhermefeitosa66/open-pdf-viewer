@@ -1,6 +1,22 @@
 package io.github.guilhermefeitosa66.openpdfviewer.viewer
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import io.github.guilhermefeitosa66.openpdfviewer.pdfium.OutlineItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -52,7 +69,7 @@ import io.github.guilhermefeitosa66.openpdfviewer.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PagesSheet(ready: DocState.Ready, onGoTo: (Int) -> Unit, onDismiss: () -> Unit) {
+fun PagesSheet(ready: DocState.Ready, vm: ViewerViewModel, onGoTo: (Int, Float) -> Unit, onDismiss: () -> Unit) {
     val vp = ready.viewport
     val renderer = ready.renderer
     val total = vp.pageCount
@@ -62,11 +79,25 @@ fun PagesSheet(ready: DocState.Ready, onGoTo: (Int) -> Unit, onDismiss: () -> Un
     var goto by remember { mutableStateOf("") }
     val thumbPx = with(LocalDensity.current) { 120.dp.roundToPx() }
     val submit = {
-        goto.toIntOrNull()?.let { n -> if (n in 1..total) onGoTo(n - 1) }
+        goto.toIntOrNull()?.let { n -> if (n in 1..total) onGoTo(n - 1, 0f) }
     }
+
+    LaunchedEffect(Unit) { vm.loadOutline() }
+    val outline = vm.outline
+    var tab by rememberSaveable { mutableIntStateOf(0) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.85f)) {
+            if (!outline.isNullOrEmpty()) {
+                TabRow(selectedTabIndex = tab, modifier = Modifier.padding(bottom = 8.dp)) {
+                    Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.pages)) })
+                    Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.contents)) })
+                }
+            }
+            if (tab == 1 && !outline.isNullOrEmpty()) {
+                OutlineList(outline, current, onGoTo)
+                return@Column
+            }
             Row(
                 Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -100,7 +131,7 @@ fun PagesSheet(ready: DocState.Ready, onGoTo: (Int) -> Unit, onDismiss: () -> Un
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(total, key = { it }) { i ->
-                    Thumbnail(i, ready, renderer, thumbPx, selected = i == current, onClick = { onGoTo(i) })
+                    Thumbnail(i, ready, renderer, thumbPx, selected = i == current, onClick = { onGoTo(i, 0f) })
                 }
             }
         }
@@ -135,10 +166,11 @@ private fun Thumbnail(
                 .aspectRatio((size.width / size.height).coerceIn(0.3f, 3f))
                 .then(if (selected) Modifier.border(3.dp, accent, RoundedCornerShape(4.dp)).padding(5.dp) else Modifier)
                 .clip(RoundedCornerShape(3.dp))
-                .background(Color.White),
+                .background(io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(LocalContext.current).pageMode.paper),
         ) {
             if (img != null) {
-                Image(img, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                val mode = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(LocalContext.current).pageMode
+                Image(img, contentDescription = null, contentScale = ContentScale.Fit, colorFilter = mode.filter, modifier = Modifier.fillMaxSize())
             }
         }
         Text(
@@ -148,5 +180,56 @@ private fun Thumbnail(
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/**
+ * The table of contents as an expandable tree. Entries with children show a chevron; the branch
+ * that holds the current page starts open.
+ */
+@Composable
+private fun OutlineList(items: List<OutlineItem>, currentPage: Int, onGoTo: (Int, Float) -> Unit) {
+    val hasChildren = remember(items) { OutlineTree.hasChildren(items.map { it.level }) }
+    val expanded = remember(items) {
+        mutableStateMapOf<Int, Boolean>().apply {
+            OutlineTree.ancestorsOfPage(items.map { it.level }, items.map { it.page }, currentPage).forEach { put(it, true) }
+        }
+    }
+    val visible = remember(items, expanded.toMap()) {
+        OutlineTree.visible(items.map { it.level }) { expanded[it] == true }
+    }
+    LazyColumn(contentPadding = PaddingValues(bottom = 32.dp), modifier = Modifier.fillMaxSize()) {
+        items(visible, key = { it }) { i ->
+            val item = items[i]
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { if (item.page >= 0) onGoTo(item.page, item.offset) }
+                    .heightIn(min = 48.dp)
+                    .padding(start = (12 + item.level * 16).dp, end = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (hasChildren[i]) {
+                    val open = expanded[i] == true
+                    IconButton(onClick = { expanded[i] = !open }) {
+                        Icon(
+                            if (open) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            stringResource(if (open) R.string.collapse else R.string.expand),
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.width(48.dp))
+                }
+                Text(
+                    item.title.ifEmpty { "—" },
+                    modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+                    fontSize = 15.sp,
+                    fontWeight = if (item.level == 0) FontWeight.Medium else FontWeight.Normal,
+                )
+                if (item.page >= 0) {
+                    Text("${item.page + 1}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
     }
 }
