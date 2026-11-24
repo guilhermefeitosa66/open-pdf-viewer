@@ -85,3 +85,4 @@ The app is licensed under the [Apache License 2.0](LICENSE).
 | Kotlin, kotlinx.coroutines | Apache-2.0 |
 | AndroidX (core, activity, lifecycle), Jetpack Compose, Material 3 | Apache-2.0 |
 | JUnit (tests only) | EPL-1.0 |
+| org.json (tests only) | Public domain |

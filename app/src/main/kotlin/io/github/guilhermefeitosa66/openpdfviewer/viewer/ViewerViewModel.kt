@@ -85,6 +85,11 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var pendingWebLink by mutableStateOf<String?>(null)
         private set
 
+    // Bookmarks
+    private val bookmarkStore = io.github.guilhermefeitosa66.openpdfviewer.data.Bookmarks(app)
+    var bookmarks by mutableStateOf<List<io.github.guilhermefeitosa66.openpdfviewer.data.Bookmark>>(emptyList())
+        private set
+
     // Selection
     var selection by mutableStateOf<Selection?>(null)
         private set
@@ -161,6 +166,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                     scrollX = known?.scrollX ?: 0.5f,
                 )
             )
+            bookmarks = bookmarkStore.load(target).filter { it.page in 0 until doc.pageCount }
             saveThumbnail(doc, target)
             DocumentSource.keepPrivateCopy(app, target)
         }
@@ -272,6 +278,31 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
             r.viewport.reveal(r.viewport.toScreen(m.page, first.left, first.top, first.right, first.bottom))
         }
         r.renderer.request(r.viewport)
+    }
+
+    // ---- Bookmarks ----
+
+    fun isBookmarked(page: Int) = bookmarks.any { it.page == page }
+
+    fun addBookmark(page: Int, title: String) = updateBookmarks {
+        (it.filterNot { b -> b.page == page } +
+            io.github.guilhermefeitosa66.openpdfviewer.data.Bookmark(page, title.trim(), System.currentTimeMillis()))
+            .sortedBy { b -> b.page }
+    }
+
+    fun renameBookmark(page: Int, title: String) = updateBookmarks { list ->
+        list.map { if (it.page == page) it.copy(title = title.trim()) else it }
+    }
+
+    fun removeBookmark(page: Int) = updateBookmarks { list -> list.filterNot { it.page == page } }
+
+    private fun updateBookmarks(
+        change: (List<io.github.guilhermefeitosa66.openpdfviewer.data.Bookmark>) -> List<io.github.guilhermefeitosa66.openpdfviewer.data.Bookmark>,
+    ) {
+        val target = uri ?: return
+        bookmarks = change(bookmarks)
+        val snapshot = bookmarks
+        viewModelScope.launch { bookmarkStore.save(target, snapshot) }
     }
 
     // ---- Outline and links ----
@@ -396,6 +427,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         selection = null
         normalized.clear()
         outline = null
+        bookmarks = emptyList()
         history.clear()
         historyTop = null
         pendingWebLink = null

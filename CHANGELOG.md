@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.8.0 (2026-11-24)
+
+- Bookmarks: mark the current page from the viewer menu with an editable title (the contents entry of the page is suggested), see a ribbon on marked pages, and jump, rename or remove them from a Bookmarks tab in the pages sheet. Stored by the app; the PDF is not changed.
+
 ## 0.7.0 (2026-11-24)
 
 - Page layout dialog in the viewer menu: continuous scroll (default) or page by page, with horizontal swipes that snap to whole pages.

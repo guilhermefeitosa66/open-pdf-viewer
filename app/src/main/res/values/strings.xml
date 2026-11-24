@@ -87,4 +87,11 @@
     <string name="layout_cover_alone">Show the first page alone (cover)</string>
     <string name="layout_rtl">Right to left</string>
     <string name="apply">Apply</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="add_bookmark">Bookmark this page</string>
+    <string name="remove_bookmark">Remove bookmark</string>
+    <string name="bookmark_title">Bookmark title</string>
+    <string name="no_bookmarks">No bookmarks yet. Use ⋮ › Bookmark this page while reading.</string>
+    <string name="rename">Rename</string>
+    <string name="save">Save</string>
 </resources>

@@ -292,6 +292,20 @@ private fun TopBar(
     val context = LocalContext.current
     val vp = ready.viewport
     if (layoutDialog) LayoutDialog(onDismiss = { layoutDialog = false })
+    var bookmarkPage by remember { mutableStateOf<Int?>(null) }
+    bookmarkPage?.let { p ->
+        // Suggest the contents entry of the page when the document has one.
+        val suggested = vm.outline?.lastOrNull { it.page in 0..p && it.page == p }?.title
+            ?: stringResource(R.string.page_n, p + 1)
+        BookmarkTitleDialog(
+            initial = suggested,
+            onSave = { title ->
+                vm.addBookmark(p, title)
+                bookmarkPage = null
+            },
+            onDismiss = { bookmarkPage = null },
+        )
+    }
     Row(
         Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -344,6 +358,24 @@ private fun TopBar(
                         onClick = {
                             menu = false
                             settings.choosePageMode(mode)
+                        },
+                    )
+                }
+                val page = vp.currentPage
+                if (vm.isBookmarked(page)) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.remove_bookmark)) },
+                        onClick = {
+                            menu = false
+                            vm.removeBookmark(page)
+                        },
+                    )
+                } else {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_bookmark)) },
+                        onClick = {
+                            menu = false
+                            bookmarkPage = page
                         },
                     )
                 }
@@ -791,6 +823,30 @@ private fun LayoutDialog(onDismiss: () -> Unit) {
                 onDismiss()
             }) { Text(stringResource(R.string.apply)) }
         },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** Title of a bookmark: used when adding one and when renaming it. */
+@Composable
+fun BookmarkTitleDialog(initial: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    var title by remember { mutableStateOf(initial) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.bookmark_title)) },
+        text = {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it.take(120) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (title.isNotBlank()) onSave(title) }),
+                modifier = Modifier.focusRequester(focus),
+            )
+        },
+        confirmButton = { TextButton(onClick = { onSave(title) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

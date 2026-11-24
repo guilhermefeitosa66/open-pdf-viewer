@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.guilhermefeitosa66.openpdfviewer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.7.0"
+        versionCode = 8
+        versionName = "0.8.0"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
@@ -71,4 +71,5 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.org.json) // real org.json for JVM tests (the Android one is a stub); public domain
 }

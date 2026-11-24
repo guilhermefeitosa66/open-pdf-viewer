@@ -205,6 +205,26 @@ fun PdfCanvas(
                 }
             }
         }
+        // A ribbon on the top-right corner of bookmarked pages.
+        val marked = vm.bookmarks
+        if (marked.isNotEmpty()) {
+            val rw = 14.dp.toPx()
+            val rh = 26.dp.toPx()
+            for (bm in marked) {
+                if (bm.page !in range) continue
+                val r = vp.pageRect(bm.page)
+                val x = r.right - rw - 10.dp.toPx()
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(x, r.top)
+                    lineTo(x + rw, r.top)
+                    lineTo(x + rw, r.top + rh)
+                    lineTo(x + rw / 2f, r.top + rh - rw / 2f)
+                    lineTo(x, r.top + rh)
+                    close()
+                }
+                drawPath(path, colors.handle)
+            }
+        }
         if (selection != null && selection.page in range) {
             for (rc in selection.rects) {
                 val sr = vp.toScreen(selection.page, rc.left, rc.top, rc.right, rc.bottom)

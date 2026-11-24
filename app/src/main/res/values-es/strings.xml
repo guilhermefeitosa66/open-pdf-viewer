@@ -86,4 +86,11 @@
     <string name="layout_cover_alone">Primera página sola (portada)</string>
     <string name="layout_rtl">De derecha a izquierda</string>
     <string name="apply">Aplicar</string>
+    <string name="bookmarks">Marcadores</string>
+    <string name="add_bookmark">Marcar esta página</string>
+    <string name="remove_bookmark">Quitar marcador</string>
+    <string name="bookmark_title">Título del marcador</string>
+    <string name="no_bookmarks">Aún no hay marcadores. Usa ⋮ › Marcar esta página mientras lees.</string>
+    <string name="rename">Renombrar</string>
+    <string name="save">Guardar</string>
 </resources>

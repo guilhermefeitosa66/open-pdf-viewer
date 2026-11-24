@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -88,14 +90,24 @@ fun PagesSheet(ready: DocState.Ready, vm: ViewerViewModel, onGoTo: (Int, Float) 
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.85f)) {
-            if (!outline.isNullOrEmpty()) {
-                TabRow(selectedTabIndex = tab, modifier = Modifier.padding(bottom = 8.dp)) {
-                    Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.pages)) })
-                    Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.contents)) })
+            // Tabs: pages always, contents when the document has an outline, bookmarks always.
+            val tabs = buildList {
+                add(R.string.pages)
+                if (!outline.isNullOrEmpty()) add(R.string.contents)
+                add(R.string.bookmarks)
+            }
+            val selected = tabs.getOrNull(tab) ?: R.string.pages
+            TabRow(selectedTabIndex = tabs.indexOf(selected), modifier = Modifier.padding(bottom = 8.dp)) {
+                tabs.forEachIndexed { i, label ->
+                    Tab(selected = selected == label, onClick = { tab = i }, text = { Text(stringResource(label)) })
                 }
             }
-            if (tab == 1 && !outline.isNullOrEmpty()) {
+            if (selected == R.string.contents && outline != null) {
                 OutlineList(outline, current, onGoTo)
+                return@Column
+            }
+            if (selected == R.string.bookmarks) {
+                BookmarkList(vm, onGoTo)
                 return@Column
             }
             Row(
@@ -231,5 +243,45 @@ private fun OutlineList(items: List<OutlineItem>, currentPage: Int, onGoTo: (Int
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BookmarkList(vm: ViewerViewModel, onGoTo: (Int, Float) -> Unit) {
+    var renaming by remember { mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.data.Bookmark?>(null) }
+    val list = vm.bookmarks
+    if (list.isEmpty()) {
+        Text(
+            stringResource(R.string.no_bookmarks),
+            modifier = Modifier.padding(24.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    LazyColumn(contentPadding = PaddingValues(bottom = 32.dp), modifier = Modifier.fillMaxSize()) {
+        items(list, key = { it.page }) { bm ->
+            Row(
+                Modifier.fillMaxWidth().clickable { onGoTo(bm.page, 0f) }.heightIn(min = 56.dp).padding(start = 20.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                    Text(bm.title, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.page_n, bm.page + 1), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = { renaming = bm }) {
+                    Icon(Icons.Filled.Edit, stringResource(R.string.rename))
+                }
+                IconButton(onClick = { vm.removeBookmark(bm.page) }) {
+                    Icon(Icons.Filled.Delete, stringResource(R.string.remove_bookmark))
+                }
+            }
+        }
+    }
+    renaming?.let { bm ->
+        BookmarkTitleDialog(
+            initial = bm.title,
+            onSave = { vm.renameBookmark(bm.page, it); renaming = null },
+            onDismiss = { renaming = null },
+        )
     }
 }
