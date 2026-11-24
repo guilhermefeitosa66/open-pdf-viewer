@@ -255,14 +255,14 @@ class PdfDocument private constructor(private val handle: Long) {
         val nm: String,
     )
 
-    enum class StandardFont(val pdfName: String) { SANS("Helvetica"), SERIF("Times-Roman"), MONO("Courier") }
+    enum class StandardFont(val pdfName: String) { SANS("Helvetica"), SERIF("Times-Roman"), MONO("Courier"), SANS_BOLD("Helvetica-Bold") }
 
     suspend fun addNote(index: Int, x: Float, y: Float, contents: String, argb: Int, author: String?, nm: String? = null): Boolean =
         create(index, nm) { lp -> PdfiumNative.addNote(lp.page, x, y, contents, argb, author) }
 
     /** Text placed with its top-left corner at a normalized point; one line per '\n'. */
-    suspend fun addText(index: Int, x: Float, y: Float, text: String, font: StandardFont, sizePt: Float, argb: Int, author: String?, nm: String? = null): Boolean =
-        create(index, nm) { lp -> PdfiumNative.addTextStamp(handle, lp.page, x, y, text, font.pdfName, sizePt, argb, author) }
+    suspend fun addText(index: Int, x: Float, y: Float, text: String, font: StandardFont, sizePt: Float, argb: Int, author: String?, nm: String? = null, boxed: Boolean = false): Boolean =
+        create(index, nm) { lp -> PdfiumNative.addTextStamp(handle, lp.page, x, y, text, font.pdfName, sizePt, argb, author, boxed) }
 
     /** Rectangle ([ellipse] false) or ellipse between two normalized corners; [fill] 0 = none. */
     suspend fun addBox(index: Int, x0: Float, y0: Float, x1: Float, y1: Float, ellipse: Boolean, stroke: Int, fill: Int, widthPt: Float, author: String?, nm: String? = null): Boolean =

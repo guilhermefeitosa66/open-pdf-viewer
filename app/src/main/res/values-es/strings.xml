@@ -210,4 +210,11 @@
     <string name="place_signature">Colocar</string>
     <string name="signature_no_ink">No se encontró una firma en esa imagen. Usa una foto de tinta oscura en papel blanco.</string>
     <string name="clear">Borrar</string>
+    <string name="stamp">Sello…</string>
+    <string name="stamp_approved">APROBADO</string>
+    <string name="stamp_received">RECIBIDO</string>
+    <string name="stamp_confidential">CONFIDENCIAL</string>
+    <string name="stamp_draft">BORRADOR</string>
+    <string name="custom_stamp">Tu propio sello</string>
+    <string name="tap_to_place_stamp">Toca donde irá el sello</string>
 </resources>

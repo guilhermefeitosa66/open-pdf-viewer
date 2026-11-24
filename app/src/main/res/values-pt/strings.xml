@@ -210,4 +210,11 @@
     <string name="place_signature">Colocar</string>
     <string name="signature_no_ink">Nenhuma assinatura encontrada nessa imagem. Use uma foto de tinta escura em papel branco.</string>
     <string name="clear">Limpar</string>
+    <string name="stamp">Carimbo…</string>
+    <string name="stamp_approved">APROVADO</string>
+    <string name="stamp_received">RECEBIDO</string>
+    <string name="stamp_confidential">CONFIDENCIAL</string>
+    <string name="stamp_draft">RASCUNHO</string>
+    <string name="custom_stamp">Seu próprio carimbo</string>
+    <string name="tap_to_place_stamp">Toque onde o carimbo vai ficar</string>
 </resources>

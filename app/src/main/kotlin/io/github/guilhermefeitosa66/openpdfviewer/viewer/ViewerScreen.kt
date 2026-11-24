@@ -51,6 +51,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -250,6 +251,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     if (vm.shapeKind != null) ShapeToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
     AnnotationDialogs(vm)
     if (vm.signatureSheetOpen) SignatureSheet(vm)
+    if (vm.stampSheetOpen) StampSheet(vm)
     vm.placingSignature?.let { SignaturePlacer(it, vp, onPlace = vm::placeSignature, onCancel = { vm.placingSignature = null }) }
     vm.editingField?.let { field -> FieldEditor(vm, field) }
     vm.placing?.let { mode ->
@@ -261,12 +263,13 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
                             when (mode) {
                                 ViewerViewModel.Place.NOTE -> R.string.tap_to_place_note
                                 ViewerViewModel.Place.TEXT -> R.string.tap_to_place_text
+                                ViewerViewModel.Place.STAMP -> R.string.tap_to_place_stamp
                                 else -> R.string.tap_to_place_mark
                             }
                         ),
                         fontSize = 14.sp,
                     )
-                    val stays = mode != ViewerViewModel.Place.NOTE && mode != ViewerViewModel.Place.TEXT
+                    val stays = mode != ViewerViewModel.Place.NOTE && mode != ViewerViewModel.Place.TEXT && mode != ViewerViewModel.Place.STAMP
                     TextButton(onClick = { vm.placing = null }) {
                         Text(stringResource(if (stays) R.string.done else R.string.cancel), color = MaterialTheme.colorScheme.inverseOnSurface)
                     }
@@ -1395,6 +1398,7 @@ private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text(stringResource(R.string.fill_and_sign), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             PanelItem(stringResource(R.string.signature)) { onDismiss(); vm.signatureSheetOpen = true }
+            PanelItem(stringResource(R.string.stamp)) { onDismiss(); vm.stampSheetOpen = true }
             PanelItem(stringResource(R.string.place_date)) { onDismiss(); vm.placing = ViewerViewModel.Place.DATE }
             PanelItem(stringResource(R.string.place_check)) { onDismiss(); vm.placing = ViewerViewModel.Place.CHECK }
             PanelItem(stringResource(R.string.place_cross)) { onDismiss(); vm.placing = ViewerViewModel.Place.CROSS }
@@ -1501,4 +1505,63 @@ private fun FieldEditor(vm: ViewerViewModel, field: PdfDocument.FormField) {
         },
         dismissButton = { TextButton(onClick = vm::closeFieldEditor) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+/** Ready-made stamps, today's date and time, and the user's own stamps. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun StampSheet(vm: ViewerViewModel) {
+    val context = LocalContext.current
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+    val green = 0xFF2E7D32.toInt()
+    val blue = 0xFF1F3A93.toInt()
+    val red = 0xFFC62828.toInt()
+    val presets = listOf(
+        stringResource(R.string.stamp_approved) to green,
+        stringResource(R.string.stamp_received) to blue,
+        stringResource(R.string.stamp_confidential) to red,
+        stringResource(R.string.stamp_draft) to red,
+    )
+    val now = remember {
+        java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date())
+    }
+    var custom by remember { mutableStateOf("") }
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = { vm.stampSheetOpen = false },
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.stamp), style = MaterialTheme.typography.titleLarge)
+            for ((text, color) in presets + listOf(now to blue) + settings.customStamps.map { it to blue }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.weight(1f).clickable { vm.chooseStamp(text, color) }.padding(vertical = 4.dp),
+                    ) {
+                        Text(
+                            text,
+                            modifier = Modifier.border(2.dp, Color(color), RoundedCornerShape(4.dp)).padding(horizontal = 10.dp, vertical = 4.dp),
+                            color = Color(color), fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                        )
+                    }
+                    if (text in settings.customStamps) {
+                        IconButton(onClick = { settings.removeCustomStamp(text) }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
+                    }
+                }
+            }
+            HorizontalDivider()
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = custom,
+                    onValueChange = { custom = it.take(40) },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.custom_stamp)) },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = {
+                    settings.addCustomStamp(custom)
+                    custom = ""
+                }, enabled = custom.isNotBlank()) { Text(stringResource(R.string.add)) }
+            }
+        }
+    }
 }

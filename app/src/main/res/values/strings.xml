@@ -211,4 +211,11 @@
     <string name="place_signature">Place</string>
     <string name="signature_no_ink">No signature found in that image. Use a photo of dark ink on white paper.</string>
     <string name="clear">Clear</string>
+    <string name="stamp">Stamp…</string>
+    <string name="stamp_approved">APPROVED</string>
+    <string name="stamp_received">RECEIVED</string>
+    <string name="stamp_confidential">CONFIDENTIAL</string>
+    <string name="stamp_draft">DRAFT</string>
+    <string name="custom_stamp">Your own stamp</string>
+    <string name="tap_to_place_stamp">Tap where the stamp goes</string>
 </resources>

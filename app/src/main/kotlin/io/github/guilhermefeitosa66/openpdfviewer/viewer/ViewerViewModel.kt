@@ -474,7 +474,11 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                     placing = null
                     placementTarget = Triple(mode, at.page, Offset(at.x, at.y))
                 }
-                // Marks go down right away, and the tool stays on for the next one.
+                // A stamp goes down once; marks stay on for the next one.
+                Place.STAMP -> {
+                    placing = null
+                    placeMark(mode, at.page, Offset(at.x, at.y))
+                }
                 else -> placeMark(mode, at.page, Offset(at.x, at.y))
             }
             return
@@ -679,7 +683,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Notes and text ----
 
-    enum class Place { NOTE, TEXT, DATE, CHECK, CROSS, DOT }
+    enum class Place { NOTE, TEXT, DATE, CHECK, CROSS, DOT, STAMP }
 
     /** Waiting for a tap that says where the new note or text goes. */
     var placing by mutableStateOf<Place?>(null)
@@ -709,6 +713,12 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
             }
             Place.CHECK -> createAnnot(page) { doc, nm -> doc.addPaths(page, Shapes.checkMark(at.x, at.y, markPt, size.width, size.height), color, stroke, author, nm) }
             Place.CROSS -> createAnnot(page) { doc, nm -> doc.addPaths(page, Shapes.crossMark(at.x, at.y, markPt, size.width, size.height), color, stroke, author, nm) }
+            Place.STAMP -> {
+                val (text, stampColor) = pendingStamp ?: return
+                createAnnot(page) { doc, nm ->
+                    doc.addText(page, at.x, at.y, text, io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.StandardFont.SANS_BOLD, 16f, stampColor, author, nm, boxed = true)
+                }
+            }
             Place.DOT -> {
                 val d = Shapes.dot(at.x, at.y, 6f, size.width, size.height)
                 createAnnot(page) { doc, nm -> doc.addBox(page, d[0], d[1], d[2], d[3], true, color, color, 0.5f, author, nm) }
@@ -720,6 +730,15 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     // ---- Visual signatures ----
 
     var signatureSheetOpen by mutableStateOf(false)
+    var stampSheetOpen by mutableStateOf(false)
+    /** The stamp chosen in the stamp sheet (text and color), placed with the next tap. */
+    var pendingStamp: Pair<String, Int>? = null
+
+    fun chooseStamp(text: String, argb: Int) {
+        pendingStamp = text to argb
+        stampSheetOpen = false
+        placing = Place.STAMP
+    }
     /** The signature being positioned on the page (an overlay to move and resize). */
     var placingSignature by mutableStateOf<Bitmap?>(null)
 

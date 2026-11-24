@@ -727,7 +727,7 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addNote(
 JNIEXPORT jint JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addTextStamp(
         JNIEnv* env, jobject, jlong handle, jlong pageHandle, jfloat nx, jfloat ny, jstring text,
-        jstring fontName, jfloat size, jint argb, jstring author) {
+        jstring fontName, jfloat size, jint argb, jstring author, jboolean boxed) {
     auto* d = reinterpret_cast<Document*>(handle);
     auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
     double px, py;
@@ -769,12 +769,25 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addTextStamp
         for (auto o : objs) FPDFPageObj_Destroy(o);
         return -1;
     }
+    if (boxed) {
+        // A stamp: a rounded-feel frame around the text in the same color.
+        float pad = size * 0.35f;
+        left -= pad; right += pad; bottom -= pad; top += pad;
+        FPDF_PAGEOBJECT frame = FPDFPageObj_CreateNewRect(left, bottom, right - left, top - bottom);
+        if (frame) {
+            FPDFPageObj_SetStrokeColor(frame, (uargb >> 16) & 0xFF, (uargb >> 8) & 0xFF, uargb & 0xFF, (uargb >> 24) & 0xFF);
+            FPDFPageObj_SetStrokeWidth(frame, std::fmax(1.5f, size * 0.12f));
+            FPDFPath_SetDrawMode(frame, FPDF_FILLMODE_NONE, 1);
+            objs.push_back(frame);
+        }
+    }
     FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_STAMP);
     if (!annot) {
         for (auto o : objs) FPDFPageObj_Destroy(o);
         return -1;
     }
-    FS_RECTF rect{left - 2, top + 2, right + 2, bottom - 2};
+    float m = boxed ? std::fmax(1.5f, size * 0.12f) : 2;
+    FS_RECTF rect{left - m, top + m, right + m, bottom - m};
     FPDFAnnot_SetRect(annot, &rect);
     for (auto o : objs) FPDFAnnot_AppendObject(annot, o);
     FPDFAnnot_SetStringValue(annot, "Contents", reinterpret_cast<FPDF_WIDESTRING>(all.data()));

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.27.0 (2026-11-24)
+
+- Stamps (Annotate… › Stamp…): Approved, Received, Confidential, Draft, the current date and time, and your own stamps (kept on the device, up to six). Placed with a tap as a framed bold label in the stamp's color.
+
 ## 0.26.0 (2026-11-24)
 
 - Visual signature (Annotate… › Signature…): draw it with a finger or stylus, or take it from a photo (the white paper becomes transparent and the image is cropped to the ink). Up to three signatures or initials are kept on the device; pick one, drag it into place, resize it from the corner, and place it.

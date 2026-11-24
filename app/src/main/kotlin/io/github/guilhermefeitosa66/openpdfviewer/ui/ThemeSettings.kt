@@ -109,6 +109,22 @@ class ThemeSettings private constructor(context: Context) {
         prefs.edit().putInt(KEY_INK_COLOR, argb).putFloat(KEY_INK_WIDTH, width).apply()
     }
 
+    /** Custom stamp texts the user created (most recent first, at most 6). */
+    var customStamps by mutableStateOf(prefs.getString(KEY_STAMPS, "")!!.split('\n').filter { it.isNotBlank() })
+        private set
+
+    fun addCustomStamp(text: String) {
+        val t = text.trim().replace('\n', ' ')
+        if (t.isEmpty()) return
+        customStamps = (listOf(t) + customStamps.filterNot { it == t }).take(6)
+        prefs.edit().putString(KEY_STAMPS, customStamps.joinToString("\n")).apply()
+    }
+
+    fun removeCustomStamp(text: String) {
+        customStamps = customStamps.filterNot { it == text }
+        prefs.edit().putString(KEY_STAMPS, customStamps.joinToString("\n")).apply()
+    }
+
     fun chooseMarkupColor(argb: Int) {
         markupColor = argb
         prefs.edit().putInt(KEY_MARKUP_COLOR, argb).apply()
@@ -154,6 +170,7 @@ class ThemeSettings private constructor(context: Context) {
         private const val KEY_AUTHOR = "author"
         private const val KEY_INK_COLOR = "ink_color"
         private const val KEY_INK_WIDTH = "ink_width"
+        private const val KEY_STAMPS = "custom_stamps"
         const val DEFAULT_MARKUP_COLOR = 0xFFFFE066.toInt()
         private const val KEY_CACHE = "theme_cache"
         private const val KEY_CACHE_VERSION = "theme_cache_version"
