@@ -127,6 +127,7 @@ fun ViewerScreen(
         when {
             vm.selection != null -> vm.clearSelection()
             vm.drawing -> vm.stopDrawing()
+            vm.placing != null -> vm.placing = null
             vm.searchOpen -> vm.closeSearch()
             vm.goBack() -> Unit
             else -> leave()
@@ -190,6 +191,17 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     SelectionOverlay(vm, vp)
 
     if (vm.drawing) DrawToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
+    AnnotationDialogs(vm)
+    vm.placing?.let { mode ->
+        Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp)) {
+            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.inverseSurface, contentColor = MaterialTheme.colorScheme.inverseOnSurface) {
+                Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(if (mode == ViewerViewModel.Place.NOTE) R.string.tap_to_place_note else R.string.tap_to_place_text), fontSize = 14.sp)
+                    TextButton(onClick = { vm.placing = null }) { Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.inverseOnSurface) }
+                }
+            }
+        }
+    }
 
     vm.readAloud?.let { ra ->
         ReadAloudBar(ra, onClose = vm::stopReadAloud, modifier = Modifier.align(Alignment.BottomCenter))
@@ -414,6 +426,20 @@ private fun TopBar(
                         },
                     )
                 }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.add_note)) },
+                    onClick = {
+                        menu = false
+                        vm.placing = ViewerViewModel.Place.NOTE
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.add_text)) },
+                    onClick = {
+                        menu = false
+                        vm.placing = ViewerViewModel.Place.TEXT
+                    },
+                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.draw)) },
                     onClick = {
@@ -1195,6 +1221,108 @@ private fun PenDialog(initialColor: Int, initialWidth: Float, onPick: (Int, Floa
             }
         },
         confirmButton = { TextButton(onClick = { onPick(color, width) }) { Text(stringResource(R.string.apply)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** The dialogs for new notes and texts, and for an annotation the user tapped. */
+@Composable
+private fun AnnotationDialogs(vm: ViewerViewModel) {
+    vm.placementTarget?.let { (mode, page, at) ->
+        if (mode == ViewerViewModel.Place.NOTE) {
+            NoteDialog(
+                initial = "",
+                onSave = { vm.addNote(page, at, it); vm.placementTarget = null },
+                onDelete = null,
+                onDismiss = { vm.placementTarget = null },
+            )
+        } else {
+            TextBoxDialog(
+                onSave = { text, font, size, color -> vm.addText(page, at, text, font, size, color); vm.placementTarget = null },
+                onDismiss = { vm.placementTarget = null },
+            )
+        }
+    }
+    vm.openedAnnot?.let { hit ->
+        if (hit.isNote) {
+            NoteDialog(
+                initial = hit.contents,
+                onSave = { vm.updateAnnotText(hit, it); vm.openedAnnot = null },
+                onDelete = { vm.deleteAnnot(hit); vm.openedAnnot = null },
+                onDismiss = { vm.openedAnnot = null },
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { vm.openedAnnot = null },
+                title = { Text(stringResource(R.string.annotation)) },
+                text = { if (hit.contents.isNotBlank()) Text(hit.contents) },
+                confirmButton = { TextButton(onClick = { vm.openedAnnot = null }) { Text(stringResource(R.string.close)) } },
+                dismissButton = { TextButton(onClick = { vm.deleteAnnot(hit); vm.openedAnnot = null }) { Text(stringResource(R.string.delete)) } },
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoteDialog(initial: String, onSave: (String) -> Unit, onDelete: (() -> Unit)?, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.note)) },
+        text = {
+            OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3, modifier = Modifier.fillMaxWidth())
+        },
+        confirmButton = { TextButton(onClick = { onSave(text) }, enabled = text.isNotBlank()) { Text(stringResource(R.string.save)) } },
+        dismissButton = {
+            Row {
+                if (onDelete != null) TextButton(onClick = onDelete) { Text(stringResource(R.string.delete)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            }
+        },
+    )
+}
+
+/** Text placed on the page as typed: font, size and color. */
+@Composable
+private fun TextBoxDialog(
+    onSave: (String, PdfDocument.StandardFont, Float, Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    var font by remember { mutableStateOf(PdfDocument.StandardFont.SANS) }
+    var size by remember { mutableStateOf(12f) }
+    var color by remember { mutableStateOf(InkPalette.first()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.add_text)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for ((f, label) in listOf(
+                        PdfDocument.StandardFont.SANS to R.string.font_sans,
+                        PdfDocument.StandardFont.SERIF to R.string.font_serif,
+                        PdfDocument.StandardFont.MONO to R.string.font_mono,
+                    )) {
+                        FilterChip(selected = font == f, onClick = { font = f }, label = { Text(stringResource(label)) })
+                    }
+                }
+                Text(stringResource(R.string.font_size, size.toInt()), fontSize = 13.sp)
+                androidx.compose.material3.Slider(value = size, onValueChange = { size = it }, valueRange = 6f..48f)
+                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (c in InkPalette) {
+                        val label = String.format("#%06X", c and 0xFFFFFF)
+                        Box(
+                            Modifier.size(32.dp).background(Color(c), androidx.compose.foundation.shape.CircleShape)
+                                .border(if (c == color) 3.dp else 1.dp, if (c == color) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, androidx.compose.foundation.shape.CircleShape)
+                                .clickable { color = c }
+                                .semantics { contentDescription = label },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(text.trimEnd(), font, size, color) }, enabled = text.isNotBlank()) { Text(stringResource(R.string.add)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

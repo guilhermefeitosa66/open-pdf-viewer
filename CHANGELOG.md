@@ -2,6 +2,12 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.19.0 (2026-11-24)
+
+- Sticky notes: Add note, tap where it goes, type the text; tap a note to read, edit or delete it.
+- Text on the page: Add text, tap where it starts, then pick font (sans, serif, mono), size and color.
+- Tapping any annotation shows it, with a Delete button.
+
 ## 0.18.0 (2026-11-24)
 
 - Free-hand drawing (Draw in the viewer menu): one finger or the stylus draws ink, two fingers still scroll and zoom; pen color, width and opacity in the pen settings; the eraser removes whole strokes. Once a stylus is used, fingers only scroll (palm rejection). Strokes are standard ink annotations, kept in memory until saved.

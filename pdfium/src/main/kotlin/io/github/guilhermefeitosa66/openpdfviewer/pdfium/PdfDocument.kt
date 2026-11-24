@@ -205,6 +205,43 @@ class PdfDocument private constructor(private val handle: Long) {
             ok
         }
 
+    /** An annotation found under the finger: its index on the page, PDF subtype and text. */
+    data class AnnotHit(val page: Int, val index: Int, val subtype: Int, val contents: String) {
+        val isNote get() = subtype == 1
+    }
+
+    enum class StandardFont(val pdfName: String) { SANS("Helvetica"), SERIF("Times-Roman"), MONO("Courier") }
+
+    suspend fun addNote(index: Int, x: Float, y: Float, contents: String, argb: Int, author: String?): Boolean =
+        edit(index) { lp -> PdfiumNative.addNote(lp.page, x, y, contents, argb, author) >= 0 }
+
+    /** Text placed with its top-left corner at a normalized point; one line per '\n'. */
+    suspend fun addText(index: Int, x: Float, y: Float, text: String, font: StandardFont, sizePt: Float, argb: Int, author: String?): Boolean =
+        edit(index) { lp -> PdfiumNative.addTextStamp(handle, lp.page, x, y, text, font.pdfName, sizePt, argb, author) >= 0 }
+
+    suspend fun annotAt(index: Int, x: Float, y: Float): AnnotHit? = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext null
+        val lp = page(index) ?: return@withContext null
+        val raw = PdfiumNative.annotAt(lp.page, x, y) ?: return@withContext null
+        val ids = raw[0] as IntArray
+        AnnotHit(index, ids[0], ids[1], raw[1] as String)
+    }
+
+    suspend fun setAnnotContents(hit: AnnotHit, contents: String): Boolean =
+        edit(hit.page) { lp -> PdfiumNative.setAnnotContents(lp.page, hit.index, contents) }
+
+    suspend fun removeAnnot(hit: AnnotHit): Boolean =
+        edit(hit.page) { lp -> PdfiumNative.removeAnnot(lp.page, hit.index) }
+
+    /** Runs a change on page [index] on the PDFium thread and marks the document modified. */
+    private suspend fun edit(index: Int, block: (LoadedPage) -> Boolean): Boolean = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext false
+        val lp = page(index) ?: return@withContext false
+        val ok = block(lp)
+        if (ok) modified = true
+        ok
+    }
+
     /**
      * Writes the document to [pfd] (a full rewrite). With [removeSecurity] a password-protected
      * document, opened with its password, is written without encryption.

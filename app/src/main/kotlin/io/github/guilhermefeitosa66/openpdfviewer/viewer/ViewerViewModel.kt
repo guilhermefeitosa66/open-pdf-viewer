@@ -461,11 +461,22 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         return true
     }
 
-    /** A tap on the page: follows a link under the finger, otherwise runs [orElse]. */
+    /** A tap on the page: places a pending note/text, opens an annotation, follows a link, or runs [orElse]. */
     fun onTap(p: Offset, orElse: () -> Unit) {
         val r = ready ?: return orElse()
+        placing?.let { mode ->
+            // Placing a note or text: a tap in a gap still lands on the nearest page.
+            val at = r.viewport.nearestPageHit(p) ?: return
+            placing = null
+            placementTarget = Triple(mode, at.page, Offset(at.x, at.y))
+            return
+        }
         val hit = r.viewport.screenToPage(p) ?: return orElse()
         viewModelScope.launch {
+            r.doc.annotAt(hit.page, hit.x, hit.y)?.let {
+                openedAnnot = it
+                return@launch
+            }
             when (val link = r.doc.linkAt(hit.page, hit.x, hit.y)) {
                 is io.github.guilhermefeitosa66.openpdfviewer.pdfium.LinkTarget.Page -> jumpTo(link.page, link.offset)
                 is io.github.guilhermefeitosa66.openpdfviewer.pdfium.LinkTarget.Web -> pendingWebLink = link.uri
@@ -576,6 +587,43 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Notes and text ----
+
+    enum class Place { NOTE, TEXT }
+
+    /** Waiting for a tap that says where the new note or text goes. */
+    var placing by mutableStateOf<Place?>(null)
+    /** Where the user tapped; the dialog asking for the content is open while this is set. */
+    var placementTarget by mutableStateOf<Triple<Place, Int, Offset>?>(null)
+    /** An existing annotation the user tapped (shown in a dialog). */
+    var openedAnnot by mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit?>(null)
+
+    private val authorName get() = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication()).authorName.ifBlank { null }
+
+    fun addNote(page: Int, at: Offset, text: String) = change(page) { doc ->
+        doc.addNote(page, at.x, at.y, text, NOTE_COLOR, authorName)
+    }
+
+    fun addText(page: Int, at: Offset, text: String, font: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.StandardFont, size: Float, argb: Int) =
+        change(page) { doc -> doc.addText(page, at.x, at.y, text, font, size, argb, authorName) }
+
+    fun updateAnnotText(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit, text: String) = change(hit.page) { doc ->
+        doc.setAnnotContents(hit, text)
+    }
+
+    fun deleteAnnot(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit) = change(hit.page) { doc -> doc.removeAnnot(hit) }
+
+    /** Runs an edit of page [page], then re-renders it and updates the unsaved flag. */
+    private fun change(page: Int, block: suspend (io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument) -> Boolean) {
+        val r = ready ?: return
+        viewModelScope.launch {
+            if (block(r.doc)) {
+                r.renderer.invalidate(page, r.viewport)
+                unsaved = r.doc.modified
+            }
+        }
+    }
+
     // ---- Free-hand drawing ----
 
     enum class DrawTool { PEN, ERASER }
@@ -599,6 +647,9 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     fun stopDrawing() {
         drawing = false
         liveStroke = null
+        placing = null
+        placementTarget = null
+        openedAnnot = null
     }
 
     fun beginStroke(page: Int, p: Offset) {
@@ -679,6 +730,9 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         unsaved = false
         drawing = false
         liveStroke = null
+        placing = null
+        placementTarget = null
+        openedAnnot = null
         bookmarks = emptyList()
         history.clear()
         historyTop = null
@@ -696,6 +750,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         private const val MAX_MATCHES = 5000
         private const val MAX_SELECTION_PAGES = 30
+        private const val NOTE_COLOR = 0xFFFFD54F.toInt()
         private val closingScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }

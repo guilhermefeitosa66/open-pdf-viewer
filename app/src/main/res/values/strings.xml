@@ -156,4 +156,16 @@
     <string name="pen_width">Width: %1$s pt</string>
     <string name="pen_opacity">Opacity: %1$d%%</string>
     <string name="done">Done</string>
+    <string name="add_note">Add note</string>
+    <string name="add_text">Add text</string>
+    <string name="tap_to_place_note">Tap where the note goes</string>
+    <string name="tap_to_place_text">Tap where the text starts</string>
+    <string name="note">Note</string>
+    <string name="annotation">Annotation</string>
+    <string name="delete">Delete</string>
+    <string name="add">Add</string>
+    <string name="font_sans">Sans</string>
+    <string name="font_serif">Serif</string>
+    <string name="font_mono">Mono</string>
+    <string name="font_size">Size: %1$d pt</string>
 </resources>

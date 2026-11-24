@@ -15,6 +15,7 @@
 #include "fpdf_annot.h"
 #include "fpdf_attachment.h"
 #include "fpdf_doc.h"
+#include "fpdf_edit.h"
 #include "fpdf_formfill.h"
 #include "fpdf_save.h"
 #include "fpdf_signature.h"
@@ -675,6 +676,144 @@ JNIEXPORT jboolean JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_removeAnnot(
         JNIEnv*, jobject, jlong pageHandle, jint index) {
     return FPDFPage_RemoveAnnot(reinterpret_cast<FPDF_PAGE>(pageHandle), index) ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Adds a sticky note (Text annotation) with an icon at a normalized point. Returns its index.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addNote(
+        JNIEnv* env, jobject, jlong pageHandle, jfloat nx, jfloat ny, jstring contents, jint argb, jstring author) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double px, py;
+    if (!toPagePoint(page, nx, ny, &px, &py)) return -1;
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_TEXT);
+    if (!annot) return -1;
+    FS_RECTF rect{static_cast<float>(px), static_cast<float>(py), static_cast<float>(px + 20), static_cast<float>(py - 20)};
+    FPDFAnnot_SetRect(annot, &rect);
+    unsigned int uargb = static_cast<unsigned int>(argb);
+    FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, (uargb >> 16) & 0xFF, (uargb >> 8) & 0xFF, uargb & 0xFF, (uargb >> 24) & 0xFF);
+    auto w = toUtf16(env, contents);
+    FPDFAnnot_SetStringValue(annot, "Contents", reinterpret_cast<FPDF_WIDESTRING>(w.data()));
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+// Adds text that shows exactly as typed (one line per '\n') with a standard font, as a Stamp
+// annotation holding text objects (PDFium cannot draw FreeText appearances). The text is also
+// stored in /Contents. (nx, ny) is the top-left corner. Returns the annotation index or -1.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addTextStamp(
+        JNIEnv* env, jobject, jlong handle, jlong pageHandle, jfloat nx, jfloat ny, jstring text,
+        jstring fontName, jfloat size, jint argb, jstring author) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double px, py;
+    if (!toPagePoint(page, nx, ny, &px, &py)) return -1;
+    const char* fname = env->GetStringUTFChars(fontName, nullptr);
+    FPDF_FONT font = FPDFText_LoadStandardFont(d->doc, fname);
+    env->ReleaseStringUTFChars(fontName, fname);
+    if (!font) return -1;
+    auto all = toUtf16(env, text);
+    unsigned int uargb = static_cast<unsigned int>(argb);
+    // Build the text objects first, so the annotation rectangle is known before they are added.
+    std::vector<FPDF_PAGEOBJECT> objs;
+    float left = 1e9f, bottom = 1e9f, right = -1e9f, top = -1e9f;
+    size_t lineStart = 0;
+    int line = 0;
+    for (size_t i = 0; i < all.size(); i++) {
+        if (all[i] != '\n' && all[i] != 0) continue;
+        std::vector<unsigned short> one(all.begin() + static_cast<long>(lineStart), all.begin() + static_cast<long>(i));
+        one.push_back(0);
+        lineStart = i + 1;
+        if (one.size() > 1) {
+            FPDF_PAGEOBJECT obj = FPDFPageObj_CreateTextObj(d->doc, font, size);
+            if (obj) {
+                FPDFText_SetText(obj, reinterpret_cast<FPDF_WIDESTRING>(one.data()));
+                FPDFPageObj_SetFillColor(obj, (uargb >> 16) & 0xFF, (uargb >> 8) & 0xFF, uargb & 0xFF, (uargb >> 24) & 0xFF);
+                FPDFPageObj_Transform(obj, 1, 0, 0, 1, px, py - size * (1.0 + 1.25 * line));
+                float l, b, r, t;
+                if (FPDFPageObj_GetBounds(obj, &l, &b, &r, &t)) {
+                    left = std::fmin(left, l); bottom = std::fmin(bottom, b);
+                    right = std::fmax(right, r); top = std::fmax(top, t);
+                }
+                objs.push_back(obj);
+            }
+        }
+        line++;
+        if (all[i] == 0) break;
+    }
+    if (objs.empty() || right < left) {
+        for (auto o : objs) FPDFPageObj_Destroy(o);
+        return -1;
+    }
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_STAMP);
+    if (!annot) {
+        for (auto o : objs) FPDFPageObj_Destroy(o);
+        return -1;
+    }
+    FS_RECTF rect{left - 2, top + 2, right + 2, bottom - 2};
+    FPDFAnnot_SetRect(annot, &rect);
+    for (auto o : objs) FPDFAnnot_AppendObject(annot, o);
+    FPDFAnnot_SetStringValue(annot, "Contents", reinterpret_cast<FPDF_WIDESTRING>(all.data()));
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+// The annotation under a normalized point: Object[]{int[]{index, subtype}, String contents}, or
+// null. Ignores links and form widgets. Topmost first.
+JNIEXPORT jobjectArray JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_annotAt(
+        JNIEnv* env, jobject, jlong pageHandle, jfloat nx, jfloat ny) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double px, py;
+    if (!toPagePoint(page, nx, ny, &px, &py)) return nullptr;
+    int count = FPDFPage_GetAnnotCount(page);
+    for (int i = count - 1; i >= 0; i--) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (!annot) continue;
+        int subtype = FPDFAnnot_GetSubtype(annot);
+        FS_RECTF r{};
+        bool inside = subtype != FPDF_ANNOT_LINK && subtype != 20 /* widget */ && subtype != 16 /* popup */ &&
+                      FPDFAnnot_GetRect(annot, &r) &&
+                      px >= std::fmin(r.left, r.right) && px <= std::fmax(r.left, r.right) &&
+                      py >= std::fmin(r.bottom, r.top) && py <= std::fmax(r.bottom, r.top);
+        if (!inside) {
+            FPDFPage_CloseAnnot(annot);
+            continue;
+        }
+        unsigned long bytes = FPDFAnnot_GetStringValue(annot, "Contents", nullptr, 0);
+        std::vector<unsigned short> buf(bytes / 2 + 1, 0);
+        if (bytes > 0) FPDFAnnot_GetStringValue(annot, "Contents", reinterpret_cast<FPDF_WCHAR*>(buf.data()), bytes);
+        FPDFPage_CloseAnnot(annot);
+        jintArray ids = env->NewIntArray(2);
+        jint v[2] = {i, subtype};
+        env->SetIntArrayRegion(ids, 0, 2, v);
+        jobjectArray out = env->NewObjectArray(2, env->FindClass("java/lang/Object"), nullptr);
+        env->SetObjectArrayElement(out, 0, ids);
+        jstring str = toJString(env, buf);
+        env->SetObjectArrayElement(out, 1, str);
+        return out;
+    }
+    return nullptr;
+}
+
+// Replaces /Contents of annotation [index].
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_setAnnotContents(
+        JNIEnv* env, jobject, jlong pageHandle, jint index, jstring contents) {
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(reinterpret_cast<FPDF_PAGE>(pageHandle), index);
+    if (!annot) return JNI_FALSE;
+    auto w = toUtf16(env, contents);
+    bool ok = FPDFAnnot_SetStringValue(annot, "Contents", reinterpret_cast<FPDF_WIDESTRING>(w.data()));
+    FPDFPage_CloseAnnot(annot);
+    return ok ? JNI_TRUE : JNI_FALSE;
 }
 
 }  // extern "C"

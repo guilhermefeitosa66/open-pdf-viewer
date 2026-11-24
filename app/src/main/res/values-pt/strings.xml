@@ -155,4 +155,16 @@
     <string name="pen_width">Espessura: %1$s pt</string>
     <string name="pen_opacity">Opacidade: %1$d%%</string>
     <string name="done">Concluir</string>
+    <string name="add_note">Adicionar nota</string>
+    <string name="add_text">Adicionar texto</string>
+    <string name="tap_to_place_note">Toque onde a nota vai ficar</string>
+    <string name="tap_to_place_text">Toque onde o texto começa</string>
+    <string name="note">Nota</string>
+    <string name="annotation">Anotação</string>
+    <string name="delete">Apagar</string>
+    <string name="add">Adicionar</string>
+    <string name="font_sans">Sem serifa</string>
+    <string name="font_serif">Serifada</string>
+    <string name="font_mono">Monoespaçada</string>
+    <string name="font_size">Tamanho: %1$d pt</string>
 </resources>

@@ -31,6 +31,10 @@ internal object PdfiumNative {
     external fun addInk(page: Long, xy: FloatArray, argb: Int, width: Float, author: String?): Int
     external fun inkAt(page: Long, x: Float, y: Float, tolerance: Float): Int
     external fun removeAnnot(page: Long, index: Int): Boolean
+    external fun addNote(page: Long, x: Float, y: Float, contents: String, argb: Int, author: String?): Int
+    external fun addTextStamp(handle: Long, page: Long, x: Float, y: Float, text: String, font: String, size: Float, argb: Int, author: String?): Int
+    external fun annotAt(page: Long, x: Float, y: Float): Array<Any>?
+    external fun setAnnotContents(page: Long, index: Int, contents: String): Boolean
     external fun saveCopy(handle: Long, fd: Int, removeSecurity: Boolean): Boolean
     external fun linkAt(handle: Long, page: Long, x: Float, y: Float): String?
     external fun charIndexAt(page: Long, text: Long, x: Float, y: Float, tolerance: Float): Int

@@ -84,6 +84,10 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   monocromáticas nos modos noturno/sépia, de propósito.
 - **Links**: internos pulam e empilham a posição anterior (chip "Voltar à página N" e o voltar do
   sistema); externos pedem confirmação e abrem no navegador (o app continua sem `INTERNET`).
+- **Anotações** ficam no documento em memória (PDFium) e marcam `unsaved`; o arquivo só muda ao
+  salvar. Texto livre vai como anotação **Stamp** com objetos de texto (fonte padrão Helvetica,
+  Times ou Courier, `/Contents` com o texto), porque o PDFium não desenha aparência de FreeText;
+  o retângulo da Stamp tem de ser definido antes de anexar os objetos. Nota adesiva = anotação Text.
 - **Layout** (`Viewport` + `LayoutOptions`): contínuo vertical (padrão) ou página a página com
   snap horizontal. Página dupla só no modo página a página e só onde cabe (paisagem ou tablet,
   `smallestScreenWidthDp >= 600`); capa sozinha e direita-para-esquerda são opções. Escolha global.
