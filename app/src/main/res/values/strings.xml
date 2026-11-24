@@ -281,4 +281,21 @@
         <item quantity="one">%1$d file saved</item>
         <item quantity="other">%1$d files saved</item>
     </plurals>
+    <string name="merge_title">Merge PDFs</string>
+    <string name="merge_hint">Add two or more PDFs, put them in order, then merge them into a new file.</string>
+    <string name="add_files">Add files</string>
+    <string name="merge">Merge</string>
+    <string name="merged_name">Merged</string>
+    <string name="merge_failed">Could not merge these files</string>
+    <string name="needs_password">Needs a password</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <plurals name="n_pages">
+        <item quantity="one">%1$d page</item>
+        <item quantity="other">%1$d pages</item>
+    </plurals>
+    <plurals name="merge_total">
+        <item quantity="one">%1$d files · %2$d page in total</item>
+        <item quantity="other">%1$d files · %2$d pages in total</item>
+    </plurals>
 </resources>

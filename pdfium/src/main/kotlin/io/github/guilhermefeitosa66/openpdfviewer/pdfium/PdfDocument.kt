@@ -483,6 +483,13 @@ class PdfDocument private constructor(private val handle: Long) {
          * Opens a PDF from a seekable file descriptor. The descriptor is duplicated, so the
          * caller may close [pfd] afterwards.
          */
+        /** Writes all pages of [docs], in order, as one PDF to [pfd]. */
+        suspend fun merge(docs: List<PdfDocument>, pfd: ParcelFileDescriptor): Boolean =
+            withContext(PdfiumThread.dispatcher) {
+                if (docs.isEmpty() || docs.any { it.closed }) return@withContext false
+                PdfiumNative.mergeDocuments(docs.map { it.handle }.toLongArray(), pfd.fd)
+            }
+
         suspend fun open(pfd: ParcelFileDescriptor, password: String? = null): PdfDocument =
             withContext(PdfiumThread.dispatcher) {
                 val h = PdfiumNative.openDocument(pfd.fd, password)

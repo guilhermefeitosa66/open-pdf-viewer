@@ -1376,3 +1376,35 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_writePages(
 }
 
 }  // extern "C"
+
+extern "C" {
+
+// Writes one PDF with all pages of the given documents, in order, to fd.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_mergeDocuments(
+        JNIEnv* env, jobject, jlongArray handlesArr, jint fd) {
+    jsize n = env->GetArrayLength(handlesArr);
+    if (n <= 0) return JNI_FALSE;
+    std::vector<jlong> handles(n);
+    env->GetLongArrayRegion(handlesArr, 0, n, handles.data());
+    FPDF_DOCUMENT out = FPDF_CreateNewDocument();
+    if (!out) return JNI_FALSE;
+    bool ok = true;
+    for (jsize i = 0; i < n && ok; i++) {
+        auto* d = reinterpret_cast<Document*>(handles[i]);
+        ok = FPDF_ImportPagesByIndex(out, d->doc, nullptr, 0, FPDF_GetPageCount(out));
+        if (ok && i == 0) FPDF_CopyViewerPreferences(out, d->doc);
+    }
+    if (ok) {
+        FdWriter w{};
+        w.version = 1;
+        w.WriteBlock = writeBlock;
+        w.fd = fd;
+        w.failed = false;
+        ok = FPDF_SaveAsCopy(out, &w, FPDF_NO_INCREMENTAL) && !w.failed;
+    }
+    FPDF_CloseDocument(out);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"

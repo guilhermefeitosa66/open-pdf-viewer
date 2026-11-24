@@ -280,4 +280,21 @@
         <item quantity="one">%1$d arquivo salvo</item>
         <item quantity="other">%1$d arquivos salvos</item>
     </plurals>
+    <string name="merge_title">Mesclar PDFs</string>
+    <string name="merge_hint">Adicione dois ou mais PDFs, coloque na ordem e junte num arquivo novo.</string>
+    <string name="add_files">Adicionar arquivos</string>
+    <string name="merge">Mesclar</string>
+    <string name="merged_name">Mesclado</string>
+    <string name="merge_failed">Não foi possível mesclar estes arquivos</string>
+    <string name="needs_password">Precisa de senha</string>
+    <string name="move_up">Mover para cima</string>
+    <string name="move_down">Mover para baixo</string>
+    <plurals name="n_pages">
+        <item quantity="one">%1$d página</item>
+        <item quantity="other">%1$d páginas</item>
+    </plurals>
+    <plurals name="merge_total">
+        <item quantity="one">%1$d arquivos · %2$d página no total</item>
+        <item quantity="other">%1$d arquivos · %2$d páginas no total</item>
+    </plurals>
 </resources>

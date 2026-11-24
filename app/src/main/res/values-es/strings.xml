@@ -281,4 +281,23 @@
         <item quantity="many">%1$d archivos guardados</item>
         <item quantity="other">%1$d archivos guardados</item>
     </plurals>
+    <string name="merge_title">Combinar PDF</string>
+    <string name="merge_hint">Añade dos o más PDF, ordénalos y combínalos en un archivo nuevo.</string>
+    <string name="add_files">Añadir archivos</string>
+    <string name="merge">Combinar</string>
+    <string name="merged_name">Combinado</string>
+    <string name="merge_failed">No se pudieron combinar estos archivos</string>
+    <string name="needs_password">Necesita contraseña</string>
+    <string name="move_up">Subir</string>
+    <string name="move_down">Bajar</string>
+    <plurals name="n_pages">
+        <item quantity="one">%1$d página</item>
+        <item quantity="many">%1$d páginas</item>
+        <item quantity="other">%1$d páginas</item>
+    </plurals>
+    <plurals name="merge_total">
+        <item quantity="one">%1$d archivos · %2$d página en total</item>
+        <item quantity="many">%1$d archivos · %2$d páginas en total</item>
+        <item quantity="other">%1$d archivos · %2$d páginas en total</item>
+    </plurals>
 </resources>
