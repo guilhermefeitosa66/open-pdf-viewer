@@ -131,6 +131,17 @@ class PageRenderer(
         }
     }
 
+    /** Drops the bitmaps of page [i] after it changed (annotations), so it renders again. */
+    fun invalidate(i: Int, vp: Viewport) {
+        baseJobs.remove(i)?.cancel()
+        base.remove(i)
+        thumbs.remove(i)
+        tiles = tiles.filter { it.page != i }
+        version.intValue++
+        request(vp)
+        refreshDetail(vp)
+    }
+
     fun requestThumb(i: Int, widthPx: Int) {
         if (thumbs.get(i) != null || thumbJobs[i]?.isActive == true) return
         val size = doc.pageSizes[i]

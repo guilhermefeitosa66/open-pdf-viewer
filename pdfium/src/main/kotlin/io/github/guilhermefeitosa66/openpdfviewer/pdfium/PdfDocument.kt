@@ -156,6 +156,34 @@ class PdfDocument private constructor(private val handle: Long) {
         DocumentInfo(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], nums[0], nums[1] >= 0, nums[2], nums[3])
     }
 
+    /** True once the document was changed in memory (annotations, forms) and not saved yet. */
+    @Volatile
+    var modified = false
+        private set
+
+    /** Marks the in-memory document as saved (after a successful save). */
+    fun markSaved() {
+        modified = false
+    }
+
+    enum class Markup(val subtype: Int) { HIGHLIGHT(9), UNDERLINE(10), SQUIGGLY(11), STRIKEOUT(12) }
+
+    /**
+     * Adds a text markup annotation over characters [start, start + count) of page [index].
+     * The change lives in memory until the document is saved. Returns false when nothing was
+     * added (no text there).
+     */
+    suspend fun addTextMarkup(index: Int, start: Int, count: Int, type: Markup, argb: Int, author: String?): Boolean =
+        withContext(PdfiumThread.dispatcher) {
+            if (closed || count <= 0) return@withContext false
+            val lp = page(index) ?: return@withContext false
+            val t = textOf(lp)
+            if (t == 0L) return@withContext false
+            val ok = PdfiumNative.addTextMarkup(lp.page, t, start, count, type.subtype, argb, author) >= 0
+            if (ok) modified = true
+            ok
+        }
+
     /**
      * Writes the document to [pfd] (a full rewrite). With [removeSecurity] a password-protected
      * document, opened with its password, is written without encryption.

@@ -142,4 +142,10 @@
     <string name="all_results">Todos os resultados</string>
     <string name="copy_page_image">Copiar a página como imagem</string>
     <string name="page_copied_image">Página copiada como imagem</string>
+    <string name="highlight">Realçar</string>
+    <string name="underline">Sublinhar</string>
+    <string name="strikethrough">Tachar</string>
+    <string name="squiggly">Sublinhado ondulado</string>
+    <string name="markup_color">Cor…</string>
+    <string name="custom_color">Qualquer cor</string>
 </resources>

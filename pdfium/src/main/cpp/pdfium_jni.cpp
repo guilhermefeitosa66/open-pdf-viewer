@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "fpdf_annot.h"
 #include "fpdf_attachment.h"
 #include "fpdf_doc.h"
 #include "fpdf_formfill.h"
@@ -512,6 +513,69 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_attachmentDa
     jbyteArray arr = env->NewByteArray(static_cast<jsize>(len));
     if (arr && len > 0) env->SetByteArrayRegion(arr, 0, static_cast<jsize>(len), reinterpret_cast<const jbyte*>(buf.data()));
     return arr;
+}
+
+}  // extern "C"
+
+namespace {
+
+std::vector<unsigned short> toUtf16(JNIEnv* env, jstring s) {
+    std::vector<unsigned short> out;
+    if (!s) return {0};
+    const jchar* chars = env->GetStringChars(s, nullptr);
+    jsize len = env->GetStringLength(s);
+    out.assign(chars, chars + len);
+    out.push_back(0);
+    env->ReleaseStringChars(s, chars);
+    return out;
+}
+
+void setAuthor(JNIEnv* env, FPDF_ANNOTATION annot, jstring author) {
+    if (!author || env->GetStringLength(author) == 0) return;
+    auto w = toUtf16(env, author);
+    FPDFAnnot_SetStringValue(annot, "T", reinterpret_cast<FPDF_WIDESTRING>(w.data()));
+}
+
+}  // namespace
+
+extern "C" {
+
+// Adds a text markup annotation (highlight, underline, squiggly, strikeout) over characters
+// [start, start + count) of the page, one quad per text rectangle. Returns its index or -1.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addTextMarkup(
+        JNIEnv* env, jobject, jlong pageHandle, jlong textHandle, jint start, jint count, jint subtype,
+        jint argb, jstring author) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    auto tp = reinterpret_cast<FPDF_TEXTPAGE>(textHandle);
+    int n = FPDFText_CountRects(tp, start, count);
+    if (n <= 0) return -1;
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, subtype);
+    if (!annot) return -1;
+    double minL = 1e9, minB = 1e9, maxR = -1e9, maxT = -1e9;
+    for (int i = 0; i < n; i++) {
+        double l, t, r, b;
+        if (!FPDFText_GetRect(tp, i, &l, &t, &r, &b)) continue;
+        FS_QUADPOINTSF q{};
+        q.x1 = static_cast<float>(l); q.y1 = static_cast<float>(t);
+        q.x2 = static_cast<float>(r); q.y2 = static_cast<float>(t);
+        q.x3 = static_cast<float>(l); q.y3 = static_cast<float>(b);
+        q.x4 = static_cast<float>(r); q.y4 = static_cast<float>(b);
+        FPDFAnnot_AppendAttachmentPoints(annot, &q);
+        minL = std::fmin(minL, l); maxR = std::fmax(maxR, r);
+        minB = std::fmin(minB, b); maxT = std::fmax(maxT, t);
+    }
+    FS_RECTF rect{static_cast<float>(minL), static_cast<float>(maxT), static_cast<float>(maxR), static_cast<float>(minB)};
+    FPDFAnnot_SetRect(annot, &rect);
+    unsigned int a = (static_cast<unsigned int>(argb) >> 24) & 0xFF;
+    unsigned int r = (static_cast<unsigned int>(argb) >> 16) & 0xFF;
+    unsigned int g = (static_cast<unsigned int>(argb) >> 8) & 0xFF;
+    unsigned int b = static_cast<unsigned int>(argb) & 0xFF;
+    FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, r, g, b, a);
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
 }
 
 }  // extern "C"

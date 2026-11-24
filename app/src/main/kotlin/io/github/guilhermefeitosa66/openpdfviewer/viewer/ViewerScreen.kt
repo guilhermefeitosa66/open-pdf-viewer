@@ -103,6 +103,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.guilhermefeitosa66.openpdfviewer.R
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
+import io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument
 import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalBackgroundAsset
 import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalReaderColors
 import io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeBackground
@@ -712,14 +713,49 @@ private fun SelectionOverlay(vm: ViewerViewModel, vp: Viewport) {
                     vm.clearSelection()
                 }
             }) { Text(stringResource(R.string.copy)) }
-            TextButton(onClick = vm::selectAllOnPage) { Text(stringResource(R.string.select_all_page)) }
-            TextButton(onClick = {
-                scope.launch {
-                    val text = vm.selectedText()
-                    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-                    context.startActivity(Intent.createChooser(send, null))
+            val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+            val markColor = Color(settings.markupColor)
+            TextButton(onClick = { vm.markSelection(PdfDocument.Markup.HIGHLIGHT, settings.markupColor) }) {
+                Box(Modifier.size(14.dp).background(markColor, androidx.compose.foundation.shape.CircleShape))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.highlight))
+            }
+            var more by remember { mutableStateOf(false) }
+            var colorDialog by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { more = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options)) }
+                DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                    for ((type, label) in listOf(
+                        PdfDocument.Markup.UNDERLINE to R.string.underline,
+                        PdfDocument.Markup.STRIKEOUT to R.string.strikethrough,
+                        PdfDocument.Markup.SQUIGGLY to R.string.squiggly,
+                    )) {
+                        DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = { more = false; vm.markSelection(type, settings.markupColor) })
+                    }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.markup_color)) },
+                        leadingIcon = { Box(Modifier.size(18.dp).background(markColor, androidx.compose.foundation.shape.CircleShape)) },
+                        onClick = { more = false; colorDialog = true },
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(text = { Text(stringResource(R.string.select_all_page)) }, onClick = { more = false; vm.selectAllOnPage() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.share)) }, onClick = {
+                        more = false
+                        scope.launch {
+                            val text = vm.selectedText()
+                            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+                            context.startActivity(Intent.createChooser(send, null))
+                        }
+                    })
                 }
-            }) { Text(stringResource(R.string.share)) }
+            }
+            if (colorDialog) {
+                ColorPickerDialog(
+                    initial = settings.markupColor,
+                    onPick = { settings.chooseMarkupColor(it); colorDialog = false },
+                    onDismiss = { colorDialog = false },
+                )
+            }
         }
     }
 }
@@ -1041,4 +1077,46 @@ private fun ReadAloudBar(ra: ReadAloud, onClose: () -> Unit, modifier: Modifier 
             }
         }
     }
+}
+
+/** Markup colors: a few soft ones that read well over text, plus any hue. */
+private val MarkupPalette = listOf(0xFFFFE066, 0xFFA5D6A7, 0xFF90CAF9, 0xFFF48FB1, 0xFFFFCC80, 0xFFCE93D8, 0xFFE57373, 0xFFB0BEC5).map { it.toInt() }
+
+@Composable
+fun ColorPickerDialog(initial: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+    var color by remember { mutableStateOf(initial) }
+    val hsv = remember(initial) { FloatArray(3).also { android.graphics.Color.colorToHSV(initial, it) } }
+    var hue by remember { mutableStateOf(hsv[0]) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.markup_color)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (c in MarkupPalette) {
+                        val label = String.format("#%06X", c and 0xFFFFFF)
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Color(c), androidx.compose.foundation.shape.CircleShape)
+                                .border(if (c == color) 3.dp else 1.dp, if (c == color) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, androidx.compose.foundation.shape.CircleShape)
+                                .clickable { color = c }
+                                .semantics { contentDescription = label },
+                        )
+                    }
+                }
+                Text(stringResource(R.string.custom_color), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                androidx.compose.material3.Slider(
+                    value = hue,
+                    onValueChange = {
+                        hue = it
+                        color = android.graphics.Color.HSVToColor(floatArrayOf(it, 0.45f, 1f))
+                    },
+                    valueRange = 0f..359f,
+                )
+                Box(Modifier.fillMaxWidth().height(28.dp).background(Color(color), RoundedCornerShape(8.dp)))
+            }
+        },
+        confirmButton = { TextButton(onClick = { onPick(color) }) { Text(stringResource(R.string.apply)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.17.0 (2026-11-24)
+
+- Text markup from a selection: highlight (one tap in the selection bar), underline, strikethrough and squiggly underline, in a palette color or any hue. Added as standard PDF annotations to the open document; writing them to the file comes with saving (next steps).
+
 ## 0.16.0 (2026-11-24)
 
 - Text selection can span pages: drag a handle onto the next (or previous) page and the copied text joins the pages.

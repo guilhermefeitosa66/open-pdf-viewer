@@ -143,4 +143,10 @@
     <string name="all_results">All results</string>
     <string name="copy_page_image">Copy page as image</string>
     <string name="page_copied_image">Page copied as an image</string>
+    <string name="highlight">Highlight</string>
+    <string name="underline">Underline</string>
+    <string name="strikethrough">Strikethrough</string>
+    <string name="squiggly">Squiggly underline</string>
+    <string name="markup_color">Color…</string>
+    <string name="custom_color">Any color</string>
 </resources>

@@ -554,6 +554,28 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         selection = Selection(startPage, start, endPage, end, rects)
     }
 
+    /** True when the document has changes (annotations) that are not saved to the file yet. */
+    var unsaved by mutableStateOf(false)
+        private set
+
+    /** Turns the selection into a text markup annotation (highlight, underline...), page by page. */
+    fun markSelection(type: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.Markup, argb: Int) {
+        val r = ready ?: return
+        val sel = selection ?: return
+        val author = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication()).authorName.ifBlank { null }
+        viewModelScope.launch {
+            for (p in sel.startPage..sel.endPage) {
+                val from = if (p == sel.startPage) sel.start else 0
+                val to = if (p == sel.endPage) sel.end else r.doc.text(p).length
+                if (to > from && r.doc.addTextMarkup(p, from, to - from, type, argb, author)) {
+                    r.renderer.invalidate(p, r.viewport)
+                }
+            }
+            unsaved = r.doc.modified
+            clearSelection()
+        }
+    }
+
     fun clearSelection() {
         selectionJob?.cancel()
         selection = null
@@ -584,6 +606,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         outline = null
         attachments = null
         stopReadAloud()
+        unsaved = false
         bookmarks = emptyList()
         history.clear()
         historyTop = null

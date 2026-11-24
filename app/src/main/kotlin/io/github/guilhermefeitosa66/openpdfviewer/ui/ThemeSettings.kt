@@ -91,6 +91,22 @@ class ThemeSettings private constructor(context: Context) {
             .apply()
     }
 
+    /** Color of the last text markup used (ARGB), and the author name written in annotations. */
+    var markupColor by mutableStateOf(prefs.getInt(KEY_MARKUP_COLOR, DEFAULT_MARKUP_COLOR))
+        private set
+    var authorName by mutableStateOf(prefs.getString(KEY_AUTHOR, "") ?: "")
+        private set
+
+    fun chooseMarkupColor(argb: Int) {
+        markupColor = argb
+        prefs.edit().putInt(KEY_MARKUP_COLOR, argb).apply()
+    }
+
+    fun chooseAuthorName(name: String) {
+        authorName = name.trim()
+        prefs.edit().putString(KEY_AUTHOR, authorName).apply()
+    }
+
     fun toggleKeepScreenOn() {
         keepScreenOn = !keepScreenOn
         prefs.edit().putBoolean(KEY_KEEP_ON, keepScreenOn).apply()
@@ -122,6 +138,9 @@ class ThemeSettings private constructor(context: Context) {
         private const val KEY_TWO_PAGES = "two_pages"
         private const val KEY_COVER_ALONE = "cover_alone"
         private const val KEY_RTL = "rtl"
+        private const val KEY_MARKUP_COLOR = "markup_color"
+        private const val KEY_AUTHOR = "author"
+        const val DEFAULT_MARKUP_COLOR = 0xFFFFE066.toInt()
         private const val KEY_CACHE = "theme_cache"
         private const val KEY_CACHE_VERSION = "theme_cache_version"
 
