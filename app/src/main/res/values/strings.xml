@@ -124,4 +124,18 @@
     <string name="save_attachment">Save %1$s</string>
     <string name="share_attachment">Share %1$s</string>
     <string name="attachment_failed">Could not read this attachment.</string>
+    <string name="favorites">Favorites</string>
+    <string name="folders">Folders</string>
+    <string name="add_favorite">Add to favorites</string>
+    <string name="remove_favorite">Remove from favorites</string>
+    <string name="no_favorites">No favorites yet. Tap the star next to a file, or use its menu in Recent.</string>
+    <string name="add_folder">Add folder</string>
+    <string name="remove_folder">Remove folder %1$s</string>
+    <string name="no_folders">Add a folder to see the PDFs inside it. The app only reads the folders you choose.</string>
+    <string name="no_pdfs_in_folder">No PDFs in this folder.</string>
+    <string name="search_files">Search by name</string>
+    <string name="sort_by">Sort</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_date">Date modified</string>
+    <string name="sort_size">Size</string>
 </resources>

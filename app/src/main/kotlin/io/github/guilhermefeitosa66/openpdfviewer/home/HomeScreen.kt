@@ -47,6 +47,10 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +76,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.guilhermefeitosa66.openpdfviewer.BuildConfig
 import io.github.guilhermefeitosa66.openpdfviewer.R
+import io.github.guilhermefeitosa66.openpdfviewer.data.Library
+import io.github.guilhermefeitosa66.openpdfviewer.data.LibraryFile
 import io.github.guilhermefeitosa66.openpdfviewer.data.RecentFile
 import io.github.guilhermefeitosa66.openpdfviewer.data.RecentFiles
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
@@ -148,19 +154,22 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                 }
             }
 
+            var tab by rememberSaveable { mutableIntStateOf(0) }
+            TabRow(
+                selectedTabIndex = tab,
+                containerColor = if (hasImage) panel else MaterialTheme.colorScheme.background,
+            ) {
+                for ((i, label) in listOf(R.string.recent, R.string.favorites, R.string.folders).withIndex()) {
+                    Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label)) })
+                }
+            }
             val list = items
             when {
+                tab == 1 -> FavoritesTab(panel, fileActions, onOpen)
+                tab == 2 -> FoldersTab(panel, fileActions, onOpen)
                 list == null -> Unit
                 list.isEmpty() -> EmptyState(panel)
                 else -> {
-                    Text(
-                        stringResource(R.string.recent).uppercase(),
-                        modifier = Modifier.fillMaxWidth().background(panel).padding(start = 20.dp, top = 12.dp, bottom = 8.dp),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.4.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     LazyColumn(
                         contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 96.dp),
                         modifier = Modifier.fillMaxSize(),
@@ -183,6 +192,11 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                                     entry, recent, if (hasImage) panel else MaterialTheme.colorScheme.background,
                                     onShare = { fileActions.share(Uri.parse(entry.uri), entry.name) },
                                     onSaveCopy = { fileActions.saveCopy(Uri.parse(entry.uri), entry.name) },
+                                    onToggleFavorite = {
+                                        scope.launch {
+                                            Library.get(context).toggleFavorite(LibraryFile(entry.uri, entry.name))
+                                        }
+                                    },
                                     onRemove = {
                                         scope.launch {
                                             recent.remove(entry)
@@ -263,9 +277,14 @@ private fun RecentRow(
     rowColor: Color,
     onShare: () -> Unit,
     onSaveCopy: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onRemove: () -> Unit,
     onClick: () -> Unit,
 ) {
+    val ctx = LocalContext.current
+    val library = remember { Library.get(ctx) }
+    val favorites by library.favorites.collectAsState()
+    val starred = favorites.any { it.uri == entry.uri }
     var menu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val thumb by produceState<ImageBitmap?>(null, entry.key, entry.openedAt) {
@@ -329,6 +348,10 @@ private fun RecentRow(
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; onShare() })
                 DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; onSaveCopy() })
+                DropdownMenuItem(
+                    text = { Text(stringResource(if (starred) R.string.remove_favorite else R.string.add_favorite)) },
+                    onClick = { menu = false; onToggleFavorite() },
+                )
                 DropdownMenuItem(text = { Text(stringResource(R.string.remove_from_list)) }, onClick = { menu = false; onRemove() })
             }
         }

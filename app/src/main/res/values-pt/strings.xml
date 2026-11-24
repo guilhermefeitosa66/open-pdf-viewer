@@ -86,7 +86,7 @@
     <string name="layout_cover_alone">Primeira página sozinha (capa)</string>
     <string name="layout_rtl">Da direita para a esquerda</string>
     <string name="apply">Aplicar</string>
-    <string name="bookmarks">Favoritos</string>
+    <string name="bookmarks">Marcadores</string>
     <string name="add_bookmark">Marcar esta página</string>
     <string name="remove_bookmark">Remover marcador</string>
     <string name="bookmark_title">Título do marcador</string>
@@ -123,4 +123,18 @@
     <string name="save_attachment">Salvar %1$s</string>
     <string name="share_attachment">Compartilhar %1$s</string>
     <string name="attachment_failed">Não foi possível ler este anexo.</string>
+    <string name="favorites">Favoritos</string>
+    <string name="folders">Pastas</string>
+    <string name="add_favorite">Adicionar aos favoritos</string>
+    <string name="remove_favorite">Tirar dos favoritos</string>
+    <string name="no_favorites">Nenhum favorito ainda. Toque na estrela ao lado de um arquivo, ou use o menu dele em Recentes.</string>
+    <string name="add_folder">Adicionar pasta</string>
+    <string name="remove_folder">Remover a pasta %1$s</string>
+    <string name="no_folders">Adicione uma pasta para ver os PDFs dela. O app só lê as pastas que você escolher.</string>
+    <string name="no_pdfs_in_folder">Nenhum PDF nesta pasta.</string>
+    <string name="search_files">Buscar pelo nome</string>
+    <string name="sort_by">Ordenar</string>
+    <string name="sort_name">Nome</string>
+    <string name="sort_date">Data de modificação</string>
+    <string name="sort_size">Tamanho</string>
 </resources>

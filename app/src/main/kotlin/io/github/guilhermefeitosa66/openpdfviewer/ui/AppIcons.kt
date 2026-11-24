@@ -46,6 +46,16 @@ object AppIcons {
         }
     }
 
+    val StarOutline: ImageVector by lazy {
+        stroke("StarOutline") {
+            line {
+                moveTo(12f, 3.5f); lineTo(14.6f, 8.9f); lineTo(20.5f, 9.6f); lineTo(16.1f, 13.6f)
+                lineTo(17.3f, 19.5f); lineTo(12f, 16.6f); lineTo(6.7f, 19.5f); lineTo(7.9f, 13.6f)
+                lineTo(3.5f, 9.6f); lineTo(9.4f, 8.9f); close()
+            }
+        }
+    }
+
     val Download: ImageVector by lazy {
         stroke("Download") {
             line { moveTo(12f, 4f); lineTo(12f, 15f) }

@@ -123,4 +123,18 @@
     <string name="save_attachment">Guardar %1$s</string>
     <string name="share_attachment">Compartir %1$s</string>
     <string name="attachment_failed">No se pudo leer este adjunto.</string>
+    <string name="favorites">Favoritos</string>
+    <string name="folders">Carpetas</string>
+    <string name="add_favorite">Añadir a favoritos</string>
+    <string name="remove_favorite">Quitar de favoritos</string>
+    <string name="no_favorites">Aún no hay favoritos. Toca la estrella junto a un archivo, o usa su menú en Recientes.</string>
+    <string name="add_folder">Añadir carpeta</string>
+    <string name="remove_folder">Quitar la carpeta %1$s</string>
+    <string name="no_folders">Añade una carpeta para ver sus PDF. La app solo lee las carpetas que elijas.</string>
+    <string name="no_pdfs_in_folder">No hay PDF en esta carpeta.</string>
+    <string name="search_files">Buscar por nombre</string>
+    <string name="sort_by">Ordenar</string>
+    <string name="sort_name">Nombre</string>
+    <string name="sort_date">Fecha de modificación</string>
+    <string name="sort_size">Tamaño</string>
 </resources>

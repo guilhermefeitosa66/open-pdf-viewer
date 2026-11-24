@@ -2,6 +2,12 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.14.0 (2026-11-24)
+
+- Library on the home screen: Recent, Favorites and Folders tabs.
+- Favorites: star any file (from Recent or a folder); starred files stay even after leaving the recent list.
+- Folders: add folders through the system folder picker (persisted grant, no storage permission) and see the PDFs inside them and their subfolders, with search by name and sorting by name, date or size.
+
 ## 0.13.0 (2026-11-24)
 
 - Attachments: files embedded in the PDF are listed in an Attachments tab of the pages sheet, and each can be saved anywhere (system Save screen) or shared.
