@@ -95,6 +95,7 @@ fun DigitalSignatureEffects(vm: ViewerViewModel) {
         }
     }
     if (vm.digitalSignOpen) DigitalSignatureSheet(vm)
+    ToolEffects(vm)
     vm.signatureChecks?.let { SignatureChecksDialog(it) { vm.signatureChecks = null } }
 }
 

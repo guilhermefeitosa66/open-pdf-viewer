@@ -306,4 +306,15 @@
     <string name="all_pages">All pages</string>
     <string name="detect_margins">Detect margins</string>
     <string name="reset">Reset</string>
+    <string name="tools">Tools…</string>
+    <string name="compress">Compress</string>
+    <string name="compress_action">Compress</string>
+    <string name="compress_hint">Images are re-encoded and scaled down; text and vector drawings stay sharp. You see the new size before anything is saved.</string>
+    <string name="compress_light">Light (best quality)</string>
+    <string name="compress_recommended">Recommended</string>
+    <string name="compress_strong">Strong (smallest file)</string>
+    <string name="remove_metadata">Also remove metadata (title, author…)</string>
+    <string name="working">Working…</string>
+    <string name="compress_result">%1$s → %2$s (%3$d%% smaller)</string>
+    <string name="compress_no_gain">This file (%1$s) could not be made smaller.</string>
 </resources>

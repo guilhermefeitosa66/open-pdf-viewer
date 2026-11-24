@@ -1113,6 +1113,57 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- File tools ----
+
+    /**
+     * Puts a finished file in place of the open one (then reopens it), or, with [asCopy] or when
+     * the file is not writable, asks where to save it.
+     */
+    private suspend fun commitFile(r: DocState.Ready, out: java.io.File, asCopy: Boolean, suffix: String) {
+        val target = uri ?: return
+        if (!asCopy && DocumentSource.overwrite(getApplication(), target, out)) {
+            r.doc.markSaved()
+            unsaved = false
+            reopenAt(target, r)
+            return
+        }
+        fileToExport = out to suffix
+    }
+
+    var compressOpen by mutableStateOf(false)
+    /** Progress of a running tool (0..1), or null. */
+    var toolProgress by mutableStateOf<Float?>(null)
+        private set
+    data class CompressResult(val file: java.io.File, val before: Long, val after: Long)
+    var compressResult by mutableStateOf<CompressResult?>(null)
+
+    fun compress(level: io.github.guilhermefeitosa66.openpdfviewer.tools.PdfTools.Compression, stripMetadata: Boolean) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        compressOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val result = runCatching {
+                val input = fileForSigning(r) ?: error("input")
+                val out = java.io.File(input.parentFile, "compressed.pdf")
+                io.github.guilhermefeitosa66.openpdfviewer.tools.PdfTools.compress(app, input, out, level, stripMetadata, password) { p ->
+                    viewModelScope.launch { toolProgress = p }
+                }
+                CompressResult(out, input.length(), out.length())
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "compress failed", it) }.getOrNull()
+            toolProgress = null
+            if (result == null) exportResult = false else compressResult = result
+        }
+    }
+
+    fun keepCompressed(asCopy: Boolean) {
+        val r = ready ?: return
+        val res = compressResult ?: return
+        compressResult = null
+        viewModelScope.launch { commitFile(r, res.file, asCopy, "compressed") }
+    }
+
     // ---- Crop ----
 
     /** Page shown in the crop screen, or null when it is closed. */

@@ -416,6 +416,7 @@ private fun TopBar(
     when (panel) {
         Panel.ANNOTATE -> AnnotatePanel(vm, onDismiss = { panel = null })
         Panel.VIEW -> ViewPanel(vp, onLayout = { panel = null; layoutDialog = true }, onDismiss = { panel = null })
+        Panel.TOOLS -> ToolsPanel(vm, onDismiss = { panel = null })
         null -> Unit
     }
     if (layoutDialog) LayoutDialog(onDismiss = { layoutDialog = false })
@@ -469,6 +470,7 @@ private fun TopBar(
                 }
                 DropdownMenuItem(text = { Text(stringResource(R.string.annotate)) }, onClick = { menu = false; panel = Panel.ANNOTATE })
                 DropdownMenuItem(text = { Text(stringResource(R.string.view_options)) }, onClick = { menu = false; panel = Panel.VIEW })
+                DropdownMenuItem(text = { Text(stringResource(R.string.tools)) }, onClick = { menu = false; panel = Panel.TOOLS })
                 val page = vp.currentPage
                 if (vm.isBookmarked(page)) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.remove_bookmark)) }, onClick = { menu = false; vm.removeBookmark(page) })
@@ -493,7 +495,6 @@ private fun TopBar(
                         }
                     },
                 )
-                DropdownMenuItem(text = { Text(stringResource(R.string.save_flattened)) }, onClick = { menu = false; vm.requestFlatten = true })
                 DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, onClick = { menu = false; vm.print(context) })
                 DropdownMenuItem(text = { Text(stringResource(R.string.document_info)) }, onClick = { menu = false; vm.loadInfo(); infoDialog = true })
             }
@@ -1369,10 +1370,10 @@ private fun ShapeToolbar(vm: ViewerViewModel, modifier: Modifier = Modifier) {
     if (penDialog) PenDialog(settings.inkColor, settings.inkWidth, onPick = { c, w -> settings.choosePen(c, w); penDialog = false }, onDismiss = { penDialog = false })
 }
 
-private enum class Panel { ANNOTATE, VIEW }
+private enum class Panel { ANNOTATE, VIEW, TOOLS }
 
 @Composable
-private fun PanelItem(label: String, checked: Boolean? = null, onClick: () -> Unit) {
+internal fun PanelItem(label: String, checked: Boolean? = null, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 52.dp).padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,

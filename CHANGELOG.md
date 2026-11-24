@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.35.0 (2026-11-24)
+
+- Compress (Tools… › Compress): light, recommended or strong. Images are re-encoded as JPEG and scaled down to the level's resolution (a new version is kept only when it is at least 10 % smaller), unused objects are dropped, and metadata can be removed too. Shows the size before and after; nothing is saved until you choose Save or Save as copy.
+- The viewer menu has a new Tools… panel; Save flattened copy moved there.
+
 ## 0.34.0 (2026-11-24)
 
 - Crop margins (Organize pages › ⋮ › Crop margins…): drag the corners or edges of the box over the page, or detect the white margins; apply to this page or to all pages (with detection, each page gets its own margins). Only the visible area changes; nothing is deleted.

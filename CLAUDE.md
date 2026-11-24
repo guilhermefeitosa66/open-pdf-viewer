@@ -118,4 +118,8 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
 - **Dividir, extrair, mesclar** gravam um documento novo (`writePages`/`mergeDocuments`:
   `FPDF_CreateNewDocument` + `FPDF_ImportPagesByIndex`), que só leva o que as páginas usam (perde
   sumário e AcroForm do original). Recortar só muda a `CropBox` (o conteúdo fica, escondido).
+- **Ferramentas de arquivo** (painel "Ferramentas…" do leitor) usam o PdfBox-Android onde o PDFium
+  não alcança (recomprimir imagem, senha AES-256, metadados). Cada uma grava um arquivo novo e só
+  substitui o aberto quando o usuário confirma (`commitFile`). A decodificação com subamostragem do
+  PdfBox-Android quebra: JPEG vai direto ao `BitmapFactory` com `inSampleSize`.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

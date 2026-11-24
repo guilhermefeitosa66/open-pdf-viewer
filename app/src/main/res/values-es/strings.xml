@@ -308,4 +308,15 @@
     <string name="all_pages">Todas las páginas</string>
     <string name="detect_margins">Detectar márgenes</string>
     <string name="reset">Restablecer</string>
+    <string name="tools">Herramientas…</string>
+    <string name="compress">Comprimir</string>
+    <string name="compress_action">Comprimir</string>
+    <string name="compress_hint">Las imágenes se recodifican y se reducen; el texto y los dibujos vectoriales siguen nítidos. Ves el nuevo tamaño antes de guardar nada.</string>
+    <string name="compress_light">Ligera (mejor calidad)</string>
+    <string name="compress_recommended">Recomendada</string>
+    <string name="compress_strong">Fuerte (archivo más pequeño)</string>
+    <string name="remove_metadata">Quitar también los metadatos (título, autor…)</string>
+    <string name="working">Procesando…</string>
+    <string name="compress_result">%1$s → %2$s (%3$d%% menos)</string>
+    <string name="compress_no_gain">No se pudo reducir este archivo (%1$s).</string>
 </resources>
