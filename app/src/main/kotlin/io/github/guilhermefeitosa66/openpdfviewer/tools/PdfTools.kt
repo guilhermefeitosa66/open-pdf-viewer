@@ -129,3 +129,84 @@ object PdfTools {
         return if (jpeg.cosObject.length < oldLength * 0.9) jpeg else null
     }
 }
+
+/** Page layout for turning images into a PDF. */
+data class ImagePageOptions(
+    /** Page size in points, or null to make each page the size of its image. */
+    val pageSize: Pair<Float, Float>? = null,
+    /** Margin in points. */
+    val margin: Float = 0f,
+    /** null = follow each image; true/false = force landscape/portrait. */
+    val landscape: Boolean? = null,
+) {
+    companion object {
+        val A4 = 595.28f to 841.89f
+        val LETTER = 612f to 792f
+
+        /**
+         * The page size and the image rectangle (x, y from the bottom-left, w, h) in points for
+         * an image of [iw] x [ih] pixels: the image is fitted inside the margins and centred.
+         * With no page size, the page takes the image's size at 72 dpi-equivalent (long side
+         * scaled to A4's long side) plus the margins.
+         */
+        fun layout(o: ImagePageOptions, iw: Int, ih: Int): Pair<Pair<Float, Float>, FloatArray> {
+            val imageLandscape = iw > ih
+            val (pw, ph) = when (val size = o.pageSize) {
+                null -> {
+                    val s = A4.second / maxOf(iw, ih)
+                    (iw * s + 2 * o.margin) to (ih * s + 2 * o.margin)
+                }
+                else -> {
+                    val land = o.landscape ?: imageLandscape
+                    val (a, b) = size
+                    if (land) maxOf(a, b) to minOf(a, b) else minOf(a, b) to maxOf(a, b)
+                }
+            }
+            val aw = (pw - 2 * o.margin).coerceAtLeast(1f)
+            val ah = (ph - 2 * o.margin).coerceAtLeast(1f)
+            val scale = minOf(aw / iw, ah / ih)
+            val w = iw * scale
+            val h = ih * scale
+            return (pw to ph) to floatArrayOf((pw - w) / 2, (ph - h) / 2, w, h)
+        }
+    }
+}
+
+object ImagesToPdf {
+    /** Longest side kept for each image, in pixels (about 250 dpi on A4). */
+    private const val MAX_SIDE = 3000
+
+    /**
+     * Writes one page per image (already decoded and rotated by the caller through [decode]) to
+     * [output].
+     */
+    suspend fun write(
+        context: Context,
+        count: Int,
+        decode: suspend (Int) -> Bitmap?,
+        options: ImagePageOptions,
+        output: File,
+        onProgress: (Float) -> Unit = {},
+    ) = withContext(Dispatchers.IO) {
+        PDFBoxResourceLoader.init(context.applicationContext)
+        PDDocument().use { doc ->
+            for (i in 0 until count) {
+                coroutineContext.ensureActive()
+                val src = decode(i) ?: continue
+                val scale = minOf(1f, MAX_SIDE.toFloat() / maxOf(src.width, src.height))
+                val bmp = if (scale < 1f) Bitmap.createScaledBitmap(src, (src.width * scale).toInt(), (src.height * scale).toInt(), true) else src
+                val (size, rect) = ImagePageOptions.layout(options, bmp.width, bmp.height)
+                val page = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle(size.first, size.second))
+                doc.addPage(page)
+                val image = JPEGFactory.createFromImage(doc, bmp, 0.85f)
+                com.tom_roush.pdfbox.pdmodel.PDPageContentStream(doc, page).use { cs ->
+                    cs.drawImage(image, rect[0], rect[1], rect[2], rect[3])
+                }
+                if (bmp !== src) bmp.recycle()
+                src.recycle()
+                onProgress((i + 1).toFloat() / count)
+            }
+            doc.save(output)
+        }
+    }
+}

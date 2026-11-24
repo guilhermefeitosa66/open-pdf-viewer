@@ -317,4 +317,20 @@
     <string name="working">Working…</string>
     <string name="compress_result">%1$s → %2$s (%3$d%% smaller)</string>
     <string name="compress_no_gain">This file (%1$s) could not be made smaller.</string>
+    <string name="images_to_pdf">Images to PDF</string>
+    <string name="images_hint">Add photos or scans. Each image becomes one page, in this order.</string>
+    <string name="add_images">Add images</string>
+    <string name="create_pdf">Create PDF</string>
+    <string name="images_name">Images</string>
+    <string name="images_failed">Could not create the PDF</string>
+    <string name="page_size">Page</string>
+    <string name="size_fit_image">Fit image</string>
+    <string name="margin">Margin</string>
+    <string name="margin_none">None</string>
+    <string name="margin_small">Small</string>
+    <string name="margin_large">Large</string>
+    <string name="orientation">Orientation</string>
+    <string name="orientation_auto">Auto</string>
+    <string name="orientation_portrait">Portrait</string>
+    <string name="orientation_landscape">Landscape</string>
 </resources>

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.36.0 (2026-11-24)
+
+- Images to PDF (home screen › ⋮): pick photos with the system photo picker (no storage permission), put them in order, turn them, and choose the page (fit image, A4 or Letter), margin and orientation. The new PDF opens right away.
+
 ## 0.35.0 (2026-11-24)
 
 - Compress (Tools… › Compress): light, recommended or strong. Images are re-encoded as JPEG and scaled down to the level's resolution (a new version is kept only when it is at least 10 % smaller), unused objects are dropped, and metadata can be removed too. Shows the size before and after; nothing is saved until you choose Save or Save as copy.

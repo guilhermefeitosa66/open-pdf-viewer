@@ -106,6 +106,7 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
     var about by remember { mutableStateOf(false) }
     var licenses by remember { mutableStateOf(false) }
     var merging by remember { mutableStateOf(false) }
+    var imagesToPdf by remember { mutableStateOf(false) }
     // With a background image, content sits on the theme surface at ~85% so text stays readable.
     val hasImage = LocalBackgroundAsset.current != null
     val panel = if (hasImage) MaterialTheme.colorScheme.surface.copy(alpha = 0.85f) else Color.Transparent
@@ -149,6 +150,10 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.merge_title)) },
                             onClick = { menu = false; merging = true },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.images_to_pdf)) },
+                            onClick = { menu = false; imagesToPdf = true },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.settings)) },
@@ -248,6 +253,7 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
         )
     }
     if (licenses) LicensesDialog(onDismiss = { licenses = false })
+    if (imagesToPdf) io.github.guilhermefeitosa66.openpdfviewer.tools.ImagesScreen(onDismiss = { imagesToPdf = false }, onOpen = { imagesToPdf = false; onOpen(it) })
     if (merging) io.github.guilhermefeitosa66.openpdfviewer.tools.MergeScreen(onDismiss = { merging = false }, onOpen = { merging = false; onOpen(it) })
 }
 
