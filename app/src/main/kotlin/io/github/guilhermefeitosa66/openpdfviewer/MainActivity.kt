@@ -6,6 +6,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
                     enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 }
                 val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                    Log.d(TAG, "picker result: ${uri != null}")
                     if (uri != null) {
                         DocumentSource.persistAccess(this, uri)
                         nav.show(uri)
@@ -109,9 +111,14 @@ class MainActivity : ComponentActivity() {
                 else @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_STREAM)
             else -> null
         }
+        Log.d(TAG, "intent ${intent?.action}: ${uri != null}")
         if (uri != null) {
             DocumentSource.persistAccess(this, uri)
             nav.show(uri)
         }
+    }
+
+    private companion object {
+        const val TAG = "OpenPdfViewer"
     }
 }

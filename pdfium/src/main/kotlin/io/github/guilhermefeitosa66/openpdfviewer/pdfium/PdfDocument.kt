@@ -130,13 +130,14 @@ class PdfDocument private constructor(private val handle: Long) {
         suspend fun open(pfd: ParcelFileDescriptor, password: String? = null): PdfDocument =
             withContext(PdfiumThread.dispatcher) {
                 val h = PdfiumNative.openDocument(pfd.fd, password)
-                if (h <= 0L) {
+                // A handle is an opaque pointer: on arm64 it may be negative (tagged pointers).
+                if (h == 0L) {
                     throw PdfOpenException(
-                        when (-h) {
-                            2L -> PdfOpenException.Reason.FILE
-                            3L -> PdfOpenException.Reason.FORMAT
-                            4L -> PdfOpenException.Reason.PASSWORD
-                            5L -> PdfOpenException.Reason.SECURITY
+                        when (PdfiumNative.lastOpenError()) {
+                            2 -> PdfOpenException.Reason.FILE
+                            3 -> PdfOpenException.Reason.FORMAT
+                            4 -> PdfOpenException.Reason.PASSWORD
+                            5 -> PdfOpenException.Reason.SECURITY
                             else -> PdfOpenException.Reason.UNKNOWN
                         }
                     )

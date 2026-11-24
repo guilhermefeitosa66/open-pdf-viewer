@@ -33,6 +33,11 @@ int readBlock(void* param, unsigned long position, unsigned char* buf, unsigned 
 
 bool initialized = false;
 
+// Error of the last failed openDocument. Handles are returned as opaque jlongs: on arm64 heap
+// pointers carry a tag in the top byte, so a valid handle can be negative and never doubles as
+// an error code.
+unsigned long lastOpenError = 0;
+
 // Device space used to convert between page points and normalized [0,1] coordinates.
 // 100 device units per point keeps the integer rounding of FPDF_PageToDevice negligible.
 constexpr double kUnitsPerPoint = 100.0;
@@ -57,18 +62,23 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_init(JNIEnv*
     initialized = true;
 }
 
-// Returns a Document pointer, or a negative PDFium error code.
+// Returns a Document handle, or 0 on failure (see lastOpenError).
 JNIEXPORT jlong JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_openDocument(
         JNIEnv* env, jobject, jint fd, jstring password) {
+    lastOpenError = 0;
     struct stat st{};
-    if (fstat(fd, &st) != 0 || st.st_size <= 0) return -FPDF_ERR_FILE;
+    if (fstat(fd, &st) != 0 || st.st_size <= 0) {
+        lastOpenError = FPDF_ERR_FILE;
+        return 0;
+    }
 
     auto* d = new Document();
     d->fd = dup(fd);
     if (d->fd < 0) {
         delete d;
-        return -FPDF_ERR_FILE;
+        lastOpenError = FPDF_ERR_FILE;
+        return 0;
     }
     d->access.m_FileLen = static_cast<unsigned long>(st.st_size);
     d->access.m_GetBlock = readBlock;
@@ -79,12 +89,18 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_openDocument
     if (pw) env->ReleaseStringUTFChars(password, pw);
 
     if (!d->doc) {
-        auto err = static_cast<jlong>(FPDF_GetLastError());
+        unsigned long err = FPDF_GetLastError();
         close(d->fd);
         delete d;
-        return -(err == 0 ? FPDF_ERR_UNKNOWN : err);
+        lastOpenError = err == 0 ? FPDF_ERR_UNKNOWN : err;
+        return 0;
     }
     return reinterpret_cast<jlong>(d);
+}
+
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_lastOpenError(JNIEnv*, jobject) {
+    return static_cast<jint>(lastOpenError);
 }
 
 JNIEXPORT void JNICALL

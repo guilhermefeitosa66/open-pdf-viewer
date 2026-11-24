@@ -109,6 +109,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             val doc = result.getOrElse { e ->
+                android.util.Log.w("OpenPdfViewer", "open failed", e)
                 state = when (e) {
                     is PdfOpenException -> when (e.reason) {
                         PdfOpenException.Reason.PASSWORD -> DocState.NeedPassword(wrong = password != null)
