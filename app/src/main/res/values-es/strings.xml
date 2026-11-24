@@ -185,4 +185,12 @@
     <string name="delete_from_file_note">Esta anotación vino con el archivo: borrarla no se puede deshacer aquí. Para recuperarla, cierra sin guardar.</string>
     <string name="author_name">Tu nombre</string>
     <string name="author_name_help">Se guarda como autor de tus anotaciones. Déjalo vacío para ser anónimo.</string>
+    <string name="save_as">Guardar como…</string>
+    <string name="saving">Guardando…</string>
+    <string name="unsaved_title">¿Guardar los cambios?</string>
+    <string name="unsaved_body">Tus anotaciones aún no están en el archivo. Si sales sin guardar, se pierden.</string>
+    <string name="discard">Descartar</string>
+    <string name="annotate">Anotar…</string>
+    <string name="annotate_hint">Para resaltar o subrayar, mantén pulsado el texto y usa la barra de selección.</string>
+    <string name="view_options">Vista…</string>
 </resources>

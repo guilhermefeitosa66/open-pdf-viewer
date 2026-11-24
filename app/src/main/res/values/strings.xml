@@ -186,4 +186,12 @@
     <string name="delete_from_file_note">This annotation came with the file: deleting it cannot be undone here. To get it back, close without saving.</string>
     <string name="author_name">Your name</string>
     <string name="author_name_help">Written as the author of your annotations. Leave empty to stay anonymous.</string>
+    <string name="save_as">Save as…</string>
+    <string name="saving">Saving…</string>
+    <string name="unsaved_title">Save your changes?</string>
+    <string name="unsaved_body">Your annotations are not in the file yet. If you leave without saving, they are lost.</string>
+    <string name="discard">Discard</string>
+    <string name="annotate">Annotate…</string>
+    <string name="annotate_hint">To highlight or underline, long-press the text and use the selection bar.</string>
+    <string name="view_options">View…</string>
 </resources>

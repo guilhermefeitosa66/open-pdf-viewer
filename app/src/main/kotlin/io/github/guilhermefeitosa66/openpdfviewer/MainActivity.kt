@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
                     HomeScreen(onOpen = nav::show, onPickFile = pick, onSettings = { nav.showSettings(true) })
                 } else {
                     val vm: ViewerViewModel = viewModel()
-                    ViewerScreen(vm = vm, uri = uri, onBack = { nav.show(null) }, onPickFile = pick)
+                    ViewerScreen(vm = vm, uri = uri, onBack = { nav.show(null) }, onPickFile = pick, onOpenOther = nav::show)
                 }
             }
         }

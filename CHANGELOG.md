@@ -2,6 +2,12 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.22.0 (2026-11-24)
+
+- Save: annotations are written into the file itself when the app may write there (files picked in the app), or with Save as… otherwise; they are standard PDF annotations that other readers show.
+- Leaving with unsaved changes asks: Save, Discard or Cancel.
+- The viewer menu is shorter: Annotate… and View… open panels with those options.
+
 ## 0.21.0 (2026-11-24)
 
 - Annotations tab in the pages sheet: every annotation grouped by page with its type, author and text; tap to go there, edit a note, or delete.

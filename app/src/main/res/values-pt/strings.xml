@@ -185,4 +185,12 @@
     <string name="delete_from_file_note">Esta anotação veio com o arquivo: apagá-la não pode ser desfeito aqui. Para recuperá-la, feche sem salvar.</string>
     <string name="author_name">Seu nome</string>
     <string name="author_name_help">Gravado como autor das suas anotações. Deixe vazio para ficar anônimo.</string>
+    <string name="save_as">Salvar como…</string>
+    <string name="saving">Salvando…</string>
+    <string name="unsaved_title">Salvar as alterações?</string>
+    <string name="unsaved_body">Suas anotações ainda não estão no arquivo. Se sair sem salvar, elas se perdem.</string>
+    <string name="discard">Descartar</string>
+    <string name="annotate">Anotar…</string>
+    <string name="annotate_hint">Para realçar ou sublinhar, toque e segure no texto e use a barra da seleção.</string>
+    <string name="view_options">Exibição…</string>
 </resources>

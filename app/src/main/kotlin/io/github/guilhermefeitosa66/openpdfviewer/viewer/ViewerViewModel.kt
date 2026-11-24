@@ -655,6 +655,94 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         return out
     }
 
+    // ---- Saving ----
+
+    /** True while a save runs; the UI shows progress and blocks a second one. */
+    var saving by mutableStateOf(false)
+        private set
+    /** Set when saving in place is not possible: the UI asks where to "Save as". */
+    var needsSaveAs by mutableStateOf(false)
+
+    /** Writes the document with its changes into a private temp file. */
+    private suspend fun writeToTemp(doc: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument): java.io.File? {
+        val dir = java.io.File(getApplication<Application>().cacheDir, "save").apply { mkdirs() }
+        val tmp = java.io.File(dir, "document.pdf")
+        val ok = withContext(Dispatchers.IO) {
+            android.os.ParcelFileDescriptor.open(
+                tmp,
+                android.os.ParcelFileDescriptor.MODE_CREATE or android.os.ParcelFileDescriptor.MODE_TRUNCATE or android.os.ParcelFileDescriptor.MODE_WRITE_ONLY,
+            ).use { pfd -> doc.saveCopy(pfd) }
+        }
+        return if (ok) tmp else null
+    }
+
+    /**
+     * Saves the changes into the open file. The document is written to a temp file first (PDFium
+     * reads the original lazily, so it must not be overwritten while open), copied over the
+     * original, then reopened at the same place. Falls back to "Save as" when the file is not
+     * writable. [then] runs after a successful save (e.g. leaving the viewer).
+     */
+    fun save(then: (() -> Unit)? = null) {
+        val r = ready ?: return
+        val target = uri ?: return
+        if (saving) return
+        saving = true
+        viewModelScope.launch {
+            val tmp = writeToTemp(r.doc)
+            val ok = tmp != null && DocumentSource.overwrite(getApplication(), target, tmp)
+            saving = false
+            if (!ok) {
+                pendingAfterSave = then
+                needsSaveAs = true
+                return@launch
+            }
+            r.doc.markSaved()
+            unsaved = false
+            if (then != null) then() else reopenAt(target, r)
+        }
+    }
+
+    private var pendingAfterSave: (() -> Unit)? = null
+
+    /** Writes the document with its changes to [target] (from the system "Save as" screen). */
+    fun saveAs(target: Uri?) {
+        needsSaveAs = false
+        val then = pendingAfterSave
+        pendingAfterSave = null
+        val r = ready ?: return
+        if (target == null) return
+        saving = true
+        viewModelScope.launch {
+            val tmp = writeToTemp(r.doc)
+            val ok = tmp != null && DocumentSource.overwrite(getApplication(), target, tmp)
+            saving = false
+            if (!ok) return@launch
+            r.doc.markSaved()
+            unsaved = false
+            if (then != null) then() else {
+                // Continue in the saved copy, which now has the changes.
+                DocumentSource.persistAccess(getApplication(), target)
+                saveTargetOpened = target
+            }
+        }
+    }
+
+    /** After "Save as" the viewer switches to the new file (the screen observes this). */
+    var saveTargetOpened by mutableStateOf<Uri?>(null)
+
+    /** Reopens the saved file so PDFium reads the new bytes, keeping the reading position. */
+    private suspend fun reopenAt(target: Uri, r: DocState.Ready) {
+        val (page, offset) = r.viewport.topAnchor()
+        recent.setPosition(target, page, offset, r.viewport.zoom, r.viewport.scrollXFraction)
+        closeDocument()
+        open(target)
+    }
+
+    /** Leaves without saving: the changes only lived in memory. */
+    fun discardChanges() {
+        unsaved = false
+    }
+
     // ---- Edit history (undo/redo for this session) ----
 
     private sealed interface Edit {

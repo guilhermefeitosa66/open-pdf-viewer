@@ -126,10 +126,26 @@ object DocumentSource {
         return uri.lastPathSegment?.substringAfterLast('/') ?: "document.pdf"
     }
 
-    /** Keeps read access across restarts when the grant allows it (picker results do). */
+    /**
+     * Keeps access across restarts when the grant allows it (picker results do): read and write
+     * when the provider gave write access (so annotations can be saved in place), else read only.
+     */
     fun persistAccess(context: Context, uri: Uri) {
-        runCatching {
-            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val rw = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        runCatching { context.contentResolver.takePersistableUriPermission(uri, rw) }.onFailure {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
         }
+    }
+
+    /**
+     * Replaces the contents of [uri] with [file]. False when the app may not write there (no
+     * write grant, a read-only provider, an expired "Open with" grant).
+     */
+    suspend fun overwrite(context: Context, uri: Uri, file: File): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val out = context.contentResolver.openOutputStream(uri, "wt") ?: return@withContext false
+            out.use { o -> file.inputStream().use { it.copyTo(o) } }
+            true
+        }.getOrDefault(false)
     }
 }

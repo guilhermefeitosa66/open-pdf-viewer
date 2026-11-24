@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -117,11 +118,46 @@ fun ViewerScreen(
     uri: Uri,
     onBack: () -> Unit,
     onPickFile: () -> Unit,
+    onOpenOther: (Uri) -> Unit = {},
 ) {
     LaunchedEffect(uri) { vm.open(uri) }
     val leave = {
         vm.closeDocument()
         onBack()
+    }
+    var askSave by remember { mutableStateOf(false) }
+    // After "Save as", keep reading the saved copy.
+    vm.saveTargetOpened?.let { saved ->
+        LaunchedEffect(saved) {
+            vm.saveTargetOpened = null
+            onOpenOther(saved)
+        }
+    }
+    val saveAsLauncher = androidx.activity.compose.rememberLauncherForActivityResult(io.github.guilhermefeitosa66.openpdfviewer.ui.CreateTypedDocument()) { target ->
+        vm.saveAs(target)
+    }
+    if (vm.needsSaveAs) {
+        LaunchedEffect(Unit) {
+            val name = (vm.state as? DocState.Ready)?.name ?: "document.pdf"
+            saveAsLauncher.launch(io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName(name) to "application/pdf")
+        }
+    }
+    if (askSave) {
+        AlertDialog(
+            onDismissRequest = { askSave = false },
+            title = { Text(stringResource(R.string.unsaved_title)) },
+            text = { Text(stringResource(R.string.unsaved_body)) },
+            confirmButton = { TextButton(onClick = { askSave = false; vm.save { leave() } }) { Text(stringResource(R.string.save)) } },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { askSave = false; vm.discardChanges(); leave() }) { Text(stringResource(R.string.discard)) }
+                    TextButton(onClick = { askSave = false }) { Text(stringResource(R.string.cancel)) }
+                }
+            },
+        )
+    }
+    if (vm.saving) {
+        AlertDialog(onDismissRequest = {}, title = { Text(stringResource(R.string.saving)) }, text = { androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth()) }, confirmButton = {})
     }
     BackHandler {
         when {
@@ -131,6 +167,7 @@ fun ViewerScreen(
             vm.placing != null -> vm.placing = null
             vm.searchOpen -> vm.closeSearch()
             vm.goBack() -> Unit
+            vm.unsaved -> askSave = true
             else -> leave()
         }
     }
@@ -140,7 +177,7 @@ fun ViewerScreen(
             DocState.Loading -> Loading()
             is DocState.NeedPassword -> PasswordDialog(s.wrong, onSubmit = vm::submitPassword, onCancel = leave)
             is DocState.Failed -> Failure(s.kind, onBack = leave, onPickFile = onPickFile)
-            is DocState.Ready -> Reader(vm, s, onBack = leave)
+            is DocState.Ready -> Reader(vm, s, onBack = { if (vm.unsaved) askSave = true else leave() })
         }
     }
 }
@@ -334,10 +371,16 @@ private fun TopBar(
     onSaveCopy: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
+    var panel by remember { mutableStateOf<Panel?>(null) }
     val scope = rememberCoroutineScope()
     var layoutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val vp = ready.viewport
+    when (panel) {
+        Panel.ANNOTATE -> AnnotatePanel(vm, onDismiss = { panel = null })
+        Panel.VIEW -> ViewPanel(vp, onLayout = { panel = null; layoutDialog = true }, onDismiss = { panel = null })
+        null -> Unit
+    }
     if (layoutDialog) LayoutDialog(onDismiss = { layoutDialog = false })
     var infoDialog by remember { mutableStateOf(false) }
     if (infoDialog) DocumentInfoDialog(vm, ready, onDismiss = { infoDialog = false })
@@ -381,115 +424,26 @@ private fun TopBar(
                 Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                val fitWidth = kotlin.math.abs(vp.zoom - 1f) < 0.01f
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.fit_width)) },
-                    trailingIcon = { if (fitWidth) Icon(Icons.Filled.Check, null) },
-                    onClick = {
-                        menu = false
-                        vp.setZoomAndPage(1f, vp.currentPage)
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.fit_page)) },
-                    onClick = {
-                        menu = false
-                        val page = vp.currentPage
-                        vp.setZoomAndPage(vp.fitPageZoom(page), page)
-                    },
-                )
-                HorizontalDivider()
-                val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
-                for ((mode, label) in listOf(
-                    PageMode.NORMAL to R.string.page_normal,
-                    PageMode.NIGHT to R.string.page_night,
-                    PageMode.SEPIA to R.string.page_sepia,
-                )) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(label)) },
-                        trailingIcon = { if (settings.pageMode == mode) Icon(Icons.Filled.Check, null) },
-                        onClick = {
-                            menu = false
-                            settings.choosePageMode(mode)
-                        },
-                    )
+                // Short on purpose: file actions first, then two panels for annotating and viewing.
+                if (vm.unsaved) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, onClick = { menu = false; vm.save() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.save_as)) }, onClick = { menu = false; vm.needsSaveAs = true })
+                    HorizontalDivider()
                 }
+                DropdownMenuItem(text = { Text(stringResource(R.string.annotate)) }, onClick = { menu = false; panel = Panel.ANNOTATE })
+                DropdownMenuItem(text = { Text(stringResource(R.string.view_options)) }, onClick = { menu = false; panel = Panel.VIEW })
                 val page = vp.currentPage
                 if (vm.isBookmarked(page)) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.remove_bookmark)) },
-                        onClick = {
-                            menu = false
-                            vm.removeBookmark(page)
-                        },
-                    )
+                    DropdownMenuItem(text = { Text(stringResource(R.string.remove_bookmark)) }, onClick = { menu = false; vm.removeBookmark(page) })
                 } else {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.add_bookmark)) },
-                        onClick = {
-                            menu = false
-                            bookmarkPage = page
-                        },
-                    )
+                    DropdownMenuItem(text = { Text(stringResource(R.string.add_bookmark)) }, onClick = { menu = false; bookmarkPage = page })
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.add_note)) },
-                    onClick = {
-                        menu = false
-                        vm.placing = ViewerViewModel.Place.NOTE
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.add_text)) },
-                    onClick = {
-                        menu = false
-                        vm.placing = ViewerViewModel.Place.TEXT
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.draw)) },
-                    onClick = {
-                        menu = false
-                        vm.startDrawing()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.shapes)) },
-                    onClick = {
-                        menu = false
-                        vm.startShapes()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.layout)) },
-                    onClick = {
-                        menu = false
-                        layoutDialog = true
-                    },
-                )
+                DropdownMenuItem(text = { Text(stringResource(R.string.read_aloud)) }, onClick = { menu = false; vm.startReadAloud() })
                 HorizontalDivider()
-                for ((label, on, toggle) in listOf(
-                    Triple(R.string.keep_screen_on, settings.keepScreenOn, settings::toggleKeepScreenOn),
-                    Triple(R.string.lock_rotation, settings.lockRotation, settings::toggleLockRotation),
-                    Triple(R.string.full_screen, settings.fullScreen, settings::toggleFullScreen),
-                )) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(label)) },
-                        trailingIcon = { if (on) Icon(Icons.Filled.Check, null) },
-                        onClick = {
-                            menu = false
-                            toggle()
-                        },
-                    )
+                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; onShare() })
+                if (!vm.unsaved) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; onSaveCopy() })
                 }
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.share_file)) },
-                    onClick = {
-                        menu = false
-                        onShare()
-                    },
-                )
                 val copiedImage = stringResource(R.string.page_copied_image)
                 val copyFailed = stringResource(R.string.copy_failed)
                 DropdownMenuItem(
@@ -502,35 +456,8 @@ private fun TopBar(
                         }
                     },
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.read_aloud)) },
-                    onClick = {
-                        menu = false
-                        vm.startReadAloud()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.print)) },
-                    onClick = {
-                        menu = false
-                        vm.print(context)
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.document_info)) },
-                    onClick = {
-                        menu = false
-                        vm.loadInfo()
-                        infoDialog = true
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.save_copy)) },
-                    onClick = {
-                        menu = false
-                        onSaveCopy()
-                    },
-                )
+                DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, onClick = { menu = false; vm.print(context) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.document_info)) }, onClick = { menu = false; vm.loadInfo(); infoDialog = true })
             }
         }
     }
@@ -1402,4 +1329,55 @@ private fun ShapeToolbar(vm: ViewerViewModel, modifier: Modifier = Modifier) {
         }
     }
     if (penDialog) PenDialog(settings.inkColor, settings.inkWidth, onPick = { c, w -> settings.choosePen(c, w); penDialog = false }, onDismiss = { penDialog = false })
+}
+
+private enum class Panel { ANNOTATE, VIEW }
+
+@Composable
+private fun PanelItem(label: String, checked: Boolean? = null, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 52.dp).padding(horizontal = 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f), fontSize = 16.sp)
+        if (checked == true) Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/** Ways to annotate: note, text, drawing, shapes (highlighting starts from a text selection). */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(bottom = 24.dp)) {
+            Text(stringResource(R.string.annotate_hint), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            PanelItem(stringResource(R.string.add_note)) { onDismiss(); vm.placing = ViewerViewModel.Place.NOTE }
+            PanelItem(stringResource(R.string.add_text)) { onDismiss(); vm.placing = ViewerViewModel.Place.TEXT }
+            PanelItem(stringResource(R.string.draw)) { onDismiss(); vm.startDrawing() }
+            PanelItem(stringResource(R.string.shapes)) { onDismiss(); vm.startShapes() }
+        }
+    }
+}
+
+/** How the document is shown: fit, page color, layout and screen options. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ViewPanel(vp: Viewport, onLayout: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(bottom = 24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+            PanelItem(stringResource(R.string.fit_width), checked = kotlin.math.abs(vp.zoom - 1f) < 0.01f) { vp.setZoomAndPage(1f, vp.currentPage); onDismiss() }
+            PanelItem(stringResource(R.string.fit_page)) { val p = vp.currentPage; vp.setZoomAndPage(vp.fitPageZoom(p), p); onDismiss() }
+            PanelItem(stringResource(R.string.layout)) { onLayout() }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            for ((mode, label) in listOf(PageMode.NORMAL to R.string.page_normal, PageMode.NIGHT to R.string.page_night, PageMode.SEPIA to R.string.page_sepia)) {
+                PanelItem(stringResource(label), checked = settings.pageMode == mode) { settings.choosePageMode(mode) }
+            }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            PanelItem(stringResource(R.string.keep_screen_on), checked = settings.keepScreenOn) { settings.toggleKeepScreenOn() }
+            PanelItem(stringResource(R.string.lock_rotation), checked = settings.lockRotation) { settings.toggleLockRotation() }
+            PanelItem(stringResource(R.string.full_screen), checked = settings.fullScreen) { settings.toggleFullScreen() }
+        }
+    }
 }

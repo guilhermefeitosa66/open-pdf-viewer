@@ -88,6 +88,12 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   salvar. Texto livre vai como anotação **Stamp** com objetos de texto (fonte padrão Helvetica,
   Times ou Courier, `/Contents` com o texto), porque o PDFium não desenha aparência de FreeText;
   o retângulo da Stamp tem de ser definido antes de anexar os objetos. Nota adesiva = anotação Text.
+- **Salvar**: o documento é escrito num arquivo temporário (`FPDF_SaveAsCopy`, reescrita completa)
+  e só então copiado sobre o original, porque o PDFium lê o original sob demanda; depois o
+  documento é reaberto na mesma posição. Sem permissão de escrita, cai em "Salvar como". O picker
+  persiste leitura+escrita quando o provedor concede. Desfazer/refazer usa `/NM` único por anotação.
+- **Menu do leitor** curto: arquivo em cima, "Anotar…" e "Exibição…" abrem painéis. Item novo entra
+  num painel, não no menu.
 - **Layout** (`Viewport` + `LayoutOptions`): contínuo vertical (padrão) ou página a página com
   snap horizontal. Página dupla só no modo página a página e só onde cabe (paisagem ou tablet,
   `smallestScreenWidthDp >= 600`); capa sozinha e direita-para-esquerda são opções. Escolha global.
