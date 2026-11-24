@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -292,6 +293,8 @@ private fun TopBar(
     val context = LocalContext.current
     val vp = ready.viewport
     if (layoutDialog) LayoutDialog(onDismiss = { layoutDialog = false })
+    var infoDialog by remember { mutableStateOf(false) }
+    if (infoDialog) DocumentInfoDialog(vm, ready, onDismiss = { infoDialog = false })
     var bookmarkPage by remember { mutableStateOf<Int?>(null) }
     bookmarkPage?.let { p ->
         // Suggest the contents entry of the page when the document has one.
@@ -407,6 +410,14 @@ private fun TopBar(
                     onClick = {
                         menu = false
                         onShare()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.document_info)) },
+                    onClick = {
+                        menu = false
+                        vm.loadInfo()
+                        infoDialog = true
                     },
                 )
                 DropdownMenuItem(
@@ -848,5 +859,57 @@ fun BookmarkTitleDialog(initial: String, onSave: (String) -> Unit, onDismiss: ()
         },
         confirmButton = { TextButton(onClick = { onSave(title) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun DocumentInfoDialog(vm: ViewerViewModel, ready: DocState.Ready, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val info = vm.info
+    val yes = stringResource(R.string.yes)
+    val no = stringResource(R.string.no)
+    fun date(raw: String): String = PdfDate.parse(raw)?.let {
+        android.text.format.DateUtils.formatDateTime(
+            context, it,
+            android.text.format.DateUtils.FORMAT_SHOW_DATE or android.text.format.DateUtils.FORMAT_SHOW_TIME or android.text.format.DateUtils.FORMAT_SHOW_YEAR,
+        )
+    } ?: raw
+    val size = ready.doc.pageSizes.firstOrNull()
+    val rows = buildList {
+        add(R.string.info_file to ready.name)
+        if (info != null) {
+            add(R.string.info_title to info.title)
+            add(R.string.info_author to info.author)
+            add(R.string.info_subject to info.subject)
+            add(R.string.info_keywords to info.keywords)
+            add(R.string.info_creator to info.creator)
+            add(R.string.info_producer to info.producer)
+            add(R.string.info_created to date(info.created))
+            add(R.string.info_modified to date(info.modified))
+            if (info.version > 0) add(R.string.info_version to "${info.version / 10}.${info.version % 10}")
+        }
+        add(R.string.info_pages to ready.doc.pageCount.toString())
+        if (size != null) add(R.string.info_page_size to PageSizes.describe(size.width, size.height))
+        if (vm.fileSize >= 0) add(R.string.info_file_size to android.text.format.Formatter.formatFileSize(context, vm.fileSize))
+        if (info != null) {
+            add(R.string.info_form to if (info.formType > 0) yes else no)
+            add(R.string.info_signatures to if (info.signatures > 0) info.signatures.toString() else no)
+            add(R.string.info_encrypted to if (info.encrypted) yes else no)
+        }
+    }.filter { it.second.isNotBlank() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.document_info)) },
+        text = {
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                for ((label, value) in rows) {
+                    Column {
+                        Text(stringResource(label), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        androidx.compose.foundation.text.selection.SelectionContainer { Text(value, fontSize = 15.sp) }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
     )
 }

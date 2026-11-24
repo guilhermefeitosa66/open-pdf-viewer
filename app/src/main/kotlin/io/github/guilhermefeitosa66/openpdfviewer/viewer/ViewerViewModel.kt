@@ -280,6 +280,22 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         r.renderer.request(r.viewport)
     }
 
+    // ---- Document info ----
+
+    var info by mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.pdfium.DocumentInfo?>(null)
+        private set
+    var fileSize by mutableStateOf(-1L)
+        private set
+
+    fun loadInfo() {
+        val r = ready ?: return
+        val target = uri ?: return
+        viewModelScope.launch {
+            info = r.doc.info()
+            fileSize = withContext(Dispatchers.IO) { DocumentSource.size(getApplication(), target) }
+        }
+    }
+
     // ---- Bookmarks ----
 
     fun isBookmarked(page: Int) = bookmarks.any { it.page == page }

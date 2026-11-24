@@ -9,6 +9,25 @@ class PdfOpenException(val reason: Reason) : Exception(reason.name) {
     enum class Reason { FILE, FORMAT, PASSWORD, SECURITY, UNKNOWN }
 }
 
+/** Properties stored in the document. Empty strings when absent. */
+data class DocumentInfo(
+    val title: String,
+    val author: String,
+    val subject: String,
+    val keywords: String,
+    val creator: String,
+    val producer: String,
+    /** Raw PDF dates ("D:YYYYMMDDHHmmSSOHH'mm'"). */
+    val created: String,
+    val modified: String,
+    /** e.g. 17 for PDF 1.7; 0 when unknown. */
+    val version: Int,
+    val encrypted: Boolean,
+    /** 0 none, 1 AcroForm, 2/3 XFA. */
+    val formType: Int,
+    val signatures: Int,
+)
+
 /** One entry of the document outline (table of contents), in reading order. */
 data class OutlineItem(val title: String, val level: Int, val page: Int, val offset: Float)
 
@@ -127,6 +146,14 @@ class PdfDocument private constructor(private val handle: Long) {
         val pages = raw[2] as IntArray
         val ys = raw[3] as FloatArray
         List(titles.size) { i -> OutlineItem(titles[i].trim(), levels[i], pages[i], offsetFor(pages[i], ys[i])) }
+    }
+
+    suspend fun info(): DocumentInfo? = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext null
+        val raw = PdfiumNative.documentInfo(handle)
+        @Suppress("UNCHECKED_CAST") val m = (raw[0] as Array<String>).map { it.trim() }
+        val nums = raw[1] as IntArray
+        DocumentInfo(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], nums[0], nums[1] >= 0, nums[2], nums[3])
     }
 
     /** The link under a normalized point of page [index], if any. */

@@ -13,6 +13,8 @@
 #include <vector>
 
 #include "fpdf_doc.h"
+#include "fpdf_formfill.h"
+#include "fpdf_signature.h"
 #include "fpdf_text.h"
 #include "fpdfview.h"
 
@@ -389,6 +391,38 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_linkAt(
     if (target < 0) return nullptr;
     std::string out = "p:" + std::to_string(target) + ":" + (std::isnan(y) ? std::string("NaN") : std::to_string(y));
     return env->NewStringUTF(out.c_str());
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Object[]{String[8] meta (Title, Author, Subject, Keywords, Creator, Producer, CreationDate,
+// ModDate), int[4] {file version (e.g. 17), security handler revision (-1 = not encrypted),
+// form type, signature count}}.
+JNIEXPORT jobjectArray JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_documentInfo(JNIEnv* env, jobject, jlong handle) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    static const char* tags[] = {"Title", "Author", "Subject", "Keywords", "Creator", "Producer", "CreationDate", "ModDate"};
+    jobjectArray meta = env->NewObjectArray(8, env->FindClass("java/lang/String"), nullptr);
+    for (int i = 0; i < 8; i++) {
+        unsigned long bytes = FPDF_GetMetaText(d->doc, tags[i], nullptr, 0);
+        std::vector<unsigned short> buf(bytes / 2 + 1, 0);
+        if (bytes > 0) FPDF_GetMetaText(d->doc, tags[i], buf.data(), bytes);
+        jstring s = toJString(env, buf);
+        env->SetObjectArrayElement(meta, i, s);
+        env->DeleteLocalRef(s);
+    }
+    int version = 0;
+    if (!FPDF_GetFileVersion(d->doc, &version)) version = 0;
+    jint nums[4] = {version, FPDF_GetSecurityHandlerRevision(d->doc), FPDF_GetFormType(d->doc),
+                    FPDF_GetSignatureCount(d->doc)};
+    jintArray jn = env->NewIntArray(4);
+    env->SetIntArrayRegion(jn, 0, 4, nums);
+    jobjectArray result = env->NewObjectArray(2, env->FindClass("java/lang/Object"), nullptr);
+    env->SetObjectArrayElement(result, 0, meta);
+    env->SetObjectArrayElement(result, 1, jn);
+    return result;
 }
 
 }  // extern "C"

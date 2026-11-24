@@ -93,4 +93,23 @@
     <string name="no_bookmarks">Aún no hay marcadores. Usa ⋮ › Marcar esta página mientras lees.</string>
     <string name="rename">Renombrar</string>
     <string name="save">Guardar</string>
+    <string name="document_info">Propiedades del documento</string>
+    <string name="info_file">Archivo</string>
+    <string name="info_title">Título</string>
+    <string name="info_author">Autor</string>
+    <string name="info_subject">Asunto</string>
+    <string name="info_keywords">Palabras clave</string>
+    <string name="info_creator">Creado con</string>
+    <string name="info_producer">Generador del PDF</string>
+    <string name="info_created">Creado</string>
+    <string name="info_modified">Modificado</string>
+    <string name="info_version">Versión de PDF</string>
+    <string name="info_pages">Páginas</string>
+    <string name="info_page_size">Tamaño de página</string>
+    <string name="info_file_size">Tamaño del archivo</string>
+    <string name="info_form">Tiene formulario</string>
+    <string name="info_signatures">Firmas digitales</string>
+    <string name="info_encrypted">Cifrado</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
 </resources>
