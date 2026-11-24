@@ -717,6 +717,25 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Visual signatures ----
+
+    var signatureSheetOpen by mutableStateOf(false)
+    /** The signature being positioned on the page (an overlay to move and resize). */
+    var placingSignature by mutableStateOf<Bitmap?>(null)
+
+    /** Places the signature over the screen rectangle the user chose. */
+    fun placeSignature(screen: androidx.compose.ui.geometry.Rect) {
+        val r = ready ?: return
+        val bmp = placingSignature ?: return
+        placingSignature = null
+        val center = r.viewport.nearestPageHit(screen.center) ?: return
+        val page = center.page
+        val tl = r.viewport.screenToPage(screen.topLeft, clampToPage = page) ?: return
+        val br = r.viewport.screenToPage(screen.bottomRight, clampToPage = page) ?: return
+        val author = authorName
+        createAnnot(page) { doc, nm -> doc.addImage(page, tl.x, tl.y, br.x, br.y, bmp, author, nm) }
+    }
+
     fun addNote(page: Int, at: Offset, text: String) {
         val author = authorName
         createAnnot(page) { doc, nm -> doc.addNote(page, at.x, at.y, text, NOTE_COLOR, author, nm) }
@@ -1027,6 +1046,8 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         shapePreview = null
         placing = null
         placementTarget = null
+        placingSignature = null
+        signatureSheetOpen = false
         openedAnnot = null
     }
 

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.26.0 (2026-11-24)
+
+- Visual signature (Annotate… › Signature…): draw it with a finger or stylus, or take it from a photo (the white paper becomes transparent and the image is cropped to the ink). Up to three signatures or initials are kept on the device; pick one, drag it into place, resize it from the corner, and place it.
+
 ## 0.25.0 (2026-11-24)
 
 - Fill and sign without a form (Annotate… panel): today's date, check mark, cross and dot, placed with a tap anywhere and kept on for as many as needed, in the pen color.

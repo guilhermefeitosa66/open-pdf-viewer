@@ -202,4 +202,12 @@
     <string name="place_cross">Xis ✗</string>
     <string name="place_dot">Ponto ●</string>
     <string name="tap_to_place_mark">Toque onde vai ficar (quantas vezes precisar)</string>
+    <string name="signature">Assinatura…</string>
+    <string name="no_signatures">Nenhuma assinatura salva ainda. Desenhe uma ou use uma foto da sua assinatura em papel branco.</string>
+    <string name="draw_signature">Desenhar assinatura</string>
+    <string name="import_signature">De uma foto</string>
+    <string name="signatures_full">Três assinaturas salvas. Apague uma para adicionar outra.</string>
+    <string name="place_signature">Colocar</string>
+    <string name="signature_no_ink">Nenhuma assinatura encontrada nessa imagem. Use uma foto de tinta escura em papel branco.</string>
+    <string name="clear">Limpar</string>
 </resources>

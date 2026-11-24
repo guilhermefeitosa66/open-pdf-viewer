@@ -249,6 +249,8 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     if (vm.drawing) DrawToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
     if (vm.shapeKind != null) ShapeToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
     AnnotationDialogs(vm)
+    if (vm.signatureSheetOpen) SignatureSheet(vm)
+    vm.placingSignature?.let { SignaturePlacer(it, vp, onPlace = vm::placeSignature, onCancel = { vm.placingSignature = null }) }
     vm.editingField?.let { field -> FieldEditor(vm, field) }
     vm.placing?.let { mode ->
         Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp)) {
@@ -1392,6 +1394,7 @@ private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.shapes)) { onDismiss(); vm.startShapes() }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text(stringResource(R.string.fill_and_sign), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            PanelItem(stringResource(R.string.signature)) { onDismiss(); vm.signatureSheetOpen = true }
             PanelItem(stringResource(R.string.place_date)) { onDismiss(); vm.placing = ViewerViewModel.Place.DATE }
             PanelItem(stringResource(R.string.place_check)) { onDismiss(); vm.placing = ViewerViewModel.Place.CHECK }
             PanelItem(stringResource(R.string.place_cross)) { onDismiss(); vm.placing = ViewerViewModel.Place.CROSS }

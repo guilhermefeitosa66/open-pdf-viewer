@@ -202,4 +202,12 @@
     <string name="place_cross">Cruz ✗</string>
     <string name="place_dot">Punto ●</string>
     <string name="tap_to_place_mark">Toca donde irá (cuantas veces necesites)</string>
+    <string name="signature">Firma…</string>
+    <string name="no_signatures">Aún no hay firmas guardadas. Dibuja una o usa una foto de tu firma en papel blanco.</string>
+    <string name="draw_signature">Dibujar firma</string>
+    <string name="import_signature">Desde una foto</string>
+    <string name="signatures_full">Tres firmas guardadas. Borra una para añadir otra.</string>
+    <string name="place_signature">Colocar</string>
+    <string name="signature_no_ink">No se encontró una firma en esa imagen. Usa una foto de tinta oscura en papel blanco.</string>
+    <string name="clear">Borrar</string>
 </resources>

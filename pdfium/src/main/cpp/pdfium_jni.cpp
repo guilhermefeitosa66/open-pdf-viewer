@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -1183,6 +1184,70 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_formSelect(
     FORM_ForceToKillFocus(d->form);
     FPDFPage_CloseAnnot(annot);
     return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Places an image (an ARGB_8888 Android bitmap, with transparency) as a Stamp annotation
+// filling the normalized rectangle (l, t, r, b). Used for visual signatures.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addImageStamp(
+        JNIEnv* env, jobject, jlong handle, jlong pageHandle, jfloat l, jfloat t, jfloat r, jfloat b,
+        jobject bitmap, jstring author) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double x0, y0, x1, y1;
+    if (!toPagePoint(page, l, t, &x0, &y0) || !toPagePoint(page, r, b, &x1, &y1)) return -1;
+    AndroidBitmapInfo info{};
+    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS ||
+        info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) return -1;
+    void* pixels = nullptr;
+    if (AndroidBitmap_lockPixels(env, bitmap, &pixels) != ANDROID_BITMAP_RESULT_SUCCESS) return -1;
+    int w = static_cast<int>(info.width), h = static_cast<int>(info.height);
+    FPDF_BITMAP fb = FPDFBitmap_Create(w, h, 1);
+    if (fb) {
+        // Android RGBA (premultiplied) to PDFium BGRA, un-premultiplying the color.
+        auto* dst = static_cast<unsigned char*>(FPDFBitmap_GetBuffer(fb));
+        int dstStride = FPDFBitmap_GetStride(fb);
+        for (int y = 0; y < h; y++) {
+            auto* srow = static_cast<unsigned char*>(pixels) + y * info.stride;
+            auto* drow = dst + y * dstStride;
+            for (int x = 0; x < w; x++) {
+                unsigned char R = srow[x * 4], G = srow[x * 4 + 1], B = srow[x * 4 + 2], A = srow[x * 4 + 3];
+                if (A > 0 && A < 255) {
+                    R = static_cast<unsigned char>(std::min(255, R * 255 / A));
+                    G = static_cast<unsigned char>(std::min(255, G * 255 / A));
+                    B = static_cast<unsigned char>(std::min(255, B * 255 / A));
+                }
+                drow[x * 4] = B; drow[x * 4 + 1] = G; drow[x * 4 + 2] = R; drow[x * 4 + 3] = A;
+            }
+        }
+    }
+    AndroidBitmap_unlockPixels(env, bitmap);
+    if (!fb) return -1;
+    FPDF_PAGEOBJECT img = FPDFPageObj_NewImageObj(d->doc);
+    bool ok = img && FPDFImageObj_SetBitmap(nullptr, 0, img, fb);
+    FPDFBitmap_Destroy(fb);
+    if (!ok) {
+        if (img) FPDFPageObj_Destroy(img);
+        return -1;
+    }
+    double left = std::fmin(x0, x1), right = std::fmax(x0, x1), bottom = std::fmin(y0, y1), top = std::fmax(y0, y1);
+    FPDFImageObj_SetMatrix(img, right - left, 0, 0, top - bottom, left, bottom);
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_STAMP);
+    if (!annot) {
+        FPDFPageObj_Destroy(img);
+        return -1;
+    }
+    FS_RECTF rect{static_cast<float>(left), static_cast<float>(top), static_cast<float>(right), static_cast<float>(bottom)};
+    FPDFAnnot_SetRect(annot, &rect);
+    FPDFAnnot_AppendObject(annot, img);
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
 }
 
 }  // extern "C"

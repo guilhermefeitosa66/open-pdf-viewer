@@ -279,6 +279,10 @@ class PdfDocument private constructor(private val handle: Long) {
         return create(index, nm) { lp -> PdfiumNative.addInkPaths(lp.page, xy, lengths, argb, widthPt, author) }
     }
 
+    /** An image (e.g. a signature with transparency) filling a normalized rectangle. */
+    suspend fun addImage(index: Int, l: Float, t: Float, r: Float, b: Float, bitmap: Bitmap, author: String?, nm: String? = null): Boolean =
+        create(index, nm) { lp -> PdfiumNative.addImageStamp(handle, lp.page, l, t, r, b, bitmap, author) }
+
     suspend fun annotAt(index: Int, x: Float, y: Float): AnnotHit? = withContext(PdfiumThread.dispatcher) {
         if (closed) return@withContext null
         val lp = page(index) ?: return@withContext null
