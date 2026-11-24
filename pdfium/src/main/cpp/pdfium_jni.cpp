@@ -1315,3 +1315,34 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_rearrangePag
 }
 
 }  // extern "C"
+
+extern "C" {
+
+// Adds an empty page of the given size (points) at the end; returns its index or -1.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_appendBlankPage(
+        JNIEnv*, jobject, jlong handle, jfloat width, jfloat height) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    int n = FPDF_GetPageCount(d->doc);
+    FPDF_PAGE page = FPDFPage_New(d->doc, n, width, height);
+    if (!page) return -1;
+    FPDFPage_GenerateContent(page);
+    FPDF_ClosePage(page);
+    return n;
+}
+
+// Copies pages of another document (by index) to the end of this one.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_appendPagesFrom(
+        JNIEnv* env, jobject, jlong handle, jlong srcHandle, jintArray indicesArr) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    auto* src = reinterpret_cast<Document*>(srcHandle);
+    jsize len = env->GetArrayLength(indicesArr);
+    if (len <= 0) return JNI_TRUE;
+    std::vector<int> idx(len);
+    env->GetIntArrayRegion(indicesArr, 0, len, idx.data());
+    return FPDF_ImportPagesByIndex(d->doc, src->doc, idx.data(), static_cast<unsigned long>(len), FPDF_GetPageCount(d->doc))
+        ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"

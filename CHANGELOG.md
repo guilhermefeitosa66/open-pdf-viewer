@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.30.0 (2026-11-24)
+
+- Organize pages › Insert: a blank page (same size as the page before, A4 or Letter) or pages from another PDF, with a page range such as 1-3, 5, 8- and a password prompt for protected files. New pages go after the selected ones.
+
 ## 0.29.0 (2026-11-24)
 
 - Organize pages (Pages › Organize): select pages, rotate them left or right, duplicate or delete them, and long-press a page to drag it to a new place. Undo while organizing; Save writes the file, Save as copy leaves the original as it was.

@@ -1019,7 +1019,13 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
      * its changes, then saves it over the file, or asks where to save it when [asCopy] or when
      * the file is not writable. The open document is not touched until it is reopened.
      */
-    fun applyOrganize(order: IntArray, rotations: IntArray, asCopy: Boolean) {
+    /** A page added in the organizer; it gets index pageCount + its position in the list. */
+    sealed interface InsertedPage {
+        data class Blank(val width: Float, val height: Float) : InsertedPage
+        data class FromFile(val uri: Uri, val password: String?, val index: Int, val name: String) : InsertedPage
+    }
+
+    fun applyOrganize(order: IntArray, rotations: IntArray, extras: List<InsertedPage>, asCopy: Boolean) {
         val r = ready ?: return
         val target = uri ?: return
         if (saving || order.isEmpty()) return
@@ -1033,7 +1039,23 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 }.use { pfd -> io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.open(pfd, password) }
                 val dst = openTmp()
                 val src = openTmp()
+                val others = HashMap<Uri, Pair<android.os.ParcelFileDescriptor, io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument>>()
                 try {
+                    // Added pages go to the end of both instances first (so duplicates of them
+                    // can be copied too), then the order picks them by index.
+                    for (e in extras) {
+                        val ok = when (e) {
+                            is InsertedPage.Blank -> dst.appendBlankPage(e.width, e.height) && src.appendBlankPage(e.width, e.height)
+                            is InsertedPage.FromFile -> {
+                                val other = others.getOrPut(e.uri) {
+                                    val pfd = DocumentSource.open(getApplication(), e.uri)
+                                    pfd to io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.open(pfd, e.password)
+                                }.second
+                                dst.appendPagesFrom(other, intArrayOf(e.index)) && src.appendPagesFrom(other, intArrayOf(e.index))
+                            }
+                        }
+                        if (!ok) return@runCatching null
+                    }
                     if (!dst.rearrangePages(src, order, rotations)) return@runCatching null
                     val f = java.io.File(tmp.parentFile, "organized.pdf")
                     val ok = withContext(Dispatchers.IO) {
@@ -1046,6 +1068,10 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 } finally {
                     dst.closeAsync()
                     src.closeAsync()
+                    for ((pfd, d) in others.values) {
+                        d.closeAsync()
+                        runCatching { pfd.close() }
+                    }
                 }
             }.onFailure { android.util.Log.w("OpenPdfViewer", "organize failed", it) }.getOrNull()
             if (out == null) {

@@ -65,9 +65,29 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.guilhermefeitosa66.openpdfviewer.R
+import io.github.guilhermefeitosa66.openpdfviewer.data.DocumentSource
+import io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument
+import io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfOpenException
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
 
-/** One page in the organizer: the original page it shows and the quarter turns added. */
+/**
+ * One page in the organizer: the page it shows (an original index, or pageCount + the position
+ * of an added page in the extras list) and the quarter turns added.
+ */
 private data class OrgPage(val id: Int, val source: Int, val turns: Int = 0)
 
 /**
@@ -81,6 +101,15 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
     val pages = remember { mutableStateListOf<OrgPage>().apply { addAll(List(total) { OrgPage(it, it) }) } }
     var nextId by remember { mutableStateOf(total) }
     val selected = remember { mutableStateListOf<Int>() }
+    val extras = remember { mutableStateListOf<ViewerViewModel.InsertedPage>() }
+    var insertMenu by remember { mutableStateOf(false) }
+    var blankDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var importing by remember { mutableStateOf<ImportState?>(null) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importing = ImportState(uri, DocumentSource.displayName(context, uri))
+    }
     val history = remember { ArrayDeque<List<OrgPage>>() }
     var canUndo by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf<Int?>(null) }
@@ -101,7 +130,27 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
     }
     fun close() { vm.organizeOpen = false }
     fun save(asCopy: Boolean) {
-        vm.applyOrganize(pages.map { it.source }.toIntArray(), pages.map { it.turns }.toIntArray(), asCopy)
+        vm.applyOrganize(pages.map { it.source }.toIntArray(), pages.map { it.turns }.toIntArray(), extras.toList(), asCopy)
+    }
+    /** Inserts new pages after the last selected one, or at the end. */
+    fun insert(added: List<ViewerViewModel.InsertedPage>) {
+        if (added.isEmpty()) return
+        snapshot()
+        val at = pages.indexOfLast { it.id in selected }.let { if (it < 0) pages.size else it + 1 }
+        val items = added.map { e ->
+            extras += e
+            OrgPage(nextId++, total + extras.size - 1)
+        }
+        pages.addAll(at, items)
+        selected.clear()
+        selected.addAll(items.map { it.id })
+    }
+    /** Size of the original page before the insertion point, for "same size". */
+    fun neighbourSize(): Pair<Float, Float> {
+        val at = pages.indexOfLast { it.id in selected }.let { if (it < 0) pages.size - 1 else it }
+        val src = (at downTo 0).map { pages[it].source }.firstOrNull { it < total } ?: 0
+        val sz = ready.doc.pageSizes[src]
+        return sz.width to sz.height
     }
 
     Dialog(
@@ -119,6 +168,16 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
+                    Box {
+                        IconButton(onClick = { insertMenu = true }) { Icon(Icons.Filled.Add, stringResource(R.string.insert_pages)) }
+                        DropdownMenu(expanded = insertMenu, onDismissRequest = { insertMenu = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.insert_blank)) }, onClick = { insertMenu = false; blankDialog = true })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.insert_from_pdf)) }, onClick = {
+                                insertMenu = false
+                                picker.launch(arrayOf("application/pdf"))
+                            })
+                        }
+                    }
                     IconButton(onClick = { undo() }, enabled = canUndo) { Icon(AppIcons.Undo, stringResource(R.string.undo)) }
                     Box {
                         TextButton(onClick = { saveMenu = true }, enabled = changed) { Text(stringResource(R.string.save)) }
@@ -177,7 +236,7 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                 ) {
                     itemsIndexed(pages, key = { _, p -> p.id }) { i, p ->
                         OrgThumb(
-                            p, i, ready,
+                            p, i, ready, extras.getOrNull(p.source - total),
                             selected = p.id in selected,
                             dragging = p.id == dragging,
                             modifier = Modifier.animateItem(),
@@ -220,6 +279,25 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
             }
         }
     }
+    if (blankDialog) {
+        BlankPageDialog(
+            onPick = { w, h -> blankDialog = false; insert(listOf(ViewerViewModel.InsertedPage.Blank(w, h))) },
+            same = neighbourSize(),
+            onDismiss = { blankDialog = false },
+        )
+    }
+    importing?.let { st ->
+        ImportDialog(
+            st,
+            onUpdate = { importing = it },
+            onInsert = { indices ->
+                importing = null
+                insert(indices.map { ViewerViewModel.InsertedPage.FromFile(st.uri, st.password, it, st.name) })
+            },
+            onDismiss = { importing = null },
+            scope = scope,
+        )
+    }
     if (askLeave) {
         AlertDialog(
             onDismissRequest = { askLeave = false },
@@ -247,6 +325,7 @@ private fun OrgThumb(
     p: OrgPage,
     position: Int,
     ready: DocState.Ready,
+    extra: ViewerViewModel.InsertedPage?,
     selected: Boolean,
     dragging: Boolean,
     modifier: Modifier,
@@ -254,14 +333,18 @@ private fun OrgThumb(
 ) {
     val renderer = ready.renderer
     val widthPx = with(LocalDensity.current) { 120.dp.roundToPx() }
+    val original = extra == null
     DisposableEffect(p.source) {
-        renderer.requestThumb(p.source, widthPx)
-        onDispose { renderer.cancelThumb(p.source) }
+        if (original) renderer.requestThumb(p.source, widthPx)
+        onDispose { if (original) renderer.cancelThumb(p.source) }
     }
     renderer.version.intValue
-    val img = renderer.thumb(p.source)
-    val size = ready.doc.pageSizes[p.source]
-    val aspect = (size.width / size.height).coerceIn(0.3f, 3f)
+    val img = if (original) renderer.thumb(p.source) else null
+    val aspect = when (extra) {
+        null -> ready.doc.pageSizes[p.source].let { it.width / it.height }
+        is ViewerViewModel.InsertedPage.Blank -> extra.width / extra.height
+        else -> 0.7071f
+    }.coerceIn(0.3f, 3f)
     val odd = p.turns % 2 == 1
     val shown = if (odd) 1f / aspect else aspect
     val accent = MaterialTheme.colorScheme.primary
@@ -291,6 +374,16 @@ private fun OrgThumb(
                     modifier = Modifier.fillMaxSize().graphicsLayer { rotationZ = p.turns * 90f; scaleX = scale; scaleY = scale },
                 )
             }
+            if (extra != null) {
+                Text(
+                    when (extra) {
+                        is ViewerViewModel.InsertedPage.Blank -> stringResource(R.string.blank_page)
+                        is ViewerViewModel.InsertedPage.FromFile -> stringResource(R.string.page_of_file, extra.index + 1, extra.name)
+                    },
+                    fontSize = 11.sp, color = Color(0xFF555555), textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(6.dp).graphicsLayer { rotationZ = p.turns * 90f },
+                )
+            }
             if (selected) {
                 Box(
                     Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).background(accent, CircleShape),
@@ -299,10 +392,120 @@ private fun OrgThumb(
             }
         }
         Text(
-            if (p.source == position) "${position + 1}" else "${position + 1} · ${p.source + 1}",
+            if (p.source == position || extra != null) "${position + 1}" else "${position + 1} · ${p.source + 1}",
             modifier = Modifier.padding(top = 6.dp),
             fontSize = 13.sp,
             color = if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/** A PDF chosen to take pages from: its page count once open, or the need for a password. */
+private data class ImportState(
+    val uri: android.net.Uri,
+    val name: String,
+    val password: String? = null,
+    val pageCount: Int = -1,
+    val needsPassword: Boolean = false,
+    val wrongPassword: Boolean = false,
+    val failed: Boolean = false,
+)
+
+@Composable
+private fun BlankPageDialog(onPick: (Float, Float) -> Unit, same: Pair<Float, Float>, onDismiss: () -> Unit) {
+    val options = listOf(
+        stringResource(R.string.size_same) to same,
+        "A4" to (595.28f to 841.89f),
+        stringResource(R.string.size_letter) to (612f to 792f),
+    )
+    var choice by remember { mutableStateOf(0) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.insert_blank)) },
+        text = {
+            Column {
+                options.forEachIndexed { i, (label, _) ->
+                    Row(Modifier.fillMaxWidth().clickable { choice = i }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = choice == i, onClick = { choice = i })
+                        Text(label)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { val (w, h) = options[choice].second; onPick(w, h) }) { Text(stringResource(R.string.insert)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun ImportDialog(
+    st: ImportState,
+    onUpdate: (ImportState) -> Unit,
+    onInsert: (List<Int>) -> Unit,
+    onDismiss: () -> Unit,
+    scope: CoroutineScope,
+) {
+    val context = LocalContext.current
+    // Opens the file to count its pages (and to learn whether it needs a password).
+    LaunchedEffect(st.uri, st.password) {
+        if (st.pageCount >= 0 || (st.needsPassword && st.password == null)) return@LaunchedEffect
+        val result = runCatching {
+            DocumentSource.open(context, st.uri).use { pfd ->
+                val doc = PdfDocument.open(pfd, st.password)
+                try { doc.pageCount } finally { doc.closeAsync() }
+            }
+        }
+        val e = result.exceptionOrNull()
+        onUpdate(
+            when {
+                e == null -> st.copy(pageCount = result.getOrThrow(), needsPassword = false, wrongPassword = false)
+                e is PdfOpenException && e.reason == PdfOpenException.Reason.PASSWORD ->
+                    st.copy(needsPassword = true, wrongPassword = st.password != null, password = null)
+                else -> st.copy(failed = true)
+            }
+        )
+    }
+    var text by remember { mutableStateOf("") }
+    var pw by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.insert_from_pdf)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(st.name, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                when {
+                    st.failed -> Text(stringResource(R.string.cannot_open_pdf), color = MaterialTheme.colorScheme.error)
+                    st.needsPassword -> OutlinedTextField(
+                        value = pw, onValueChange = { pw = it }, singleLine = true,
+                        label = { Text(stringResource(R.string.password)) },
+                        isError = st.wrongPassword,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    )
+                    st.pageCount < 0 -> androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                    else -> {
+                        val valid = PageRanges.parse(text, st.pageCount) != null
+                        OutlinedTextField(
+                            value = text, onValueChange = { text = it.take(80) }, singleLine = true,
+                            label = { Text(stringResource(R.string.pages_to_insert)) },
+                            placeholder = { Text(stringResource(R.string.all_pages_n, st.pageCount)) },
+                            isError = !valid,
+                            supportingText = { Text(stringResource(R.string.range_hint)) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                st.needsPassword -> TextButton(onClick = { onUpdate(st.copy(password = pw)) }) { Text(stringResource(R.string.open)) }
+                st.pageCount >= 0 -> TextButton(
+                    enabled = PageRanges.parse(text, st.pageCount) != null,
+                    onClick = { PageRanges.parse(text, st.pageCount)?.let(onInsert) },
+                ) { Text(stringResource(R.string.insert)) }
+                else -> {}
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }

@@ -334,6 +334,18 @@ class PdfDocument private constructor(private val handle: Long) {
             PdfiumNative.rearrangePages(handle, source.handle, order, rotations).also { if (it) modified = true }
         }
 
+    /** Adds an empty page (size in points) at the end, for a separate copy like [rearrangePages]. */
+    suspend fun appendBlankPage(width: Float, height: Float): Boolean = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext false
+        (PdfiumNative.appendBlankPage(handle, width, height) >= 0).also { if (it) modified = true }
+    }
+
+    /** Copies pages [indices] of [source] to the end, for a separate copy like [rearrangePages]. */
+    suspend fun appendPagesFrom(source: PdfDocument, indices: IntArray): Boolean = withContext(PdfiumThread.dispatcher) {
+        if (closed || source.closed) return@withContext false
+        PdfiumNative.appendPagesFrom(handle, source.handle, indices).also { if (it) modified = true }
+    }
+
     /** Form fields of page [index], in the order they appear in the page. */
     suspend fun formFields(index: Int): List<FormField> = withContext(PdfiumThread.dispatcher) {
         if (closed || !hasForm) return@withContext emptyList()

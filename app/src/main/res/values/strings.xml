@@ -255,4 +255,16 @@
     <string name="duplicate">Duplicate</string>
     <string name="save_as_copy">Save as copy…</string>
     <string name="organize_discard_title">Discard the page changes?</string>
+    <string name="insert_pages">Insert pages</string>
+    <string name="insert_blank">Blank page</string>
+    <string name="insert_from_pdf">Pages from a PDF…</string>
+    <string name="insert">Insert</string>
+    <string name="size_same">Same size as the page before</string>
+    <string name="size_letter">Letter</string>
+    <string name="blank_page">Blank page</string>
+    <string name="page_of_file">Page %1$d of %2$s</string>
+    <string name="cannot_open_pdf">This file could not be opened as a PDF.</string>
+    <string name="pages_to_insert">Pages</string>
+    <string name="all_pages_n">All (1–%1$d)</string>
+    <string name="range_hint">For example: 1-3, 5, 8-</string>
 </resources>

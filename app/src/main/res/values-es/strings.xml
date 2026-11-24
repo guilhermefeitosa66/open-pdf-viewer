@@ -254,4 +254,16 @@
     <string name="duplicate">Duplicar</string>
     <string name="save_as_copy">Guardar como copia…</string>
     <string name="organize_discard_title">¿Descartar los cambios en las páginas?</string>
+    <string name="insert_pages">Insertar páginas</string>
+    <string name="insert_blank">Página en blanco</string>
+    <string name="insert_from_pdf">Páginas de un PDF…</string>
+    <string name="insert">Insertar</string>
+    <string name="size_same">Mismo tamaño que la página anterior</string>
+    <string name="size_letter">Carta</string>
+    <string name="blank_page">Página en blanco</string>
+    <string name="page_of_file">Página %1$d de %2$s</string>
+    <string name="cannot_open_pdf">No se pudo abrir este archivo como PDF.</string>
+    <string name="pages_to_insert">Páginas</string>
+    <string name="all_pages_n">Todas (1–%1$d)</string>
+    <string name="range_hint">Por ejemplo: 1-3, 5, 8-</string>
 </resources>
