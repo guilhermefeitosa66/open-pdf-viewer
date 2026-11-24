@@ -2,6 +2,13 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.21.0 (2026-11-24)
+
+- Annotations tab in the pages sheet: every annotation grouped by page with its type, author and text; tap to go there, edit a note, or delete.
+- Undo and redo for this session (buttons in the top bar) for adding, deleting and editing annotations.
+- Your name in Settings is written as the author of your annotations.
+- Annotations that came with the file can be deleted, but that cannot be undone in the session; the app says so.
+
 ## 0.20.0 (2026-11-24)
 
 - Shapes (Shapes in the viewer menu): rectangle and ellipse (with optional fill), line, arrow and polygon. Drag to size them; for a polygon tap each corner and then Close shape. Line color and width come from the pen settings.

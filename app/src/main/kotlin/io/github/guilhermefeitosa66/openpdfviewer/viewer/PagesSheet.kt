@@ -106,6 +106,7 @@ fun PagesSheet(
                 add(R.string.pages)
                 if (!outline.isNullOrEmpty()) add(R.string.contents)
                 add(R.string.bookmarks)
+                add(R.string.annotations)
                 if (!vm.attachments.isNullOrEmpty()) add(R.string.attachments)
             }
             val selected = tabs.getOrNull(tab) ?: R.string.pages
@@ -120,6 +121,10 @@ fun PagesSheet(
             }
             if (selected == R.string.bookmarks) {
                 BookmarkList(vm, onGoTo)
+                return@Column
+            }
+            if (selected == R.string.annotations) {
+                AnnotationList(vm, onGoTo)
                 return@Column
             }
             if (selected == R.string.attachments) {
@@ -331,4 +336,79 @@ private fun AttachmentList(vm: ViewerViewModel, fileActions: io.github.guilherme
             }
         }
     }
+}
+
+/** Every annotation, grouped by page: tap to go there; notes can be edited; any can be deleted. */
+@Composable
+private fun AnnotationList(vm: ViewerViewModel, onGoTo: (Int, Float) -> Unit) {
+    var items by remember { mutableStateOf<List<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotInfo>?>(null) }
+    LaunchedEffect(vm.annotationsVersion) { items = vm.allAnnotations() }
+    val list = items
+    if (list == null) {
+        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator() }
+        return
+    }
+    if (list.isEmpty()) {
+        Text(stringResource(R.string.no_annotations), modifier = Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    var editing by remember { mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotInfo?>(null) }
+    LazyColumn(contentPadding = PaddingValues(bottom = 32.dp), modifier = Modifier.fillMaxSize()) {
+        var lastPage = -1
+        for (a in list) {
+            if (a.page != lastPage) {
+                lastPage = a.page
+                item(key = "p${a.page}") {
+                    Text(
+                        stringResource(R.string.page_n, a.page + 1),
+                        modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 4.dp),
+                        fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            item(key = "${a.page}:${a.index}:${a.nm}") {
+                Row(
+                    Modifier.fillMaxWidth().clickable { onGoTo(a.page, a.top) }.heightIn(min = 56.dp).padding(start = 20.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                        Text(stringResource(annotTypeLabel(a.subtype)), fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        val meta = listOf(a.author, a.contents.replace('\n', ' ').take(80)).filter { it.isNotBlank() }.joinToString(" · ")
+                        if (meta.isNotEmpty()) Text(meta, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                    }
+                    if (a.subtype == 1) {
+                        IconButton(onClick = { editing = a }) { Icon(Icons.Filled.Edit, stringResource(R.string.rename)) }
+                    }
+                    IconButton(onClick = {
+                        vm.deleteAnnot(io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit(a.page, a.index, a.subtype, a.contents, a.nm))
+                    }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
+                }
+            }
+        }
+    }
+    editing?.let { a ->
+        BookmarkTitleDialog(
+            initial = a.contents,
+            onSave = {
+                vm.updateAnnotText(io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit(a.page, a.index, a.subtype, a.contents, a.nm), it)
+                editing = null
+            },
+            onDismiss = { editing = null },
+        )
+    }
+}
+
+fun annotTypeLabel(subtype: Int): Int = when (subtype) {
+    1 -> R.string.note
+    3, 13 -> R.string.annot_text
+    4, 8 -> R.string.shape_line
+    5 -> R.string.shape_rectangle
+    6 -> R.string.shape_ellipse
+    7 -> R.string.shape_polygon
+    9 -> R.string.highlight
+    10 -> R.string.underline
+    11 -> R.string.squiggly
+    12 -> R.string.strikethrough
+    15 -> R.string.annot_drawing
+    else -> R.string.annotation
 }

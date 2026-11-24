@@ -791,14 +791,19 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_annotAt(
         unsigned long bytes = FPDFAnnot_GetStringValue(annot, "Contents", nullptr, 0);
         std::vector<unsigned short> buf(bytes / 2 + 1, 0);
         if (bytes > 0) FPDFAnnot_GetStringValue(annot, "Contents", reinterpret_cast<FPDF_WCHAR*>(buf.data()), bytes);
+        unsigned long nmBytes = FPDFAnnot_GetStringValue(annot, "NM", nullptr, 0);
+        std::vector<unsigned short> nm(nmBytes / 2 + 1, 0);
+        if (nmBytes > 0) FPDFAnnot_GetStringValue(annot, "NM", reinterpret_cast<FPDF_WCHAR*>(nm.data()), nmBytes);
         FPDFPage_CloseAnnot(annot);
         jintArray ids = env->NewIntArray(2);
         jint v[2] = {i, subtype};
         env->SetIntArrayRegion(ids, 0, 2, v);
-        jobjectArray out = env->NewObjectArray(2, env->FindClass("java/lang/Object"), nullptr);
+        jobjectArray out = env->NewObjectArray(3, env->FindClass("java/lang/Object"), nullptr);
         env->SetObjectArrayElement(out, 0, ids);
         jstring str = toJString(env, buf);
         env->SetObjectArrayElement(out, 1, str);
+        jstring nms = toJString(env, nm);
+        env->SetObjectArrayElement(out, 2, nms);
         return out;
     }
     return nullptr;
@@ -880,6 +885,118 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addInkPaths(
     setAuthor(env, annot, author);
     FPDFPage_CloseAnnot(annot);
     return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+}  // extern "C"
+
+namespace {
+
+std::vector<unsigned short> annotString(FPDF_ANNOTATION annot, const char* key) {
+    unsigned long bytes = FPDFAnnot_GetStringValue(annot, key, nullptr, 0);
+    std::vector<unsigned short> buf(bytes / 2 + 1, 0);
+    if (bytes > 0) FPDFAnnot_GetStringValue(annot, key, reinterpret_cast<FPDF_WCHAR*>(buf.data()), bytes);
+    return buf;
+}
+
+// Drops trailing NULs so UTF-16 buffers of different sizes compare by their text.
+std::vector<unsigned short> trimmed(std::vector<unsigned short> v) {
+    while (!v.empty() && v.back() == 0) v.pop_back();
+    return v;
+}
+
+bool listable(int subtype) {
+    return subtype != FPDF_ANNOT_LINK && subtype != 20 /* widget */ && subtype != 16 /* popup */;
+}
+
+}  // namespace
+
+extern "C" {
+
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_setAnnotString(
+        JNIEnv* env, jobject, jlong pageHandle, jint index, jstring key, jstring value) {
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(reinterpret_cast<FPDF_PAGE>(pageHandle), index);
+    if (!annot) return JNI_FALSE;
+    const char* k = env->GetStringUTFChars(key, nullptr);
+    auto w = toUtf16(env, value);
+    bool ok = FPDFAnnot_SetStringValue(annot, k, reinterpret_cast<FPDF_WIDESTRING>(w.data()));
+    env->ReleaseStringUTFChars(key, k);
+    FPDFPage_CloseAnnot(annot);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+// Index of the annotation whose /NM equals nm, or -1.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_annotByName(
+        JNIEnv* env, jobject, jlong pageHandle, jstring nm) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    auto want = trimmed(toUtf16(env, nm));
+    if (want.empty()) return -1;
+    int count = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < count; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (!annot) continue;
+        auto have = trimmed(annotString(annot, "NM"));
+        FPDFPage_CloseAnnot(annot);
+        if (have == want) return i;
+    }
+    return -1;
+}
+
+// Annotations of a page (no links, widgets or popups), as Object[]{int[] index/subtype pairs,
+// float[] normalized rects l,t,r,b, String[] contents, String[] authors, String[] names}.
+JNIEXPORT jobjectArray JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_listAnnots(JNIEnv* env, jobject, jlong pageHandle) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    int w, h;
+    deviceSize(page, &w, &h);
+    std::vector<jint> ids;
+    std::vector<jfloat> rects;
+    std::vector<std::vector<unsigned short>> contents, authors, names;
+    int count = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < count; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (!annot) continue;
+        int subtype = FPDFAnnot_GetSubtype(annot);
+        if (listable(subtype)) {
+            FS_RECTF r{};
+            FPDFAnnot_GetRect(annot, &r);
+            int x1, y1, x2, y2;
+            FPDF_PageToDevice(page, 0, 0, w, h, 0, r.left, r.top, &x1, &y1);
+            FPDF_PageToDevice(page, 0, 0, w, h, 0, r.right, r.bottom, &x2, &y2);
+            ids.push_back(i);
+            ids.push_back(subtype);
+            rects.push_back(static_cast<jfloat>(std::fmin(x1, x2)) / w);
+            rects.push_back(static_cast<jfloat>(std::fmin(y1, y2)) / h);
+            rects.push_back(static_cast<jfloat>(std::fmax(x1, x2)) / w);
+            rects.push_back(static_cast<jfloat>(std::fmax(y1, y2)) / h);
+            contents.push_back(annotString(annot, "Contents"));
+            authors.push_back(annotString(annot, "T"));
+            names.push_back(annotString(annot, "NM"));
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+    auto n = static_cast<jsize>(contents.size());
+    jintArray jids = env->NewIntArray(static_cast<jsize>(ids.size()));
+    if (!ids.empty()) env->SetIntArrayRegion(jids, 0, static_cast<jsize>(ids.size()), ids.data());
+    jfloatArray jrects = env->NewFloatArray(static_cast<jsize>(rects.size()));
+    if (!rects.empty()) env->SetFloatArrayRegion(jrects, 0, static_cast<jsize>(rects.size()), rects.data());
+    jclass strCls = env->FindClass("java/lang/String");
+    jobjectArray jc = env->NewObjectArray(n, strCls, nullptr);
+    jobjectArray ja = env->NewObjectArray(n, strCls, nullptr);
+    jobjectArray jn = env->NewObjectArray(n, strCls, nullptr);
+    for (jsize i = 0; i < n; i++) {
+        jstring a = toJString(env, contents[i]); env->SetObjectArrayElement(jc, i, a); env->DeleteLocalRef(a);
+        jstring b = toJString(env, authors[i]); env->SetObjectArrayElement(ja, i, b); env->DeleteLocalRef(b);
+        jstring c = toJString(env, names[i]); env->SetObjectArrayElement(jn, i, c); env->DeleteLocalRef(c);
+    }
+    jobjectArray out = env->NewObjectArray(5, env->FindClass("java/lang/Object"), nullptr);
+    env->SetObjectArrayElement(out, 0, jids);
+    env->SetObjectArrayElement(out, 1, jrects);
+    env->SetObjectArrayElement(out, 2, jc);
+    env->SetObjectArrayElement(out, 3, ja);
+    env->SetObjectArrayElement(out, 4, jn);
+    return out;
 }
 
 }  // extern "C"

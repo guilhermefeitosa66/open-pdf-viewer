@@ -178,4 +178,12 @@
     <string name="fill">Fill</string>
     <string name="no_fill">No fill</string>
     <string name="finish_polygon">Close shape</string>
+    <string name="annotations">Annotations</string>
+    <string name="no_annotations">No annotations in this document.</string>
+    <string name="annot_text">Text</string>
+    <string name="annot_drawing">Drawing</string>
+    <string name="redo">Redo</string>
+    <string name="delete_from_file_note">This annotation came with the file: deleting it cannot be undone here. To get it back, close without saving.</string>
+    <string name="author_name">Your name</string>
+    <string name="author_name_help">Written as the author of your annotations. Leave empty to stay anonymous.</string>
 </resources>

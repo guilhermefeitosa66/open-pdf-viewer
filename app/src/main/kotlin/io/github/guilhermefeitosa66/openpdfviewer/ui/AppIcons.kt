@@ -46,6 +46,20 @@ object AppIcons {
         }
     }
 
+    val Undo: ImageVector by lazy {
+        stroke("Undo") {
+            line { moveTo(9f, 14f); lineTo(4f, 9f); lineTo(9f, 4f) }
+            line { moveTo(4f, 9f); lineTo(14.5f, 9f); quadTo(20f, 9f, 20f, 14.5f); quadTo(20f, 20f, 14.5f, 20f); lineTo(11f, 20f) }
+        }
+    }
+
+    val Redo: ImageVector by lazy {
+        stroke("Redo") {
+            line { moveTo(15f, 14f); lineTo(20f, 9f); lineTo(15f, 4f) }
+            line { moveTo(20f, 9f); lineTo(9.5f, 9f); quadTo(4f, 9f, 4f, 14.5f); quadTo(4f, 20f, 9.5f, 20f); lineTo(13f, 20f) }
+        }
+    }
+
     val StarOutline: ImageVector by lazy {
         stroke("StarOutline") {
             line {

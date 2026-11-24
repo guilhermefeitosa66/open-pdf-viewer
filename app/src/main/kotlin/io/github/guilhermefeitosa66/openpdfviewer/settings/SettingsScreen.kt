@@ -35,6 +35,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -102,6 +103,17 @@ fun SettingsScreen(onBack: () -> Unit) {
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
+
+        SectionLabel(stringResource(R.string.annotations))
+        var author by remember { androidx.compose.runtime.mutableStateOf(settings.authorName) }
+        androidx.compose.material3.OutlinedTextField(
+            value = author,
+            onValueChange = { author = it.take(60); settings.chooseAuthorName(author) },
+            label = { Text(stringResource(R.string.author_name)) },
+            supportingText = { Text(stringResource(R.string.author_name_help)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+        )
 
         Spacer(Modifier.height(16.dp))
         Row(

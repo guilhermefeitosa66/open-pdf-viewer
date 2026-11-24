@@ -173,26 +173,15 @@ class PdfDocument private constructor(private val handle: Long) {
      * The change lives in memory until the document is saved. Returns false when nothing was
      * added (no text there).
      */
-    suspend fun addTextMarkup(index: Int, start: Int, count: Int, type: Markup, argb: Int, author: String?): Boolean =
-        withContext(PdfiumThread.dispatcher) {
-            if (closed || count <= 0) return@withContext false
-            val lp = page(index) ?: return@withContext false
+    suspend fun addTextMarkup(index: Int, start: Int, count: Int, type: Markup, argb: Int, author: String?, nm: String? = null): Boolean =
+        create(index, nm) { lp ->
             val t = textOf(lp)
-            if (t == 0L) return@withContext false
-            val ok = PdfiumNative.addTextMarkup(lp.page, t, start, count, type.subtype, argb, author) >= 0
-            if (ok) modified = true
-            ok
+            if (t == 0L || count <= 0) -1 else PdfiumNative.addTextMarkup(lp.page, t, start, count, type.subtype, argb, author)
         }
 
     /** Adds a free-hand stroke (normalized points [x0, y0, x1, y1...]) as an ink annotation. */
-    suspend fun addInk(index: Int, xy: FloatArray, argb: Int, widthPt: Float, author: String?): Boolean =
-        withContext(PdfiumThread.dispatcher) {
-            if (closed || xy.size < 2) return@withContext false
-            val lp = page(index) ?: return@withContext false
-            val ok = PdfiumNative.addInk(lp.page, xy, argb, widthPt, author) >= 0
-            if (ok) modified = true
-            ok
-        }
+    suspend fun addInk(index: Int, xy: FloatArray, argb: Int, widthPt: Float, author: String?, nm: String? = null): Boolean =
+        create(index, nm) { lp -> if (xy.size < 2) -1 else PdfiumNative.addInk(lp.page, xy, argb, widthPt, author) }
 
     /** Removes the ink stroke passing near a normalized point; true when one was removed. */
     suspend fun eraseInkAt(index: Int, x: Float, y: Float, tolerancePt: Float): Boolean =
@@ -205,33 +194,47 @@ class PdfDocument private constructor(private val handle: Long) {
             ok
         }
 
-    /** An annotation found under the finger: its index on the page, PDF subtype and text. */
-    data class AnnotHit(val page: Int, val index: Int, val subtype: Int, val contents: String) {
+    /** An annotation found under the finger: its index on the page, PDF subtype, text and /NM name. */
+    data class AnnotHit(val page: Int, val index: Int, val subtype: Int, val contents: String, val nm: String = "") {
         val isNote get() = subtype == 1
     }
 
+    /** An annotation in the list: where it is (normalized rect), what it is and who wrote it. */
+    data class AnnotInfo(
+        val page: Int,
+        val index: Int,
+        val subtype: Int,
+        val left: Float,
+        val top: Float,
+        val right: Float,
+        val bottom: Float,
+        val contents: String,
+        val author: String,
+        val nm: String,
+    )
+
     enum class StandardFont(val pdfName: String) { SANS("Helvetica"), SERIF("Times-Roman"), MONO("Courier") }
 
-    suspend fun addNote(index: Int, x: Float, y: Float, contents: String, argb: Int, author: String?): Boolean =
-        edit(index) { lp -> PdfiumNative.addNote(lp.page, x, y, contents, argb, author) >= 0 }
+    suspend fun addNote(index: Int, x: Float, y: Float, contents: String, argb: Int, author: String?, nm: String? = null): Boolean =
+        create(index, nm) { lp -> PdfiumNative.addNote(lp.page, x, y, contents, argb, author) }
 
     /** Text placed with its top-left corner at a normalized point; one line per '\n'. */
-    suspend fun addText(index: Int, x: Float, y: Float, text: String, font: StandardFont, sizePt: Float, argb: Int, author: String?): Boolean =
-        edit(index) { lp -> PdfiumNative.addTextStamp(handle, lp.page, x, y, text, font.pdfName, sizePt, argb, author) >= 0 }
+    suspend fun addText(index: Int, x: Float, y: Float, text: String, font: StandardFont, sizePt: Float, argb: Int, author: String?, nm: String? = null): Boolean =
+        create(index, nm) { lp -> PdfiumNative.addTextStamp(handle, lp.page, x, y, text, font.pdfName, sizePt, argb, author) }
 
     /** Rectangle ([ellipse] false) or ellipse between two normalized corners; [fill] 0 = none. */
-    suspend fun addBox(index: Int, x0: Float, y0: Float, x1: Float, y1: Float, ellipse: Boolean, stroke: Int, fill: Int, widthPt: Float, author: String?): Boolean =
-        edit(index) { lp -> PdfiumNative.addShape(lp.page, if (ellipse) 6 else 5, x0, y0, x1, y1, stroke, fill, widthPt, author) >= 0 }
+    suspend fun addBox(index: Int, x0: Float, y0: Float, x1: Float, y1: Float, ellipse: Boolean, stroke: Int, fill: Int, widthPt: Float, author: String?, nm: String? = null): Boolean =
+        create(index, nm) { lp -> PdfiumNative.addShape(lp.page, if (ellipse) 6 else 5, x0, y0, x1, y1, stroke, fill, widthPt, author) }
 
     /** Polylines (each a list of normalized points) as one ink annotation. */
-    suspend fun addPaths(index: Int, paths: List<List<Pair<Float, Float>>>, argb: Int, widthPt: Float, author: String?): Boolean {
+    suspend fun addPaths(index: Int, paths: List<List<Pair<Float, Float>>>, argb: Int, widthPt: Float, author: String?, nm: String? = null): Boolean {
         val usable = paths.filter { it.size >= 2 }
         if (usable.isEmpty()) return false
         val xy = FloatArray(usable.sumOf { it.size } * 2)
         var i = 0
         for (path in usable) for ((x, y) in path) { xy[i++] = x; xy[i++] = y }
         val lengths = IntArray(usable.size) { usable[it].size }
-        return edit(index) { lp -> PdfiumNative.addInkPaths(lp.page, xy, lengths, argb, widthPt, author) >= 0 }
+        return create(index, nm) { lp -> PdfiumNative.addInkPaths(lp.page, xy, lengths, argb, widthPt, author) }
     }
 
     suspend fun annotAt(index: Int, x: Float, y: Float): AnnotHit? = withContext(PdfiumThread.dispatcher) {
@@ -239,7 +242,38 @@ class PdfDocument private constructor(private val handle: Long) {
         val lp = page(index) ?: return@withContext null
         val raw = PdfiumNative.annotAt(lp.page, x, y) ?: return@withContext null
         val ids = raw[0] as IntArray
-        AnnotHit(index, ids[0], ids[1], raw[1] as String)
+        AnnotHit(index, ids[0], ids[1], raw[1] as String, raw[2] as String)
+    }
+
+    /** Every listable annotation of page [index] (no links, form fields or popups). */
+    suspend fun annotations(index: Int): List<AnnotInfo> = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext emptyList()
+        val lp = page(index) ?: return@withContext emptyList()
+        val raw = PdfiumNative.listAnnots(lp.page)
+        val ids = raw[0] as IntArray
+        val rects = raw[1] as FloatArray
+        @Suppress("UNCHECKED_CAST") val contents = raw[2] as Array<String>
+        @Suppress("UNCHECKED_CAST") val authors = raw[3] as Array<String>
+        @Suppress("UNCHECKED_CAST") val names = raw[4] as Array<String>
+        List(contents.size) { i ->
+            AnnotInfo(index, ids[i * 2], ids[i * 2 + 1], rects[i * 4], rects[i * 4 + 1], rects[i * 4 + 2], rects[i * 4 + 3], contents[i], authors[i], names[i])
+        }
+    }
+
+    /** Gives an existing annotation a /NM name, so later changes can find it again. */
+    suspend fun nameAnnot(hit: AnnotHit, nm: String): Boolean = edit(hit.page) { lp ->
+        PdfiumNative.setAnnotString(lp.page, hit.index, "NM", nm)
+    }
+
+    /** Removes the annotation named [nm] (its /NM) from page [index]. */
+    suspend fun removeByName(index: Int, nm: String): Boolean = edit(index) { lp ->
+        val i = PdfiumNative.annotByName(lp.page, nm)
+        i >= 0 && PdfiumNative.removeAnnot(lp.page, i)
+    }
+
+    suspend fun setContentsByName(index: Int, nm: String, contents: String): Boolean = edit(index) { lp ->
+        val i = PdfiumNative.annotByName(lp.page, nm)
+        i >= 0 && PdfiumNative.setAnnotContents(lp.page, i, contents)
     }
 
     suspend fun setAnnotContents(hit: AnnotHit, contents: String): Boolean =
@@ -247,6 +281,13 @@ class PdfDocument private constructor(private val handle: Long) {
 
     suspend fun removeAnnot(hit: AnnotHit): Boolean =
         edit(hit.page) { lp -> PdfiumNative.removeAnnot(lp.page, hit.index) }
+
+    /** Creates an annotation (the block returns its index or -1) and names it [nm] when given. */
+    private suspend fun create(index: Int, nm: String?, block: (LoadedPage) -> Int): Boolean = edit(index) { lp ->
+        val i = block(lp)
+        if (i >= 0 && nm != null) PdfiumNative.setAnnotString(lp.page, i, "NM", nm)
+        i >= 0
+    }
 
     /** Runs a change on page [index] on the PDFium thread and marks the document modified. */
     private suspend fun edit(index: Int, block: (LoadedPage) -> Boolean): Boolean = withContext(PdfiumThread.dispatcher) {

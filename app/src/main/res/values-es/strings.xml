@@ -177,4 +177,12 @@
     <string name="fill">Relleno</string>
     <string name="no_fill">Sin relleno</string>
     <string name="finish_polygon">Cerrar forma</string>
+    <string name="annotations">Anotaciones</string>
+    <string name="no_annotations">No hay anotaciones en este documento.</string>
+    <string name="annot_text">Texto</string>
+    <string name="annot_drawing">Dibujo</string>
+    <string name="redo">Rehacer</string>
+    <string name="delete_from_file_note">Esta anotación vino con el archivo: borrarla no se puede deshacer aquí. Para recuperarla, cierra sin guardar.</string>
+    <string name="author_name">Tu nombre</string>
+    <string name="author_name_help">Se guarda como autor de tus anotaciones. Déjalo vacío para ser anónimo.</string>
 </resources>

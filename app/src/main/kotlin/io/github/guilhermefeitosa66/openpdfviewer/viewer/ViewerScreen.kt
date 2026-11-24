@@ -370,6 +370,10 @@ private fun TopBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (vm.canUndo || vm.canRedo) {
+            IconButton(onClick = vm::undo, enabled = vm.canUndo) { Icon(AppIcons.Undo, stringResource(R.string.undo)) }
+            IconButton(onClick = vm::redo, enabled = vm.canRedo) { Icon(AppIcons.Redo, stringResource(R.string.redo)) }
+        }
         IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, stringResource(R.string.search)) }
         IconButton(onClick = onPages) { Icon(AppIcons.Pages, stringResource(R.string.pages)) }
         Box {
@@ -1261,10 +1265,16 @@ private fun AnnotationDialogs(vm: ViewerViewModel) {
                 onDismiss = { vm.openedAnnot = null },
             )
         } else {
+            val permanent = !vm.canUndoDelete(hit)
             AlertDialog(
                 onDismissRequest = { vm.openedAnnot = null },
                 title = { Text(stringResource(R.string.annotation)) },
-                text = { if (hit.contents.isNotBlank()) Text(hit.contents) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (hit.contents.isNotBlank()) Text(hit.contents)
+                        if (permanent) Text(stringResource(R.string.delete_from_file_note), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
                 confirmButton = { TextButton(onClick = { vm.openedAnnot = null }) { Text(stringResource(R.string.close)) } },
                 dismissButton = { TextButton(onClick = { vm.deleteAnnot(hit); vm.openedAnnot = null }) { Text(stringResource(R.string.delete)) } },
             )

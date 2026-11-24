@@ -54,6 +54,8 @@ data class Match(
     val after: String = "",
 )
 
+typealias Maker = suspend (io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument, String) -> Boolean
+
 /**
  * Selected text from [start] on [startPage] up to [end] (exclusive) on [endPage]; it can span
  * pages. [rects] holds the highlight rectangles of each page involved.
@@ -575,13 +577,19 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         val sel = selection ?: return
         val author = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication()).authorName.ifBlank { null }
         viewModelScope.launch {
+            val adds = ArrayList<Edit>()
             for (p in sel.startPage..sel.endPage) {
                 val from = if (p == sel.startPage) sel.start else 0
                 val to = if (p == sel.endPage) sel.end else r.doc.text(p).length
-                if (to > from && r.doc.addTextMarkup(p, from, to - from, type, argb, author)) {
+                if (to <= from) continue
+                val make: Maker = { doc, nm -> doc.addTextMarkup(p, from, to - from, type, argb, author, nm) }
+                val nm = newName()
+                if (make(r.doc, nm)) {
+                    adds += Edit.Add(p, nm, make)
                     r.renderer.invalidate(p, r.viewport)
                 }
             }
+            if (adds.isNotEmpty()) record(if (adds.size == 1) adds[0] else Edit.Group(adds))
             unsaved = r.doc.modified
             clearSelection()
         }
@@ -600,18 +608,145 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
 
     private val authorName get() = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication()).authorName.ifBlank { null }
 
-    fun addNote(page: Int, at: Offset, text: String) = change(page) { doc ->
-        doc.addNote(page, at.x, at.y, text, NOTE_COLOR, authorName)
+    fun addNote(page: Int, at: Offset, text: String) {
+        val author = authorName
+        createAnnot(page) { doc, nm -> doc.addNote(page, at.x, at.y, text, NOTE_COLOR, author, nm) }
     }
 
-    fun addText(page: Int, at: Offset, text: String, font: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.StandardFont, size: Float, argb: Int) =
-        change(page) { doc -> doc.addText(page, at.x, at.y, text, font, size, argb, authorName) }
-
-    fun updateAnnotText(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit, text: String) = change(hit.page) { doc ->
-        doc.setAnnotContents(hit, text)
+    fun addText(page: Int, at: Offset, text: String, font: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.StandardFont, size: Float, argb: Int) {
+        val author = authorName
+        createAnnot(page) { doc, nm -> doc.addText(page, at.x, at.y, text, font, size, argb, author, nm) }
     }
 
-    fun deleteAnnot(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit) = change(hit.page) { doc -> doc.removeAnnot(hit) }
+    /** Changes the text of an annotation; it gets a /NM name first so the change can be undone. */
+    fun updateAnnotText(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit, text: String) {
+        val r = ready ?: return
+        viewModelScope.launch {
+            val nm = hit.nm.ifEmpty { newName().also { r.doc.nameAnnot(hit, it) } }
+            if (r.doc.setContentsByName(hit.page, nm, text)) {
+                record(Edit.Contents(hit.page, nm, hit.contents, text))
+                r.renderer.invalidate(hit.page, r.viewport)
+                unsaved = r.doc.modified
+            }
+        }
+    }
+
+    /** True when deleting this annotation can be undone (it was created in this session). */
+    fun canUndoDelete(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit) = hit.nm.isNotEmpty() && makers.containsKey(hit.nm)
+
+    fun deleteAnnot(hit: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotHit) {
+        val r = ready ?: return
+        viewModelScope.launch {
+            val make = makers[hit.nm]
+            val ok = if (make != null) r.doc.removeByName(hit.page, hit.nm) else r.doc.removeAnnot(hit)
+            if (ok) {
+                if (make != null) record(Edit.Remove(hit.page, hit.nm, make)) else annotationsVersion++
+                r.renderer.invalidate(hit.page, r.viewport)
+                unsaved = r.doc.modified
+            }
+        }
+    }
+
+    /** All annotations of the document, page by page (for the annotations list). */
+    suspend fun allAnnotations(): List<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotInfo> {
+        val r = ready ?: return emptyList()
+        val out = ArrayList<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.AnnotInfo>()
+        for (p in 0 until r.doc.pageCount) out += r.doc.annotations(p)
+        return out
+    }
+
+    // ---- Edit history (undo/redo for this session) ----
+
+    private sealed interface Edit {
+        data class Add(val page: Int, val nm: String, val make: Maker) : Edit
+        data class Remove(val page: Int, val nm: String, val make: Maker) : Edit
+        data class Contents(val page: Int, val nm: String, val old: String, val new: String) : Edit
+        data class Group(val edits: List<Edit>) : Edit
+    }
+
+    private val undoStack = ArrayDeque<Edit>()
+    private val redoStack = ArrayDeque<Edit>()
+    /** How to recreate each annotation made in this session, by its /NM name. */
+    private val makers = HashMap<String, Maker>()
+    var canUndo by mutableStateOf(false)
+        private set
+    var canRedo by mutableStateOf(false)
+        private set
+    /** Bumped when annotations change, so the annotation list reloads. */
+    var annotationsVersion by mutableIntStateOf(0)
+        private set
+
+    private fun newName() = "oppv-" + java.util.UUID.randomUUID().toString()
+
+    private fun record(e: Edit) {
+        undoStack.addLast(e)
+        if (undoStack.size > 100) undoStack.removeFirst()
+        redoStack.clear()
+        rememberMaker(e)
+        updateHistoryFlags()
+    }
+
+    private fun rememberMaker(e: Edit) {
+        when (e) {
+            is Edit.Add -> makers[e.nm] = e.make
+            is Edit.Group -> e.edits.forEach { rememberMaker(it) }
+            else -> Unit
+        }
+    }
+
+    private fun updateHistoryFlags() {
+        canUndo = undoStack.isNotEmpty()
+        canRedo = redoStack.isNotEmpty()
+        annotationsVersion++
+    }
+
+    /** Creates an annotation through [make] with a fresh name and records it for undo. */
+    private fun createAnnot(page: Int, make: Maker) {
+        val r = ready ?: return
+        viewModelScope.launch {
+            val nm = newName()
+            if (make(r.doc, nm)) {
+                record(Edit.Add(page, nm, make))
+                r.renderer.invalidate(page, r.viewport)
+                unsaved = r.doc.modified
+            }
+        }
+    }
+
+    fun undo() = step(undo = true)
+
+    fun redo() = step(undo = false)
+
+    private fun step(undo: Boolean) {
+        val r = ready ?: return
+        val e = (if (undo) undoStack.removeLastOrNull() else redoStack.removeLastOrNull()) ?: return
+        viewModelScope.launch {
+            val pages = HashSet<Int>()
+            applyEdit(r.doc, e, undo, pages)
+            if (undo) redoStack.addLast(e) else undoStack.addLast(e)
+            pages.forEach { r.renderer.invalidate(it, r.viewport) }
+            unsaved = r.doc.modified
+            updateHistoryFlags()
+        }
+    }
+
+    private suspend fun applyEdit(doc: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument, e: Edit, undo: Boolean, pages: MutableSet<Int>) {
+        when (e) {
+            is Edit.Add -> {
+                if (undo) doc.removeByName(e.page, e.nm) else e.make(doc, e.nm)
+                pages += e.page
+            }
+            is Edit.Remove -> {
+                if (undo) e.make(doc, e.nm) else doc.removeByName(e.page, e.nm)
+                pages += e.page
+            }
+            is Edit.Contents -> {
+                doc.setContentsByName(e.page, e.nm, if (undo) e.old else e.new)
+                pages += e.page
+            }
+            is Edit.Group -> (if (undo) e.edits.asReversed() else e.edits).forEach { applyEdit(doc, it, undo, pages) }
+        }
+    }
 
     /** Runs an edit of page [page], then re-renders it and updates the unsaved flag. */
     private fun change(page: Int, block: suspend (io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument) -> Boolean) {
@@ -645,6 +780,11 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stopDrawing() {
+        undoStack.clear()
+        redoStack.clear()
+        makers.clear()
+        canUndo = false
+        canRedo = false
         drawing = false
         liveStroke = null
         shapeKind = null
@@ -677,7 +817,12 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         val author = settings.authorName.ifBlank { null }
         val xy = FloatArray(pts.size * 2).also { a -> pts.forEachIndexed { i, o -> a[i * 2] = o.x; a[i * 2 + 1] = o.y } }
         viewModelScope.launch {
-            if (r.doc.addInk(page, xy, settings.inkColor, settings.inkWidth, author)) {
+            val color = settings.inkColor
+            val width = settings.inkWidth
+            val make: Maker = { doc, nm -> doc.addInk(page, xy, color, width, author, nm) }
+            val nm = newName()
+            if (make(r.doc, nm)) {
+                record(Edit.Add(page, nm, make))
                 r.renderer.invalidate(page, r.viewport)
                 unsaved = r.doc.modified
             }
@@ -743,13 +888,15 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         val b = pts.last()
         // Ignore taps that did not drag into a shape.
         if (kind != Shapes.Kind.POLYGON && kotlin.math.abs(a.x - b.x) * size.width < 3f && kotlin.math.abs(a.y - b.y) * size.height < 3f) return
-        change(page) { doc ->
+        val fill = shapeFill
+        val author = authorName
+        createAnnot(page) { doc, nm ->
             when (kind) {
                 Shapes.Kind.RECTANGLE, Shapes.Kind.ELLIPSE ->
-                    doc.addBox(page, a.x, a.y, b.x, b.y, kind == Shapes.Kind.ELLIPSE, stroke, shapeFill, width, authorName)
-                Shapes.Kind.LINE -> doc.addPaths(page, listOf(listOf(a.x to a.y, b.x to b.y)), stroke, width, authorName)
-                Shapes.Kind.ARROW -> doc.addPaths(page, Shapes.arrow(a.x, a.y, b.x, b.y, size.width, size.height, 6f + width * 3f), stroke, width, authorName)
-                Shapes.Kind.POLYGON -> doc.addPaths(page, Shapes.polygon(pts.map { it.x to it.y }), stroke, width, authorName)
+                    doc.addBox(page, a.x, a.y, b.x, b.y, kind == Shapes.Kind.ELLIPSE, stroke, fill, width, author, nm)
+                Shapes.Kind.LINE -> doc.addPaths(page, listOf(listOf(a.x to a.y, b.x to b.y)), stroke, width, author, nm)
+                Shapes.Kind.ARROW -> doc.addPaths(page, Shapes.arrow(a.x, a.y, b.x, b.y, size.width, size.height, 6f + width * 3f), stroke, width, author, nm)
+                Shapes.Kind.POLYGON -> doc.addPaths(page, Shapes.polygon(pts.map { it.x to it.y }), stroke, width, author, nm)
             }
         }
     }
@@ -797,6 +944,11 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         attachments = null
         stopReadAloud()
         unsaved = false
+        undoStack.clear()
+        redoStack.clear()
+        makers.clear()
+        canUndo = false
+        canRedo = false
         drawing = false
         liveStroke = null
         shapeKind = null
