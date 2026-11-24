@@ -195,4 +195,6 @@
     <string name="annotate_hint">To highlight or underline, long-press the text and use the selection bar.</string>
     <string name="view_options">View…</string>
     <string name="save_flattened">Save flattened copy…</string>
+    <string name="form_field">Field</string>
+    <string name="next_field">Next field</string>
 </resources>

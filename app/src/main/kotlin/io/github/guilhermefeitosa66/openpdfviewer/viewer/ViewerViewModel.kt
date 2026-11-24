@@ -475,6 +475,13 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
         val hit = r.viewport.screenToPage(p) ?: return orElse()
         viewModelScope.launch {
+            if (r.doc.hasForm) {
+                val field = fieldsOf(r, hit.page).firstOrNull { it.contains(hit.x, hit.y) }
+                if (field != null && !field.readOnly) {
+                    openField(r, field)
+                    return@launch
+                }
+            }
             r.doc.annotAt(hit.page, hit.x, hit.y)?.let {
                 openedAnnot = it
                 return@launch
@@ -593,6 +600,75 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
             unsaved = r.doc.modified
             clearSelection()
         }
+    }
+
+    // ---- Form filling ----
+
+    private val fieldCache = HashMap<Int, List<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField>>()
+    /** The text field being edited, or the list/combo being chosen, in a dialog. */
+    var editingField by mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField?>(null)
+        private set
+
+    private suspend fun fieldsOf(r: DocState.Ready, page: Int): List<io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField> =
+        fieldCache[page] ?: r.doc.formFields(page).also { fieldCache[page] = it }
+
+    private suspend fun openField(r: DocState.Ready, field: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField) {
+        if (field.isToggle) {
+            if (r.doc.toggleField(field)) fieldChanged(r, field.page)
+        } else if (field.isText || field.isChoice) {
+            editingField = field
+        }
+    }
+
+    private fun fieldChanged(r: DocState.Ready, page: Int) {
+        fieldCache.remove(page)
+        r.renderer.invalidate(page, r.viewport)
+        unsaved = r.doc.modified
+    }
+
+    fun closeFieldEditor() {
+        editingField = null
+    }
+
+    fun setFieldText(field: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField, text: String, thenNext: Boolean) {
+        val r = ready ?: return
+        viewModelScope.launch {
+            if (text != field.value && r.doc.setFieldText(field, text)) fieldChanged(r, field.page)
+            editingField = if (thenNext) nextField(r, field) else null
+        }
+    }
+
+    fun chooseFieldOption(field: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField, option: Int, thenNext: Boolean) {
+        val r = ready ?: return
+        viewModelScope.launch {
+            if (r.doc.selectFieldOption(field, option)) fieldChanged(r, field.page)
+            editingField = if (thenNext) nextField(r, field) else null
+        }
+    }
+
+    /** True when another fillable text or choice field follows [field] in the document. */
+    suspend fun hasNextField(field: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField): Boolean {
+        val r = ready ?: return false
+        return nextField(r, field) != null
+    }
+
+    /** The next text or choice field, in reading order (page, then top to bottom, left to right). */
+    private suspend fun nextField(r: DocState.Ready, field: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField): io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.FormField? {
+        for (p in field.page until r.doc.pageCount) {
+            val candidates = fieldsOf(r, p)
+                .filter { (it.isText || it.isChoice) && !it.readOnly }
+                .sortedWith(compareBy({ (it.top * 50).toInt() }, { it.left }))
+            val after = if (p == field.page) {
+                val i = candidates.indexOfFirst { it.index == field.index }
+                if (i >= 0) candidates.drop(i + 1) else candidates.filter { it.top > field.top }
+            } else candidates
+            after.firstOrNull()?.let { next ->
+                r.viewport.reveal(r.viewport.toScreen(next.page, next.left, next.top, next.right, next.bottom))
+                r.renderer.request(r.viewport)
+                return next
+            }
+        }
+        return null
     }
 
     // ---- Notes and text ----
@@ -1069,6 +1145,8 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         normalized.clear()
         outline = null
         attachments = null
+        fieldCache.clear()
+        editingField = null
         stopReadAloud()
         unsaved = false
         undoStack.clear()

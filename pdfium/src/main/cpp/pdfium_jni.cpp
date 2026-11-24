@@ -29,6 +29,9 @@ struct Document {
     int fd = -1;
     FPDF_FILEACCESS access{};
     FPDF_DOCUMENT doc = nullptr;
+    // Form filling (only for documents with an AcroForm): the info struct must outlive the handle.
+    FPDF_FORMFILLINFO formInfo{};
+    FPDF_FORMHANDLE form = nullptr;
 };
 
 int readBlock(void* param, unsigned long position, unsigned char* buf, unsigned long size) {
@@ -119,6 +122,7 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_closeDocumen
         JNIEnv*, jobject, jlong handle) {
     auto* d = reinterpret_cast<Document*>(handle);
     if (!d) return;
+    if (d->form) FPDFDOC_ExitFormFillEnvironment(d->form);
     if (d->doc) FPDF_CloseDocument(d->doc);
     if (d->fd >= 0) close(d->fd);
     delete d;
@@ -154,20 +158,26 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_pageSizes(
 JNIEXPORT jlong JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_loadPage(
         JNIEnv*, jobject, jlong handle, jint index) {
-    return reinterpret_cast<jlong>(FPDF_LoadPage(reinterpret_cast<Document*>(handle)->doc, index));
+    auto* d = reinterpret_cast<Document*>(handle);
+    FPDF_PAGE page = FPDF_LoadPage(d->doc, index);
+    if (page && d->form) FORM_OnAfterLoadPage(page, d->form);
+    return reinterpret_cast<jlong>(page);
 }
 
 JNIEXPORT void JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_closePage(
-        JNIEnv*, jobject, jlong page) {
-    if (page) FPDF_ClosePage(reinterpret_cast<FPDF_PAGE>(page));
+        JNIEnv*, jobject, jlong handle, jlong page) {
+    if (!page) return;
+    auto* d = reinterpret_cast<Document*>(handle);
+    if (d && d->form) FORM_OnBeforeClosePage(reinterpret_cast<FPDF_PAGE>(page), d->form);
+    FPDF_ClosePage(reinterpret_cast<FPDF_PAGE>(page));
 }
 
 // Renders the page scaled to sizeX x sizeY, shifted by (startX, startY), into an ARGB_8888 bitmap.
 // Negative starts render a region of a page larger than the bitmap (zoom tiles).
 JNIEXPORT jboolean JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_renderPage(
-        JNIEnv* env, jobject, jlong page, jobject bitmap,
+        JNIEnv* env, jobject, jlong handle, jlong page, jobject bitmap,
         jint startX, jint startY, jint sizeX, jint sizeY) {
     AndroidBitmapInfo info{};
     if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS) return JNI_FALSE;
@@ -182,6 +192,12 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_renderPage(
                             0xFFFFFFFF);
         FPDF_RenderPageBitmap(fb, reinterpret_cast<FPDF_PAGE>(page), startX, startY, sizeX, sizeY, 0,
                               FPDF_ANNOT | FPDF_REVERSE_BYTE_ORDER);
+        // Form fields with their current values (and edits made in the app).
+        auto* d = reinterpret_cast<Document*>(handle);
+        if (d && d->form) {
+            FPDF_FFLDraw(d->form, fb, reinterpret_cast<FPDF_PAGE>(page), startX, startY, sizeX, sizeY, 0,
+                         FPDF_ANNOT | FPDF_REVERSE_BYTE_ORDER);
+        }
         FPDFBitmap_Destroy(fb);
     }
     AndroidBitmap_unlockPixels(env, bitmap);
@@ -1018,6 +1034,155 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_flattenAll(J
         FPDF_ClosePage(page);
     }
     return changed;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Starts form filling when the document has an AcroForm. Returns the form type (0 = none).
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_initForm(JNIEnv*, jobject, jlong handle) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    int type = FPDF_GetFormType(d->doc);
+    if (type <= 0 || d->form) return type;
+    d->formInfo.version = 1;  // no callbacks: the app re-renders pages itself after each change
+    d->form = FPDFDOC_InitFormFillEnvironment(d->doc, &d->formInfo);
+    if (d->form) {
+        FPDF_SetFormFieldHighlightColor(d->form, 0, 0xFFF3D9);
+        FPDF_SetFormFieldHighlightAlpha(d->form, 110);
+    }
+    return type;
+}
+
+// Form fields of a page: Object[]{int[] (index, fieldType, flags, checked) x n, float[] rects,
+// String[] names, String[] values, String[][] options}.
+JNIEXPORT jobjectArray JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_formFields(JNIEnv* env, jobject, jlong handle, jlong pageHandle) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    int w, h;
+    deviceSize(page, &w, &h);
+    std::vector<jint> ints;
+    std::vector<jfloat> rects;
+    std::vector<std::vector<unsigned short>> names, values;
+    std::vector<std::vector<std::vector<unsigned short>>> options;
+    int count = d->form ? FPDFPage_GetAnnotCount(page) : 0;
+    for (int i = 0; i < count; i++) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (!annot) continue;
+        if (FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_WIDGET) {
+            FS_RECTF r{};
+            FPDFAnnot_GetRect(annot, &r);
+            int x1, y1, x2, y2;
+            FPDF_PageToDevice(page, 0, 0, w, h, 0, r.left, r.top, &x1, &y1);
+            FPDF_PageToDevice(page, 0, 0, w, h, 0, r.right, r.bottom, &x2, &y2);
+            ints.push_back(i);
+            ints.push_back(FPDFAnnot_GetFormFieldType(d->form, annot));
+            ints.push_back(FPDFAnnot_GetFormFieldFlags(d->form, annot));
+            ints.push_back(FPDFAnnot_IsChecked(d->form, annot) ? 1 : 0);
+            rects.push_back(static_cast<jfloat>(std::fmin(x1, x2)) / w);
+            rects.push_back(static_cast<jfloat>(std::fmin(y1, y2)) / h);
+            rects.push_back(static_cast<jfloat>(std::fmax(x1, x2)) / w);
+            rects.push_back(static_cast<jfloat>(std::fmax(y1, y2)) / h);
+            unsigned long nb = FPDFAnnot_GetFormFieldName(d->form, annot, nullptr, 0);
+            std::vector<unsigned short> nbuf(nb / 2 + 1, 0);
+            if (nb > 0) FPDFAnnot_GetFormFieldName(d->form, annot, reinterpret_cast<FPDF_WCHAR*>(nbuf.data()), nb);
+            names.push_back(nbuf);
+            unsigned long vb = FPDFAnnot_GetFormFieldValue(d->form, annot, nullptr, 0);
+            std::vector<unsigned short> vbuf(vb / 2 + 1, 0);
+            if (vb > 0) FPDFAnnot_GetFormFieldValue(d->form, annot, reinterpret_cast<FPDF_WCHAR*>(vbuf.data()), vb);
+            values.push_back(vbuf);
+            std::vector<std::vector<unsigned short>> opts;
+            int oc = FPDFAnnot_GetOptionCount(d->form, annot);
+            for (int k = 0; k < oc && k < 500; k++) {
+                unsigned long ob = FPDFAnnot_GetOptionLabel(d->form, annot, k, nullptr, 0);
+                std::vector<unsigned short> obuf(ob / 2 + 1, 0);
+                if (ob > 0) FPDFAnnot_GetOptionLabel(d->form, annot, k, reinterpret_cast<FPDF_WCHAR*>(obuf.data()), ob);
+                opts.push_back(obuf);
+            }
+            options.push_back(opts);
+        }
+        FPDFPage_CloseAnnot(annot);
+    }
+    auto n = static_cast<jsize>(names.size());
+    jintArray ji = env->NewIntArray(static_cast<jsize>(ints.size()));
+    if (!ints.empty()) env->SetIntArrayRegion(ji, 0, static_cast<jsize>(ints.size()), ints.data());
+    jfloatArray jr = env->NewFloatArray(static_cast<jsize>(rects.size()));
+    if (!rects.empty()) env->SetFloatArrayRegion(jr, 0, static_cast<jsize>(rects.size()), rects.data());
+    jclass strCls = env->FindClass("java/lang/String");
+    jobjectArray jn = env->NewObjectArray(n, strCls, nullptr);
+    jobjectArray jv = env->NewObjectArray(n, strCls, nullptr);
+    jobjectArray jo = env->NewObjectArray(n, env->FindClass("[Ljava/lang/String;"), nullptr);
+    for (jsize i = 0; i < n; i++) {
+        jstring a = toJString(env, names[i]); env->SetObjectArrayElement(jn, i, a); env->DeleteLocalRef(a);
+        jstring b = toJString(env, values[i]); env->SetObjectArrayElement(jv, i, b); env->DeleteLocalRef(b);
+        jobjectArray oa = env->NewObjectArray(static_cast<jsize>(options[i].size()), strCls, nullptr);
+        for (size_t k = 0; k < options[i].size(); k++) {
+            jstring o = toJString(env, options[i][k]);
+            env->SetObjectArrayElement(oa, static_cast<jsize>(k), o);
+            env->DeleteLocalRef(o);
+        }
+        env->SetObjectArrayElement(jo, i, oa);
+        env->DeleteLocalRef(oa);
+    }
+    jobjectArray out = env->NewObjectArray(5, env->FindClass("java/lang/Object"), nullptr);
+    env->SetObjectArrayElement(out, 0, ji);
+    env->SetObjectArrayElement(out, 1, jr);
+    env->SetObjectArrayElement(out, 2, jn);
+    env->SetObjectArrayElement(out, 3, jv);
+    env->SetObjectArrayElement(out, 4, jo);
+    return out;
+}
+
+// A tap on the form at a normalized point (toggles checkboxes/radios, focuses fields).
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_formTap(
+        JNIEnv*, jobject, jlong handle, jlong pageHandle, jfloat nx, jfloat ny) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    if (!d->form) return JNI_FALSE;
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double px, py;
+    if (!toPagePoint(page, nx, ny, &px, &py)) return JNI_FALSE;
+    FORM_OnMouseMove(d->form, page, 0, px, py);
+    FORM_OnLButtonDown(d->form, page, 0, px, py);
+    FORM_OnLButtonUp(d->form, page, 0, px, py);
+    return JNI_TRUE;
+}
+
+// Replaces the text of form widget [index] on the page.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_formSetText(
+        JNIEnv* env, jobject, jlong handle, jlong pageHandle, jint index, jstring text) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    if (!d->form) return JNI_FALSE;
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, index);
+    if (!annot) return JNI_FALSE;
+    bool focused = FORM_SetFocusedAnnot(d->form, annot);
+    if (focused) {
+        FORM_SelectAllText(d->form, page);
+        auto w = toUtf16(env, text);
+        FORM_ReplaceSelection(d->form, page, reinterpret_cast<FPDF_WIDESTRING>(w.data()));
+    }
+    FORM_ForceToKillFocus(d->form);
+    FPDFPage_CloseAnnot(annot);
+    return focused ? JNI_TRUE : JNI_FALSE;
+}
+
+// Selects option [option] of the list or combo widget [index] on the page.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_formSelect(
+        JNIEnv*, jobject, jlong handle, jlong pageHandle, jint index, jint option) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    if (!d->form) return JNI_FALSE;
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, index);
+    if (!annot) return JNI_FALSE;
+    bool ok = FORM_SetFocusedAnnot(d->form, annot) && FORM_SetIndexSelected(d->form, page, option, true);
+    FORM_ForceToKillFocus(d->form);
+    FPDFPage_CloseAnnot(annot);
+    return ok ? JNI_TRUE : JNI_FALSE;
 }
 
 }  // extern "C"

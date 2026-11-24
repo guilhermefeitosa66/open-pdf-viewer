@@ -249,6 +249,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     if (vm.drawing) DrawToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
     if (vm.shapeKind != null) ShapeToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
     AnnotationDialogs(vm)
+    vm.editingField?.let { field -> FieldEditor(vm, field) }
     vm.placing?.let { mode ->
         Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp)) {
             Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.inverseSurface, contentColor = MaterialTheme.colorScheme.inverseOnSurface) {
@@ -1399,4 +1400,78 @@ private fun ViewPanel(vp: Viewport, onLayout: () -> Unit, onDismiss: () -> Unit)
             PanelItem(stringResource(R.string.full_screen), checked = settings.fullScreen) { settings.toggleFullScreen() }
         }
     }
+}
+
+/** Fills a text field or picks an option, with "Next" to go to the following field. */
+@Composable
+private fun FieldEditor(vm: ViewerViewModel, field: PdfDocument.FormField) {
+    var hasNext by remember(field) { mutableStateOf(false) }
+    LaunchedEffect(field) { hasNext = vm.hasNextField(field) }
+    val title = field.name.substringAfterLast('.').ifBlank { stringResource(R.string.form_field) }
+    if (field.isChoice) {
+        var chosen by remember(field) { mutableStateOf(field.options.indexOf(field.value).coerceAtLeast(0)) }
+        AlertDialog(
+            onDismissRequest = vm::closeFieldEditor,
+            title = { Text(title) },
+            text = {
+                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                    field.options.forEachIndexed { i, option ->
+                        Row(
+                            Modifier.fillMaxWidth().selectable(selected = chosen == i, onClick = { chosen = i }, role = androidx.compose.ui.semantics.Role.RadioButton).padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = chosen == i, onClick = null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(option)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row {
+                    if (hasNext) TextButton(onClick = { vm.chooseFieldOption(field, chosen, thenNext = true) }) { Text(stringResource(R.string.next_field)) }
+                    TextButton(onClick = { vm.chooseFieldOption(field, chosen, thenNext = false) }) { Text(stringResource(R.string.done)) }
+                }
+            },
+            dismissButton = { TextButton(onClick = vm::closeFieldEditor) { Text(stringResource(R.string.cancel)) } },
+        )
+        return
+    }
+    var text by remember(field) { mutableStateOf(field.value) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(field) { focus.requestFocus() }
+    AlertDialog(
+        onDismissRequest = vm::closeFieldEditor,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = !field.multiline,
+                minLines = if (field.multiline) 3 else 1,
+                visualTransformation = if (field.password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = when {
+                        field.password -> KeyboardType.Password
+                        field.name.contains("mail", ignoreCase = true) -> KeyboardType.Email
+                        field.name.contains("phone", ignoreCase = true) || field.name.contains("tel", ignoreCase = true) -> KeyboardType.Phone
+                        else -> KeyboardType.Text
+                    },
+                    imeAction = if (hasNext && !field.multiline) ImeAction.Next else ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { vm.setFieldText(field, text, thenNext = true) },
+                    onDone = { vm.setFieldText(field, text, thenNext = false) },
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            )
+        },
+        confirmButton = {
+            Row {
+                if (hasNext) TextButton(onClick = { vm.setFieldText(field, text, thenNext = true) }) { Text(stringResource(R.string.next_field)) }
+                TextButton(onClick = { vm.setFieldText(field, text, thenNext = false) }) { Text(stringResource(R.string.done)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = vm::closeFieldEditor) { Text(stringResource(R.string.cancel)) } },
+    )
 }

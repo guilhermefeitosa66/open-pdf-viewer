@@ -92,6 +92,11 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   e só então copiado sobre o original, porque o PDFium lê o original sob demanda; depois o
   documento é reaberto na mesma posição. Sem permissão de escrita, cai em "Salvar como". O picker
   persiste leitura+escrita quando o provedor concede. Desfazer/refazer usa `/NM` único por anotação.
+- **Formulários**: ambiente de preenchimento do PDFium (`FPDFDOC_InitFormFillEnvironment`) só
+  quando o documento tem AcroForm (`initForm` na abertura); páginas carregadas/fechadas avisam o
+  formulário; `FPDF_FFLDraw` desenha os campos. Texto e listas são editados focando o widget por
+  índice (`FORM_SetFocusedAnnot`), checkbox/rádio por toque simulado. XFA e JavaScript não rodam
+  (binário sem V8), o app mostra o formulário mas não executa lógica.
 - **Menu do leitor** curto: arquivo em cima, "Anotar…" e "Exibição…" abrem painéis. Item novo entra
   num painel, não no menu.
 - **Layout** (`Viewport` + `LayoutOptions`): contínuo vertical (padrão) ou página a página com

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.24.0 (2026-11-24)
+
+- Fill PDF forms (AcroForm): tap a text field to type in it (keyboard for email and phone fields, password fields hidden), with Next field to move through the form; tap checkboxes and radio buttons to toggle them; lists and combo boxes open a choice dialog. Saved like annotations (Save, or Save as when the file is read-only); Save flattened copy turns the filled form into plain content.
+
 ## 0.23.0 (2026-11-24)
 
 - Save flattened copy…: writes a copy where annotations (and form fields) are merged into the page content, so they look the same everywhere and can no longer be edited. The open document is not changed.

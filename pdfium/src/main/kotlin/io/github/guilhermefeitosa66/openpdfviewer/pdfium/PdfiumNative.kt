@@ -17,8 +17,8 @@ internal object PdfiumNative {
     external fun pageCount(handle: Long): Int
     external fun pageSizes(handle: Long): FloatArray
     external fun loadPage(handle: Long, index: Int): Long
-    external fun closePage(page: Long)
-    external fun renderPage(page: Long, bitmap: Bitmap, startX: Int, startY: Int, sizeX: Int, sizeY: Int): Boolean
+    external fun closePage(handle: Long, page: Long)
+    external fun renderPage(handle: Long, page: Long, bitmap: Bitmap, startX: Int, startY: Int, sizeX: Int, sizeY: Int): Boolean
     external fun loadText(page: Long): Long
     external fun closeText(text: Long)
     external fun pageText(text: Long): String
@@ -41,6 +41,11 @@ internal object PdfiumNative {
     external fun annotByName(page: Long, nm: String): Int
     external fun listAnnots(page: Long): Array<Any>
     external fun flattenAll(handle: Long): Int
+    external fun initForm(handle: Long): Int
+    external fun formFields(handle: Long, page: Long): Array<Any>
+    external fun formTap(handle: Long, page: Long, x: Float, y: Float): Boolean
+    external fun formSetText(handle: Long, page: Long, index: Int, text: String): Boolean
+    external fun formSelect(handle: Long, page: Long, index: Int, option: Int): Boolean
     external fun saveCopy(handle: Long, fd: Int, removeSecurity: Boolean): Boolean
     external fun linkAt(handle: Long, page: Long, x: Float, y: Float): String?
     external fun charIndexAt(page: Long, text: Long, x: Float, y: Float, tolerance: Float): Int

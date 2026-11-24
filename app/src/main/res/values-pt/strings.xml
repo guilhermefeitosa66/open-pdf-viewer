@@ -194,4 +194,6 @@
     <string name="annotate_hint">Para realçar ou sublinhar, toque e segure no texto e use a barra da seleção.</string>
     <string name="view_options">Exibição…</string>
     <string name="save_flattened">Salvar cópia achatada…</string>
+    <string name="form_field">Campo</string>
+    <string name="next_field">Próximo campo</string>
 </resources>

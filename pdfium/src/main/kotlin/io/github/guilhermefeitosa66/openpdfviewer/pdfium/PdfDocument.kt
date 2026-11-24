@@ -50,17 +50,59 @@ class PdfDocument private constructor(private val handle: Long) {
     val pageCount: Int
     val pageSizes: List<PageSize>
 
+    /** 0 = no form, 1 = AcroForm, 2/3 = XFA (shown, but XFA logic is not run). */
+    val formType: Int
+    val hasForm get() = formType > 0
+
     init {
         val raw = PdfiumNative.pageSizes(handle)
         pageCount = raw.size / 2
         pageSizes = List(pageCount) { PageSize(raw[it * 2], raw[it * 2 + 1]) }
+        // Form filling only starts for documents that have a form.
+        formType = PdfiumNative.initForm(handle)
     }
 
-    private class LoadedPage(val page: Long) {
+    /** A form field (widget) on a page, with its normalized rectangle. */
+    data class FormField(
+        val page: Int,
+        val index: Int,
+        val type: Int,
+        val flags: Int,
+        val checked: Boolean,
+        val left: Float,
+        val top: Float,
+        val right: Float,
+        val bottom: Float,
+        val name: String,
+        val value: String,
+        val options: List<String>,
+    ) {
+        val centerX get() = (left + right) / 2f
+        val centerY get() = (top + bottom) / 2f
+        val readOnly get() = flags and 1 != 0
+        val multiline get() = flags and (1 shl 12) != 0
+        val password get() = flags and (1 shl 13) != 0
+        val isText get() = type == TEXT
+        val isToggle get() = type == CHECKBOX || type == RADIO
+        val isChoice get() = type == COMBO || type == LIST
+        fun contains(x: Float, y: Float) = x in left..right && y in top..bottom
+
+        companion object {
+            const val PUSHBUTTON = 1
+            const val CHECKBOX = 2
+            const val RADIO = 3
+            const val COMBO = 4
+            const val LIST = 5
+            const val TEXT = 6
+            const val SIGNATURE = 7
+        }
+    }
+
+    private class LoadedPage(val doc: Long, val page: Long) {
         var text: Long = 0L
         fun close() {
             if (text != 0L) PdfiumNative.closeText(text)
-            PdfiumNative.closePage(page)
+            PdfiumNative.closePage(doc, page)
         }
     }
 
@@ -81,7 +123,7 @@ class PdfDocument private constructor(private val handle: Long) {
         pages[index]?.let { return it }
         val p = PdfiumNative.loadPage(handle, index)
         if (p == 0L) return null
-        return LoadedPage(p).also { pages[index] = it }
+        return LoadedPage(handle, p).also { pages[index] = it }
     }
 
     private fun textOf(lp: LoadedPage): Long {
@@ -103,7 +145,7 @@ class PdfDocument private constructor(private val handle: Long) {
     ): Boolean = withContext(PdfiumThread.dispatcher) {
         if (closed) return@withContext false
         val lp = page(index) ?: return@withContext false
-        PdfiumNative.renderPage(lp.page, bitmap, -offsetX, -offsetY, pageWidthPx, pageHeightPx)
+        PdfiumNative.renderPage(handle, lp.page, bitmap, -offsetX, -offsetY, pageWidthPx, pageHeightPx)
     }
 
     /** Text of the page; string index i is character i of the page. */
@@ -273,6 +315,35 @@ class PdfDocument private constructor(private val handle: Long) {
         textCache.clear()
         PdfiumNative.flattenAll(handle).also { if (it > 0) modified = true }
     }
+
+    /** Form fields of page [index], in the order they appear in the page. */
+    suspend fun formFields(index: Int): List<FormField> = withContext(PdfiumThread.dispatcher) {
+        if (closed || !hasForm) return@withContext emptyList()
+        val lp = page(index) ?: return@withContext emptyList()
+        val raw = PdfiumNative.formFields(handle, lp.page)
+        val ints = raw[0] as IntArray
+        val rects = raw[1] as FloatArray
+        @Suppress("UNCHECKED_CAST") val names = raw[2] as Array<String>
+        @Suppress("UNCHECKED_CAST") val values = raw[3] as Array<String>
+        @Suppress("UNCHECKED_CAST") val options = raw[4] as Array<Array<String>>
+        List(names.size) { i ->
+            FormField(
+                index, ints[i * 4], ints[i * 4 + 1], ints[i * 4 + 2], ints[i * 4 + 3] != 0,
+                rects[i * 4], rects[i * 4 + 1], rects[i * 4 + 2], rects[i * 4 + 3],
+                names[i], values[i], options[i].toList(),
+            )
+        }
+    }
+
+    /** Taps a checkbox or radio button (toggles it). */
+    suspend fun toggleField(field: FormField): Boolean =
+        edit(field.page) { lp -> PdfiumNative.formTap(handle, lp.page, field.centerX, field.centerY) }
+
+    suspend fun setFieldText(field: FormField, text: String): Boolean =
+        edit(field.page) { lp -> PdfiumNative.formSetText(handle, lp.page, field.index, text) }
+
+    suspend fun selectFieldOption(field: FormField, option: Int): Boolean =
+        edit(field.page) { lp -> PdfiumNative.formSelect(handle, lp.page, field.index, option) }
 
     /** Gives an existing annotation a /NM name, so later changes can find it again. */
     suspend fun nameAnnot(hit: AnnotHit, nm: String): Boolean = edit(hit.page) { lp ->
