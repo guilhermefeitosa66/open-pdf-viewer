@@ -2,6 +2,13 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.28.0 (2026-11-24)
+
+- Digital signature (Annotate… › Digital signature…): import a personal certificate (.p12 / .pfx), kept encrypted on the device with a key in the Android Keystore; its password is asked for each signature and never saved. Signs the document as PAdES-B (CAdES detached, SHA-256), with optional reason and place.
+- Check signatures: says whether each signature is intact, whether the document changed after it, and whether the certificate comes from an authority the device trusts. Offline: no revocation or timestamp lookups.
+- A signed document is saved as an incremental update, so adding annotations later keeps the signatures valid.
+- New dependencies, used only when signing or checking: PdfBox-Android (Apache-2.0) and Bouncy Castle (MIT).
+
 ## 0.27.0 (2026-11-24)
 
 - Stamps (Annotate… › Stamp…): Approved, Received, Confidential, Draft, the current date and time, and your own stamps (kept on the device, up to six). Placed with a tap as a framed bold label in the stamp's color.

@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.guilhermefeitosa66.openpdfviewer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 28
-        versionName = "0.27.0"
+        versionCode = 29
+        versionName = "0.28.0"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
@@ -69,6 +69,10 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.core)
     implementation(libs.kotlinx.coroutines.android)
+    // Digital signatures only (loaded when signing or validating, never at start-up).
+    implementation(libs.pdfbox.android) // Apache-2.0
+    implementation(libs.bouncycastle.pkix) // MIT
+    implementation(libs.bouncycastle.prov) // MIT
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.org.json) // real org.json for JVM tests (the Android one is a stub); public domain

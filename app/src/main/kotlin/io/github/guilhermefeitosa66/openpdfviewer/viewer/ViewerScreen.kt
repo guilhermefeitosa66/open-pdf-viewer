@@ -175,6 +175,7 @@ fun ViewerScreen(
             vm.exportResult = null
         }
     }
+    DigitalSignatureEffects(vm)
     if (vm.saving) {
         AlertDialog(onDismissRequest = {}, title = { Text(stringResource(R.string.saving)) }, text = { androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth()) }, confirmButton = {})
     }
@@ -1399,6 +1400,7 @@ private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             Text(stringResource(R.string.fill_and_sign), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             PanelItem(stringResource(R.string.signature)) { onDismiss(); vm.signatureSheetOpen = true }
             PanelItem(stringResource(R.string.stamp)) { onDismiss(); vm.stampSheetOpen = true }
+            PanelItem(stringResource(R.string.digital_signature)) { onDismiss(); vm.digitalSignOpen = true }
             PanelItem(stringResource(R.string.place_date)) { onDismiss(); vm.placing = ViewerViewModel.Place.DATE }
             PanelItem(stringResource(R.string.place_check)) { onDismiss(); vm.placing = ViewerViewModel.Place.CHECK }
             PanelItem(stringResource(R.string.place_cross)) { onDismiss(); vm.placing = ViewerViewModel.Place.CROSS }

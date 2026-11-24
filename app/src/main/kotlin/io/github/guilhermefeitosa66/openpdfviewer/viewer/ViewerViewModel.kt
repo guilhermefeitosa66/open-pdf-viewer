@@ -907,6 +907,106 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Digital signatures (PAdES) ----
+
+    var digitalSignOpen by mutableStateOf(false)
+    /** Result of a signature: null while nothing to report. */
+    var signResult by mutableStateOf<SignOutcome?>(null)
+    /** A signed file that could not be written in place: the screen asks where to save it. */
+    var signedToExport by mutableStateOf<java.io.File?>(null)
+    var signatureChecks by mutableStateOf<List<io.github.guilhermefeitosa66.openpdfviewer.signing.SignatureCheck>?>(null)
+
+    enum class SignOutcome { SIGNED, WRONG_PASSWORD, FAILED }
+
+    /**
+     * The bytes to sign: the file as it is when nothing changed (so earlier signatures stay
+     * valid), else a rewrite with the changes.
+     */
+    private suspend fun fileForSigning(r: DocState.Ready): java.io.File? {
+        if (unsaved) return writeToTemp(r.doc)
+        val target = uri ?: return null
+        val dir = java.io.File(getApplication<Application>().cacheDir, "save").apply { mkdirs() }
+        val f = java.io.File(dir, "original.pdf")
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                DocumentSource.openInput(getApplication(), target).use { i -> f.outputStream().use { i.copyTo(it) } }
+                f
+            }.getOrNull()
+        }
+    }
+
+    fun signDigitally(certId: String, certPassword: CharArray, reason: String, location: String) {
+        val r = ready ?: return
+        val target = uri ?: return
+        if (saving) return
+        saving = true
+        digitalSignOpen = false
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val outcome = try {
+                val (key, chain) = io.github.guilhermefeitosa66.openpdfviewer.data.Certificates(app).unlock(certId, certPassword)
+                val input = fileForSigning(r) ?: throw IllegalStateException("no input")
+                val out = java.io.File(input.parentFile, "signed.pdf")
+                io.github.guilhermefeitosa66.openpdfviewer.signing.PdfSigner.sign(app, input, out, key, chain, reason, location, password)
+                if (DocumentSource.overwrite(app, target, out)) {
+                    r.doc.markSaved()
+                    unsaved = false
+                    saving = false
+                    signResult = SignOutcome.SIGNED
+                    reopenAt(target, r)
+                    return@launch
+                }
+                signedToExport = out
+                SignOutcome.SIGNED
+            } catch (e: io.github.guilhermefeitosa66.openpdfviewer.data.Certificates.WrongPassword) {
+                SignOutcome.WRONG_PASSWORD
+            } catch (e: Exception) {
+                android.util.Log.w("OpenPdfViewer", "signing failed", e)
+                SignOutcome.FAILED
+            } finally {
+                certPassword.fill(' ')
+            }
+            saving = false
+            signResult = outcome
+        }
+    }
+
+    /** Writes the signed file to [target] (when the original was not writable). */
+    fun exportSigned(target: Uri?) {
+        val file = signedToExport ?: return
+        signedToExport = null
+        if (target == null) return
+        val r = ready
+        viewModelScope.launch {
+            if (DocumentSource.overwrite(getApplication(), target, file)) {
+                r?.doc?.markSaved()
+                unsaved = false
+                DocumentSource.persistAccess(getApplication(), target)
+                saveTargetOpened = target
+            } else exportResult = false
+        }
+    }
+
+    /** Checks the signatures of the file as saved (offline). */
+    fun checkSignatures() {
+        val target = uri ?: return
+        signatureChecks = null
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val dir = java.io.File(app.cacheDir, "save").apply { mkdirs() }
+            val f = java.io.File(dir, "verify.pdf")
+            signatureChecks = runCatching {
+                withContext(Dispatchers.IO) {
+                    DocumentSource.openInput(app, target).use { i -> f.outputStream().use { i.copyTo(it) } }
+                }
+                io.github.guilhermefeitosa66.openpdfviewer.signing.PdfSigner.validate(app, f, password)
+            }.getOrElse {
+                android.util.Log.w("OpenPdfViewer", "validation failed", it)
+                emptyList()
+            }
+        }
+    }
+
     /** Set by the menu: the screen opens "Save as" for a flattened copy. */
     var requestFlatten by mutableStateOf(false)
 

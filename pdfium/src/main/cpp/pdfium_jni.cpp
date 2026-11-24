@@ -475,7 +475,7 @@ int writeBlock(FPDF_FILEWRITE* self, const void* data, unsigned long size) {
 
 extern "C" {
 
-// Writes the whole document to fd (a full rewrite, not incremental). removeSecurity drops the
+// Writes the whole document to fd (a full rewrite, or incremental when signed). removeSecurity drops the
 // encryption of a password-protected document opened with its password.
 JNIEXPORT jboolean JNICALL
 Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_saveCopy(
@@ -486,7 +486,10 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_saveCopy(
     w.WriteBlock = writeBlock;
     w.fd = fd;
     w.failed = false;
-    FPDF_DWORD flags = FPDF_NO_INCREMENTAL | (removeSecurity ? FPDF_REMOVE_SECURITY : 0);
+    // A signed document is saved as an incremental update, so its signatures stay valid
+    // (a full rewrite would change the signed bytes).
+    bool signedDoc = !removeSecurity && FPDF_GetSignatureCount(d->doc) > 0;
+    FPDF_DWORD flags = signedDoc ? FPDF_INCREMENTAL : (FPDF_NO_INCREMENTAL | (removeSecurity ? FPDF_REMOVE_SECURITY : 0));
     bool ok = FPDF_SaveAsCopy(d->doc, &w, flags);
     return (ok && !w.failed) ? JNI_TRUE : JNI_FALSE;
 }

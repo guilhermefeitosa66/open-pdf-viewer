@@ -103,4 +103,11 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   snap horizontal. Página dupla só no modo página a página e só onde cabe (paisagem ou tablet,
   `smallestScreenWidthDp >= 600`); capa sozinha e direita-para-esquerda são opções. Escolha global.
 - **Seleção** pode atravessar páginas (retângulos calculados para até 30 páginas; o texto copiado vai inteiro). Alça arrastada para o vão entre páginas cai na página mais próxima (`Viewport.nearestPageHit`).
+- **Assinatura digital (PAdES-B)**: PdfBox-Android escreve a atualização incremental com o campo
+  de assinatura e o BouncyCastle (linha `jdk15to18`, a mesma que o PdfBox traz) monta e confere o
+  CMS. Só carregam ao assinar/verificar, nunca na abertura. O .p12 fica em `files/certs`
+  criptografado com AES-GCM cuja chave está no Android Keystore; a senha nunca é guardada.
+  Validação offline (sem revogação nem carimbo de tempo). Documento assinado é salvo de forma
+  incremental (`FPDF_INCREMENTAL`) para não quebrar as assinaturas; o `/Contents` vem com zeros de
+  preenchimento, então só o primeiro objeto DER é lido.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).
