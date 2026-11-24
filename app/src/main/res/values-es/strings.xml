@@ -300,4 +300,12 @@
         <item quantity="many">%1$d archivos · %2$d páginas en total</item>
         <item quantity="other">%1$d archivos · %2$d páginas en total</item>
     </plurals>
+    <string name="crop_margins">Recortar márgenes…</string>
+    <string name="crop_title">Recortar · página %1$d</string>
+    <string name="crop_hint">Arrastra las esquinas o los bordes del cuadro. Lo sombreado se oculta, no se borra.</string>
+    <string name="crop_hint_each">Cada página tendrá sus propios márgenes detectados.</string>
+    <string name="this_page">Esta página</string>
+    <string name="all_pages">Todas las páginas</string>
+    <string name="detect_margins">Detectar márgenes</string>
+    <string name="reset">Restablecer</string>
 </resources>

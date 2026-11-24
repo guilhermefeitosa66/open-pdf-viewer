@@ -192,6 +192,16 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                                 enabled = !changed,
                                 onClick = { moreMenu = false; splitDialog = true },
                             )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.crop_margins)) },
+                                enabled = !changed,
+                                onClick = {
+                                    moreMenu = false
+                                    val first = pages.firstOrNull { it.id in selected && it.source < total }?.source
+                                    vm.organizeOpen = false
+                                    vm.cropPage = first ?: ready.viewport.currentPage
+                                },
+                            )
                         }
                     }
                     Box {

@@ -1113,6 +1113,75 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Crop ----
+
+    /** Page shown in the crop screen, or null when it is closed. */
+    var cropPage by mutableStateOf<Int?>(null)
+
+    /** The content box of page [index] (normalized l, t, r, b), from a small rendering. */
+    suspend fun detectMargins(doc: io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument, index: Int): FloatArray? {
+        val size = doc.pageSizes.getOrNull(index) ?: return null
+        val w = 300
+        val h = (w * size.height / size.width).toInt().coerceIn(1, 1200)
+        val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+        bmp.eraseColor(android.graphics.Color.WHITE)
+        if (!doc.render(index, bmp, w, h)) return null
+        val px = IntArray(w * h)
+        bmp.getPixels(px, 0, w, 0, 0, w, h)
+        bmp.recycle()
+        return withContext(Dispatchers.Default) { Margins.contentBox(px, w, h) }
+    }
+
+    /**
+     * Crops pages and saves like the organizer. [box] goes to [pages]; with [detectEach], each
+     * page gets its own detected margins instead.
+     */
+    fun applyCrop(pages: List<Int>, box: FloatArray, detectEach: Boolean, asCopy: Boolean) {
+        val r = ready ?: return
+        val target = uri ?: return
+        if (saving || pages.isEmpty()) return
+        saving = true
+        cropPage = null
+        viewModelScope.launch {
+            val out = runCatching {
+                val tmp = writeToTemp(r.doc) ?: return@runCatching null
+                val copy = withContext(Dispatchers.IO) {
+                    android.os.ParcelFileDescriptor.open(tmp, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                }.use { pfd -> io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.open(pfd, password) }
+                try {
+                    for (p in pages) {
+                        val b = if (detectEach) detectMargins(copy, p) ?: continue else box
+                        if (!copy.cropPage(p, b[0], b[1], b[2], b[3])) return@runCatching null
+                    }
+                    val f = java.io.File(tmp.parentFile, "cropped.pdf")
+                    val ok = withContext(Dispatchers.IO) {
+                        android.os.ParcelFileDescriptor.open(
+                            f,
+                            android.os.ParcelFileDescriptor.MODE_CREATE or android.os.ParcelFileDescriptor.MODE_TRUNCATE or android.os.ParcelFileDescriptor.MODE_WRITE_ONLY,
+                        ).use { copy.saveCopy(it) }
+                    }
+                    if (ok) f else null
+                } finally {
+                    copy.closeAsync()
+                }
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "crop failed", it) }.getOrNull()
+            if (out == null) {
+                saving = false
+                exportResult = false
+                return@launch
+            }
+            if (!asCopy && DocumentSource.overwrite(getApplication(), target, out)) {
+                r.doc.markSaved()
+                unsaved = false
+                saving = false
+                reopenAt(target, r)
+                return@launch
+            }
+            saving = false
+            fileToExport = out to "cropped"
+        }
+    }
+
     // ---- Split ----
 
     /** A ZIP of split files waiting to be shared by the screen. */
@@ -1363,6 +1432,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         placingSignature = null
         signatureSheetOpen = false
         organizeOpen = false
+        cropPage = null
         openedAnnot = null
     }
 

@@ -115,4 +115,7 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   segunda instância do mesmo arquivo, `FPDF_MovePages`, apaga o resto, soma a rotação), grava e
   reabre. O documento aberto nunca é mexido. O arraste pega os eventos no passe `Initial` depois do
   toque longo, senão a rolagem da grade fica com o movimento.
+- **Dividir, extrair, mesclar** gravam um documento novo (`writePages`/`mergeDocuments`:
+  `FPDF_CreateNewDocument` + `FPDF_ImportPagesByIndex`), que só leva o que as páginas usam (perde
+  sumário e AcroForm do original). Recortar só muda a `CropBox` (o conteúdo fica, escondido).
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

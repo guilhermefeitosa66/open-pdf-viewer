@@ -52,6 +52,7 @@ internal object PdfiumNative {
     external fun appendPagesFrom(handle: Long, src: Long, indices: IntArray): Boolean
     external fun writePages(handle: Long, indices: IntArray, fd: Int): Boolean
     external fun mergeDocuments(handles: LongArray, fd: Int): Boolean
+    external fun cropPage(handle: Long, index: Int, l: Float, t: Float, r: Float, b: Float): Boolean
     external fun saveCopy(handle: Long, fd: Int, removeSecurity: Boolean): Boolean
     external fun linkAt(handle: Long, page: Long, x: Float, y: Float): String?
     external fun charIndexAt(page: Long, text: Long, x: Float, y: Float, tolerance: Float): Int

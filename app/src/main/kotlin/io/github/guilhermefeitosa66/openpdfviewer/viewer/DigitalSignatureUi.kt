@@ -77,7 +77,10 @@ fun DigitalSignatureEffects(vm: ViewerViewModel) {
             exporter.launch(io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName("$name (${pending.second})") to "application/pdf")
         }
     }
-    (vm.state as? DocState.Ready)?.let { if (vm.organizeOpen) PageOrganizer(vm, it) }
+    (vm.state as? DocState.Ready)?.let { r ->
+        if (vm.organizeOpen) PageOrganizer(vm, r)
+        vm.cropPage?.let { CropScreen(vm, r, it) }
+    }
     vm.zipToShare?.let { zip ->
         LaunchedEffect(zip) {
             vm.zipToShare = null

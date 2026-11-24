@@ -297,4 +297,12 @@
         <item quantity="one">%1$d arquivos · %2$d página no total</item>
         <item quantity="other">%1$d arquivos · %2$d páginas no total</item>
     </plurals>
+    <string name="crop_margins">Recortar margens…</string>
+    <string name="crop_title">Recortar · página %1$d</string>
+    <string name="crop_hint">Arraste os cantos ou as bordas da caixa. O que fica sombreado é escondido, não apagado.</string>
+    <string name="crop_hint_each">Cada página vai ganhar as próprias margens detectadas.</string>
+    <string name="this_page">Esta página</string>
+    <string name="all_pages">Todas as páginas</string>
+    <string name="detect_margins">Detectar margens</string>
+    <string name="reset">Restaurar</string>
 </resources>

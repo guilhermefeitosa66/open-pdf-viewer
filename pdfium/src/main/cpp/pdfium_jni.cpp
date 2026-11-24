@@ -23,6 +23,7 @@
 #include "fpdf_save.h"
 #include "fpdf_signature.h"
 #include "fpdf_text.h"
+#include "fpdf_transformpage.h"
 #include "fpdfview.h"
 
 namespace {
@@ -1404,6 +1405,28 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_mergeDocumen
         ok = FPDF_SaveAsCopy(out, &w, FPDF_NO_INCREMENTAL) && !w.failed;
     }
     FPDF_CloseDocument(out);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Sets the visible area of page `index` to the normalized rectangle (l, t, r, b) of the page as
+// shown now (so it works with rotated pages and pages already cropped).
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_cropPage(
+        JNIEnv*, jobject, jlong handle, jint index, jfloat l, jfloat t, jfloat r, jfloat b) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    FPDF_PAGE page = FPDF_LoadPage(d->doc, index);
+    if (!page) return JNI_FALSE;
+    double x0, y0, x1, y1;
+    bool ok = toPagePoint(page, l, t, &x0, &y0) && toPagePoint(page, r, b, &x1, &y1);
+    if (ok) {
+        FPDFPage_SetCropBox(page, static_cast<float>(std::fmin(x0, x1)), static_cast<float>(std::fmin(y0, y1)),
+                            static_cast<float>(std::fmax(x0, x1)), static_cast<float>(std::fmax(y0, y1)));
+    }
+    FPDF_ClosePage(page);
     return ok ? JNI_TRUE : JNI_FALSE;
 }
 

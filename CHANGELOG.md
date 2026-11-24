@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.34.0 (2026-11-24)
+
+- Crop margins (Organize pages › ⋮ › Crop margins…): drag the corners or edges of the box over the page, or detect the white margins; apply to this page or to all pages (with detection, each page gets its own margins). Only the visible area changes; nothing is deleted.
+
 ## 0.33.0 (2026-11-24)
 
 - Merge PDFs (home screen › ⋮): add several files, see the page count of each and the total, move them up or down, unlock protected ones with their password, and merge them into a new file that opens right away.

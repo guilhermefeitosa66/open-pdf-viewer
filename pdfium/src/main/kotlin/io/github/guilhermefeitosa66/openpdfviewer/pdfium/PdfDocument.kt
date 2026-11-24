@@ -334,6 +334,17 @@ class PdfDocument private constructor(private val handle: Long) {
             PdfiumNative.rearrangePages(handle, source.handle, order, rotations).also { if (it) modified = true }
         }
 
+    /**
+     * Crops page [index] to the normalized rectangle of the page as shown now. For a separate
+     * copy like [rearrangePages].
+     */
+    suspend fun cropPage(index: Int, l: Float, t: Float, r: Float, b: Float): Boolean = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext false
+        pages.remove(index)?.close()
+        textCache.remove(index)
+        PdfiumNative.cropPage(handle, index, l, t, r, b).also { if (it) modified = true }
+    }
+
     /** Adds an empty page (size in points) at the end, for a separate copy like [rearrangePages]. */
     suspend fun appendBlankPage(width: Float, height: Float): Boolean = withContext(PdfiumThread.dispatcher) {
         if (closed) return@withContext false

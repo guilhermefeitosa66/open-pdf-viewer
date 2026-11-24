@@ -298,4 +298,12 @@
         <item quantity="one">%1$d files · %2$d page in total</item>
         <item quantity="other">%1$d files · %2$d pages in total</item>
     </plurals>
+    <string name="crop_margins">Crop margins…</string>
+    <string name="crop_title">Crop · page %1$d</string>
+    <string name="crop_hint">Drag the corners or edges of the box. What is shaded is hidden, not deleted.</string>
+    <string name="crop_hint_each">Each page will get its own detected margins.</string>
+    <string name="this_page">This page</string>
+    <string name="all_pages">All pages</string>
+    <string name="detect_margins">Detect margins</string>
+    <string name="reset">Reset</string>
 </resources>
