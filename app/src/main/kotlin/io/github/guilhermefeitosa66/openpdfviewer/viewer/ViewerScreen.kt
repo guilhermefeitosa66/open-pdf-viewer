@@ -291,6 +291,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
         PagesSheet(
             ready = ready,
             vm = vm,
+            fileActions = fileActions,
             onGoTo = { page, offset ->
                 vm.jumpTo(page, offset)
                 pagesOpen = false

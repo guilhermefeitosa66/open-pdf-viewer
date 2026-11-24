@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "fpdf_attachment.h"
 #include "fpdf_doc.h"
 #include "fpdf_formfill.h"
 #include "fpdf_save.h"
@@ -468,6 +469,49 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_saveCopy(
     FPDF_DWORD flags = FPDF_NO_INCREMENTAL | (removeSecurity ? FPDF_REMOVE_SECURITY : 0);
     bool ok = FPDF_SaveAsCopy(d->doc, &w, flags);
     return (ok && !w.failed) ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Names of the files embedded in the document (the EmbeddedFiles name tree).
+JNIEXPORT jobjectArray JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_attachmentNames(JNIEnv* env, jobject, jlong handle) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    int n = FPDFDoc_GetAttachmentCount(d->doc);
+    if (n < 0) n = 0;
+    jobjectArray out = env->NewObjectArray(n, env->FindClass("java/lang/String"), nullptr);
+    for (int i = 0; i < n; i++) {
+        FPDF_ATTACHMENT a = FPDFDoc_GetAttachment(d->doc, i);
+        std::vector<unsigned short> buf(1, 0);
+        if (a) {
+            unsigned long bytes = FPDFAttachment_GetName(a, nullptr, 0);
+            buf.assign(bytes / 2 + 1, 0);
+            if (bytes > 0) FPDFAttachment_GetName(a, buf.data(), bytes);
+        }
+        jstring s = toJString(env, buf);
+        env->SetObjectArrayElement(out, i, s);
+        env->DeleteLocalRef(s);
+    }
+    return out;
+}
+
+// Contents of attachment i, or null when it cannot be read (or is larger than 512 MB).
+JNIEXPORT jbyteArray JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_attachmentData(JNIEnv* env, jobject, jlong handle, jint index) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    FPDF_ATTACHMENT a = FPDFDoc_GetAttachment(d->doc, index);
+    if (!a) return nullptr;
+    unsigned long len = 0;
+    if (!FPDFAttachment_GetFile(a, nullptr, 0, &len)) return nullptr;
+    if (len > (512ul << 20)) return nullptr;
+    std::vector<unsigned char> buf(len);
+    unsigned long got = 0;
+    if (len > 0 && !FPDFAttachment_GetFile(a, buf.data(), len, &got)) return nullptr;
+    jbyteArray arr = env->NewByteArray(static_cast<jsize>(len));
+    if (arr && len > 0) env->SetByteArrayRegion(arr, 0, static_cast<jsize>(len), reinterpret_cast<const jbyte*>(buf.data()));
+    return arr;
 }
 
 }  // extern "C"

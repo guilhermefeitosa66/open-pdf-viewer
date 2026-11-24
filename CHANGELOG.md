@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.13.0 (2026-11-24)
+
+- Attachments: files embedded in the PDF are listed in an Attachments tab of the pages sheet, and each can be saved anywhere (system Save screen) or shared.
+- Save as now works for any file type (used by attachments and, later, exports).
+
 ## 0.12.0 (2026-11-24)
 
 - Read aloud from the viewer menu with the system text-to-speech engine (offline when the voice is installed): starts at the current page, highlights the sentence being read and follows it, with play/pause, speed (0.75× to 2×) and stop.

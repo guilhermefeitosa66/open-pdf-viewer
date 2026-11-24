@@ -120,4 +120,8 @@
     <string name="stop_reading">Stop reading</string>
     <string name="speed">%1$s×</string>
     <string name="tts_unavailable">No text-to-speech voice is available. Install one in the system settings (Accessibility › Text-to-speech).</string>
+    <string name="attachments">Attachments</string>
+    <string name="save_attachment">Save %1$s</string>
+    <string name="share_attachment">Share %1$s</string>
+    <string name="attachment_failed">Could not read this attachment.</string>
 </resources>

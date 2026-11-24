@@ -10,6 +10,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Share
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Tab
@@ -71,7 +73,13 @@ import io.github.guilhermefeitosa66.openpdfviewer.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PagesSheet(ready: DocState.Ready, vm: ViewerViewModel, onGoTo: (Int, Float) -> Unit, onDismiss: () -> Unit) {
+fun PagesSheet(
+    ready: DocState.Ready,
+    vm: ViewerViewModel,
+    fileActions: io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions,
+    onGoTo: (Int, Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val vp = ready.viewport
     val renderer = ready.renderer
     val total = vp.pageCount
@@ -84,7 +92,10 @@ fun PagesSheet(ready: DocState.Ready, vm: ViewerViewModel, onGoTo: (Int, Float) 
         goto.toIntOrNull()?.let { n -> if (n in 1..total) onGoTo(n - 1, 0f) }
     }
 
-    LaunchedEffect(Unit) { vm.loadOutline() }
+    LaunchedEffect(Unit) {
+        vm.loadOutline()
+        vm.loadAttachments()
+    }
     val outline = vm.outline
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -95,6 +106,7 @@ fun PagesSheet(ready: DocState.Ready, vm: ViewerViewModel, onGoTo: (Int, Float) 
                 add(R.string.pages)
                 if (!outline.isNullOrEmpty()) add(R.string.contents)
                 add(R.string.bookmarks)
+                if (!vm.attachments.isNullOrEmpty()) add(R.string.attachments)
             }
             val selected = tabs.getOrNull(tab) ?: R.string.pages
             TabRow(selectedTabIndex = tabs.indexOf(selected), modifier = Modifier.padding(bottom = 8.dp)) {
@@ -108,6 +120,10 @@ fun PagesSheet(ready: DocState.Ready, vm: ViewerViewModel, onGoTo: (Int, Float) 
             }
             if (selected == R.string.bookmarks) {
                 BookmarkList(vm, onGoTo)
+                return@Column
+            }
+            if (selected == R.string.attachments) {
+                AttachmentList(vm, fileActions)
                 return@Column
             }
             Row(
@@ -283,5 +299,36 @@ private fun BookmarkList(vm: ViewerViewModel, onGoTo: (Int, Float) -> Unit) {
             onSave = { vm.renameBookmark(bm.page, it); renaming = null },
             onDismiss = { renaming = null },
         )
+    }
+}
+
+@Composable
+private fun AttachmentList(vm: ViewerViewModel, fileActions: io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val context = LocalContext.current
+    val failed = stringResource(R.string.attachment_failed)
+    val names = vm.attachments.orEmpty()
+    fun mimeOf(name: String) = android.webkit.MimeTypeMap.getSingleton()
+        .getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase()) ?: "application/octet-stream"
+    fun withFile(i: Int, block: (java.io.File) -> Unit) = scope.launch {
+        val f = vm.extractAttachment(i)
+        if (f == null) android.widget.Toast.makeText(context, failed, android.widget.Toast.LENGTH_LONG).show() else block(f)
+    }
+    LazyColumn(contentPadding = PaddingValues(bottom = 32.dp), modifier = Modifier.fillMaxSize()) {
+        items(names.size) { i ->
+            val name = names[i].ifBlank { "attachment" }
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 20.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(name, modifier = Modifier.weight(1f).padding(vertical = 8.dp), fontSize = 15.sp)
+                IconButton(onClick = { withFile(i) { f -> fileActions.saveFile(f, f.name, mimeOf(f.name)) } }) {
+                    Icon(io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons.Download, stringResource(R.string.save_attachment, name))
+                }
+                IconButton(onClick = { withFile(i) { f -> fileActions.shareFile(f, mimeOf(f.name)) } }) {
+                    Icon(Icons.Filled.Share, stringResource(R.string.share_attachment, name))
+                }
+            }
+        }
     }
 }

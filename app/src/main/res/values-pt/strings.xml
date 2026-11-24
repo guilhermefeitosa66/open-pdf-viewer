@@ -119,4 +119,8 @@
     <string name="stop_reading">Parar a leitura</string>
     <string name="speed">%1$s×</string>
     <string name="tts_unavailable">Nenhuma voz de leitura disponível. Instale uma nas configurações do sistema (Acessibilidade › Conversão de texto em voz).</string>
+    <string name="attachments">Anexos</string>
+    <string name="save_attachment">Salvar %1$s</string>
+    <string name="share_attachment">Compartilhar %1$s</string>
+    <string name="attachment_failed">Não foi possível ler este anexo.</string>
 </resources>

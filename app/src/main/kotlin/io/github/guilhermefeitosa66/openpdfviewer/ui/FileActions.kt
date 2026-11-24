@@ -42,12 +42,13 @@ import java.io.File
 class FileActions internal constructor(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val launchSave: (String) -> Unit,
+    private val launchSave: (name: String, mime: String) -> Unit,
 ) {
     internal var progress by mutableStateOf<Float?>(null)
     internal var busy by mutableStateOf(false)
     private var job: Job? = null
-    internal var pendingSave: Pair<Uri, String>? = null
+    /** What "Save as" will write once the user picks a place: a document URI or a local file. */
+    internal var pendingSave: Any? = null
 
     /** Opens the system share sheet with the PDF under its own name. */
     fun share(uri: Uri, name: String) = launchCopy {
@@ -73,20 +74,43 @@ class FileActions internal constructor(
 
     /** Asks where to save (the system "Save as" screen), then copies the file there. */
     fun saveCopy(uri: Uri, name: String) {
-        pendingSave = uri to name
-        launchSave(safeName(name))
+        pendingSave = uri
+        launchSave(safeName(name), "application/pdf")
+    }
+
+    /** "Save as" for any local file (attachments, exports), under [name] with type [mime]. */
+    fun saveFile(file: File, name: String, mime: String) {
+        pendingSave = file
+        launchSave(name, mime)
+    }
+
+    /** Share sheet for any local file inside the cache share folder. */
+    fun shareFile(file: File, mime: String) {
+        val shared = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+        val send = Intent(Intent.ACTION_SEND)
+            .setType(mime)
+            .putExtra(Intent.EXTRA_STREAM, shared)
+            .putExtra(Intent.EXTRA_TITLE, file.name)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        send.clipData = ClipData.newUri(context.contentResolver, file.name, shared)
+        context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     internal fun onSaveTarget(target: Uri?) {
-        val (source, _) = pendingSave ?: return
+        val source = pendingSave ?: return
         pendingSave = null
         if (target == null) return
         launchCopy {
             withContext(Dispatchers.IO) {
                 val out = context.contentResolver.openOutputStream(target, "w") ?: error("no output")
                 out.use { o ->
-                    DocumentSource.openInput(context, source).use { input ->
-                        DocumentSource.copy(input, o, DocumentSource.size(context, source)) { p -> progress = p }
+                    when (source) {
+                        is Uri -> DocumentSource.openInput(context, source).use { input ->
+                            DocumentSource.copy(input, o, DocumentSource.size(context, source)) { p -> progress = p }
+                        }
+                        is File -> source.inputStream().use { input ->
+                            DocumentSource.copy(input, o, source.length()) { p -> progress = p }
+                        }
                     }
                 }
             }
@@ -134,10 +158,10 @@ fun rememberFileActions(): FileActions {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val ref = remember { arrayOfNulls<FileActions>(1) }
-    val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+    val saver = rememberLauncherForActivityResult(CreateTypedDocument()) { uri ->
         ref[0]?.onSaveTarget(uri)
     }
-    val actions = remember { FileActions(context, scope) { name -> saver.launch(name) } }
+    val actions = remember { FileActions(context, scope) { name, mime -> saver.launch(name to mime) } }
     ref[0] = actions
 
     if (actions.busy) {
@@ -156,4 +180,16 @@ fun rememberFileActions(): FileActions {
         )
     }
     return actions
+}
+
+/** The system "Save as" screen for a given file name and MIME type. */
+class CreateTypedDocument : androidx.activity.result.contract.ActivityResultContract<Pair<String, String>, Uri?>() {
+    override fun createIntent(context: Context, input: Pair<String, String>): Intent =
+        Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(input.second)
+            .putExtra(Intent.EXTRA_TITLE, input.first)
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == android.app.Activity.RESULT_OK) intent?.data else null
 }

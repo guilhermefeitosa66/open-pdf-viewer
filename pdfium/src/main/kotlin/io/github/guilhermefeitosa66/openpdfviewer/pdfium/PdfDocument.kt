@@ -166,6 +166,16 @@ class PdfDocument private constructor(private val handle: Long) {
             PdfiumNative.saveCopy(handle, pfd.fd, removeSecurity)
         }
 
+    /** Names of the files attached to the document, in order. */
+    suspend fun attachments(): List<String> = withContext(PdfiumThread.dispatcher) {
+        if (closed) emptyList() else PdfiumNative.attachmentNames(handle).toList()
+    }
+
+    /** Contents of attachment [index], or null when it cannot be read. */
+    suspend fun attachmentData(index: Int): ByteArray? = withContext(PdfiumThread.dispatcher) {
+        if (closed) null else PdfiumNative.attachmentData(handle, index)
+    }
+
     /** The link under a normalized point of page [index], if any. */
     suspend fun linkAt(index: Int, x: Float, y: Float): LinkTarget? = withContext(PdfiumThread.dispatcher) {
         if (closed) return@withContext null

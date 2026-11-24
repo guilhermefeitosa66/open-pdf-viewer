@@ -306,6 +306,29 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Attachments ----
+
+    var attachments by mutableStateOf<List<String>?>(null)
+        private set
+
+    fun loadAttachments() {
+        val r = ready ?: return
+        if (attachments != null) return
+        viewModelScope.launch { attachments = r.doc.attachments() }
+    }
+
+    /** Writes attachment [index] to a private file ready to share or save, or null on failure. */
+    suspend fun extractAttachment(index: Int): java.io.File? {
+        val r = ready ?: return null
+        val name = attachments?.getOrNull(index) ?: return null
+        val data = r.doc.attachmentData(index) ?: return null
+        return withContext(Dispatchers.IO) {
+            val dir = java.io.File(getApplication<Application>().cacheDir, "share/attachments").apply { mkdirs() }
+            val safe = name.substringAfterLast('/').replace(Regex("[\\\\:*?\"<>|\\p{Cntrl}]"), "_").ifBlank { "attachment" }
+            java.io.File(dir, safe).apply { writeBytes(data) }
+        }
+    }
+
     // ---- Read aloud ----
 
     var readAloud by mutableStateOf<ReadAloud?>(null)
@@ -470,6 +493,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         selection = null
         normalized.clear()
         outline = null
+        attachments = null
         stopReadAloud()
         bookmarks = emptyList()
         history.clear()

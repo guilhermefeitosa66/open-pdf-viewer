@@ -46,6 +46,14 @@ object AppIcons {
         }
     }
 
+    val Download: ImageVector by lazy {
+        stroke("Download") {
+            line { moveTo(12f, 4f); lineTo(12f, 15f) }
+            line { moveTo(7f, 10f); lineTo(12f, 15f); lineTo(17f, 10f) }
+            line { moveTo(5f, 20f); lineTo(19f, 20f) }
+        }
+    }
+
     val Pause: ImageVector by lazy {
         stroke("Pause") {
             line { moveTo(9f, 6f); lineTo(9f, 18f) }
