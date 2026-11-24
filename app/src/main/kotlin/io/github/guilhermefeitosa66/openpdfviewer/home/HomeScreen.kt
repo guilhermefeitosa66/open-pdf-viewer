@@ -47,8 +47,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -95,7 +93,12 @@ private const val SOURCE_URL = "https://github.com/guilhermefeitosa66/open-pdf-v
 fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     val recent = remember { RecentFiles.get(context) }
-    LaunchedEffect(Unit) { recent.load() }
+    LaunchedEffect(Unit) {
+        recent.load()
+        // The library (favorites, folders) is not needed for the first frame.
+        androidx.compose.runtime.withFrameNanos { }
+        Library.get(context).load()
+    }
     val items by recent.items.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -155,14 +158,7 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
             }
 
             var tab by rememberSaveable { mutableIntStateOf(0) }
-            TabRow(
-                selectedTabIndex = tab,
-                containerColor = if (hasImage) panel else MaterialTheme.colorScheme.background,
-            ) {
-                for ((i, label) in listOf(R.string.recent, R.string.favorites, R.string.folders).withIndex()) {
-                    Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label)) })
-                }
-            }
+            HomeTabs(tab, panel = if (hasImage) panel else MaterialTheme.colorScheme.background) { tab = it }
             val list = items
             when {
                 tab == 1 -> FavoritesTab(panel, fileActions, onOpen)
@@ -282,9 +278,6 @@ private fun RecentRow(
     onClick: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val library = remember { Library.get(ctx) }
-    val favorites by library.favorites.collectAsState()
-    val starred = favorites.any { it.uri == entry.uri }
     var menu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val thumb by produceState<ImageBitmap?>(null, entry.key, entry.openedAt) {
@@ -348,6 +341,8 @@ private fun RecentRow(
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; onShare() })
                 DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; onSaveCopy() })
+                // Looked up only when the menu opens: nothing extra on the first frame.
+                val starred = remember(menu) { Library.get(ctx).isFavorite(entry.uri) }
                 DropdownMenuItem(
                     text = { Text(stringResource(if (starred) R.string.remove_favorite else R.string.add_favorite)) },
                     onClick = { menu = false; onToggleFavorite() },
@@ -395,4 +390,29 @@ private fun LicensesDialog(onDismiss: () -> Unit) {
         },
         modifier = Modifier.navigationBarsPadding().statusBarsPadding(),
     )
+}
+
+/** Recent · Favorites · Folders, as plain text tabs (lighter than a Material TabRow on start-up). */
+@Composable
+private fun HomeTabs(selected: Int, panel: Color, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().background(panel).padding(horizontal = 8.dp)) {
+        for ((i, label) in listOf(R.string.recent, R.string.favorites, R.string.folders).withIndex()) {
+            val on = selected == i
+            Column(
+                Modifier.weight(1f).clickable { onSelect(i) }.padding(top = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    stringResource(label),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Box(
+                    Modifier.padding(top = 10.dp).fillMaxWidth(0.6f).height(3.dp)
+                        .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(2.dp)),
+                )
+            }
+        }
+    }
 }

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.14.1 (2026-11-24)
+
+- Faster home screen start: plain text tabs instead of a Material TabRow, and favorites and folders load after the first frame.
+
 ## 0.14.0 (2026-11-24)
 
 - Library on the home screen: Recent, Favorites and Folders tabs.
