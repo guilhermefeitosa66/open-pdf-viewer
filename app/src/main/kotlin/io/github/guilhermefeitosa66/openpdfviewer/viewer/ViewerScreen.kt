@@ -156,6 +156,24 @@ fun ViewerScreen(
             },
         )
     }
+    val flattenLauncher = androidx.activity.compose.rememberLauncherForActivityResult(io.github.guilhermefeitosa66.openpdfviewer.ui.CreateTypedDocument()) { target ->
+        vm.exportFlattened(target)
+    }
+    if (vm.requestFlatten) {
+        LaunchedEffect(Unit) {
+            vm.requestFlatten = false
+            val name = (vm.state as? DocState.Ready)?.name?.removeSuffix(".pdf")?.removeSuffix(".PDF") ?: "document"
+            flattenLauncher.launch(io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName("$name (flattened)") to "application/pdf")
+        }
+    }
+    vm.exportResult?.let { ok ->
+        val msg = stringResource(if (ok) R.string.saved_copy else R.string.copy_failed)
+        val ctx = LocalContext.current
+        LaunchedEffect(ok) {
+            Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+            vm.exportResult = null
+        }
+    }
     if (vm.saving) {
         AlertDialog(onDismissRequest = {}, title = { Text(stringResource(R.string.saving)) }, text = { androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth()) }, confirmButton = {})
     }
@@ -456,6 +474,7 @@ private fun TopBar(
                         }
                     },
                 )
+                DropdownMenuItem(text = { Text(stringResource(R.string.save_flattened)) }, onClick = { menu = false; vm.requestFlatten = true })
                 DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, onClick = { menu = false; vm.print(context) })
                 DropdownMenuItem(text = { Text(stringResource(R.string.document_info)) }, onClick = { menu = false; vm.loadInfo(); infoDialog = true })
             }

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.23.0 (2026-11-24)
+
+- Save flattened copy…: writes a copy where annotations (and form fields) are merged into the page content, so they look the same everywhere and can no longer be edited. The open document is not changed.
+
 ## 0.22.0 (2026-11-24)
 
 - Save: annotations are written into the file itself when the app may write there (files picked in the app), or with Save as… otherwise; they are standard PDF annotations that other readers show.

@@ -194,4 +194,5 @@
     <string name="annotate">Annotate…</string>
     <string name="annotate_hint">To highlight or underline, long-press the text and use the selection bar.</string>
     <string name="view_options">View…</string>
+    <string name="save_flattened">Save flattened copy…</string>
 </resources>

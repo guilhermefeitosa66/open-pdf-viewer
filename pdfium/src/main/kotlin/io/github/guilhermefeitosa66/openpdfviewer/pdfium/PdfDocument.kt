@@ -260,6 +260,20 @@ class PdfDocument private constructor(private val handle: Long) {
         }
     }
 
+    /**
+     * Merges annotations and form fields into the page content of every page (they stop being
+     * editable). Meant for a separate copy, never the document the reader is editing. Returns
+     * the number of pages that changed.
+     */
+    suspend fun flattenAll(): Int = withContext(PdfiumThread.dispatcher) {
+        if (closed) return@withContext 0
+        // Pages cached before flattening would keep their old annotations.
+        pages.values.forEach { it.close() }
+        pages.clear()
+        textCache.clear()
+        PdfiumNative.flattenAll(handle).also { if (it > 0) modified = true }
+    }
+
     /** Gives an existing annotation a /NM name, so later changes can find it again. */
     suspend fun nameAnnot(hit: AnnotHit, nm: String): Boolean = edit(hit.page) { lp ->
         PdfiumNative.setAnnotString(lp.page, hit.index, "NM", nm)

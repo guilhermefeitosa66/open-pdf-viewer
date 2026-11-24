@@ -193,4 +193,5 @@
     <string name="annotate">Anotar…</string>
     <string name="annotate_hint">Para resaltar o subrayar, mantén pulsado el texto y usa la barra de selección.</string>
     <string name="view_options">Vista…</string>
+    <string name="save_flattened">Guardar copia aplanada…</string>
 </resources>

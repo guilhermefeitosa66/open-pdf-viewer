@@ -16,6 +16,7 @@
 #include "fpdf_attachment.h"
 #include "fpdf_doc.h"
 #include "fpdf_edit.h"
+#include "fpdf_flatten.h"
 #include "fpdf_formfill.h"
 #include "fpdf_save.h"
 #include "fpdf_signature.h"
@@ -997,6 +998,26 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_listAnnots(J
     env->SetObjectArrayElement(out, 3, ja);
     env->SetObjectArrayElement(out, 4, jn);
     return out;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Merges every annotation and form field that would print into the page content of all pages.
+// Returns the number of pages changed.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_flattenAll(JNIEnv*, jobject, jlong handle) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    int n = FPDF_GetPageCount(d->doc);
+    int changed = 0;
+    for (int i = 0; i < n; i++) {
+        FPDF_PAGE page = FPDF_LoadPage(d->doc, i);
+        if (!page) continue;
+        if (FPDFPage_Flatten(page, FLAT_PRINT) == FLATTEN_SUCCESS) changed++;
+        FPDF_ClosePage(page);
+    }
+    return changed;
 }
 
 }  // extern "C"

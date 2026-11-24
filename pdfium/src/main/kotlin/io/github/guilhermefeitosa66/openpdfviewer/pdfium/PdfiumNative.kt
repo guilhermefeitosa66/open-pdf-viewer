@@ -40,6 +40,7 @@ internal object PdfiumNative {
     external fun setAnnotString(page: Long, index: Int, key: String, value: String): Boolean
     external fun annotByName(page: Long, nm: String): Int
     external fun listAnnots(page: Long): Array<Any>
+    external fun flattenAll(handle: Long): Int
     external fun saveCopy(handle: Long, fd: Int, removeSecurity: Boolean): Boolean
     external fun linkAt(handle: Long, page: Long, x: Float, y: Float): String?
     external fun charIndexAt(page: Long, text: Long, x: Float, y: Float, tolerance: Float): Int

@@ -727,6 +727,45 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Writes a flattened copy to [target]: annotations and form fields become part of the page
+     * content. The open document is not touched; the work happens on a second copy.
+     */
+    fun exportFlattened(target: Uri?) {
+        val r = ready ?: return
+        if (target == null || saving) return
+        saving = true
+        viewModelScope.launch {
+            val ok = runCatching {
+                val tmp = writeToTemp(r.doc) ?: return@runCatching false
+                val copy = withContext(Dispatchers.IO) {
+                    android.os.ParcelFileDescriptor.open(tmp, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                }.use { pfd -> io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.open(pfd, password) }
+                try {
+                    copy.flattenAll()
+                    val out = java.io.File(tmp.parentFile, "flattened.pdf")
+                    val written = withContext(Dispatchers.IO) {
+                        android.os.ParcelFileDescriptor.open(
+                            out,
+                            android.os.ParcelFileDescriptor.MODE_CREATE or android.os.ParcelFileDescriptor.MODE_TRUNCATE or android.os.ParcelFileDescriptor.MODE_WRITE_ONLY,
+                        ).use { copy.saveCopy(it) }
+                    }
+                    written && DocumentSource.overwrite(getApplication(), target, out)
+                } finally {
+                    copy.closeAsync()
+                }
+            }.getOrDefault(false)
+            saving = false
+            exportResult = ok
+        }
+    }
+
+    /** Set by the menu: the screen opens "Save as" for a flattened copy. */
+    var requestFlatten by mutableStateOf(false)
+
+    /** Result of the last export, for a short message; null when there is nothing to show. */
+    var exportResult by mutableStateOf<Boolean?>(null)
+
     /** After "Save as" the viewer switches to the new file (the screen observes this). */
     var saveTargetOpened by mutableStateOf<Uri?>(null)
 
