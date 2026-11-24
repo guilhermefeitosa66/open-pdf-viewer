@@ -249,6 +249,27 @@ class Viewport(private val sizes: List<PageSize>) {
         return null
     }
 
+    /**
+     * The page point closest to a screen point: the page under it, or (in a gap or margin) the
+     * nearest page along the reading axis, with coordinates clamped to it.
+     */
+    fun nearestPageHit(p: Offset): PageHit? {
+        if (!ready) return null
+        screenToPage(p)?.let { return it }
+        val c = if (paged) p.x + scrollX else p.y + scrollY
+        val k = visualAt(c)
+        // Pick the closer of this page and the next one along the axis.
+        val candidates = listOfNotNull(visualOrder[k], visualOrder.getOrNull(k + 1))
+        val best = candidates.minBy { i ->
+            val r = pageRect(i)
+            val d = if (paged) p.x else p.y
+            val lo = if (paged) r.left else r.top
+            val hi = if (paged) r.right else r.bottom
+            if (d < lo) lo - d else if (d > hi) d - hi else 0f
+        }
+        return screenToPage(p, clampToPage = best)
+    }
+
     /** Converts a normalized rect of page [i] to screen coordinates. */
     fun toScreen(i: Int, l: Float, t: Float, r: Float, b: Float): Rect {
         val pr = pageRect(i)

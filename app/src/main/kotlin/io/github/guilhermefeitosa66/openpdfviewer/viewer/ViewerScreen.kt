@@ -316,6 +316,7 @@ private fun TopBar(
     onSaveCopy: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var layoutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val vp = ready.viewport
@@ -437,6 +438,18 @@ private fun TopBar(
                     onClick = {
                         menu = false
                         onShare()
+                    },
+                )
+                val copiedImage = stringResource(R.string.page_copied_image)
+                val copyFailed = stringResource(R.string.copy_failed)
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.copy_page_image)) },
+                    onClick = {
+                        menu = false
+                        scope.launch {
+                            val ok = vm.copyPageAsImage()
+                            Toast.makeText(context, if (ok) copiedImage else copyFailed, Toast.LENGTH_SHORT).show()
+                        }
                     },
                 )
                 DropdownMenuItem(
@@ -647,15 +660,14 @@ private fun FastScroller(vp: Viewport, padTop: Float, padBottom: Float) {
 @Composable
 private fun SelectionOverlay(vm: ViewerViewModel, vp: Viewport) {
     val sel = vm.selection ?: return
-    if (sel.rects.isEmpty()) return
+    val first = sel.firstRect ?: return
+    val last = sel.lastRect ?: return
     val context = LocalContext.current
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val colors = LocalReaderColors.current
-    val first = sel.rects.first()
-    val last = sel.rects.last()
-    val a = vp.toScreen(sel.page, first.left, first.top, first.right, first.bottom)
-    val b = vp.toScreen(sel.page, last.left, last.top, last.right, last.bottom)
+    val a = vp.toScreen(sel.startPage, first.left, first.top, first.right, first.bottom)
+    val b = vp.toScreen(sel.endPage, last.left, last.top, last.right, last.bottom)
     val handle = with(density) { 22.dp.toPx() }
     val touch = with(density) { 44.dp.toPx() }
 

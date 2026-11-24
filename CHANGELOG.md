@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.16.0 (2026-11-24)
+
+- Text selection can span pages: drag a handle onto the next (or previous) page and the copied text joins the pages.
+- Copy page as image from the viewer menu: the current page goes to the clipboard as a PNG (about 150 dpi).
+
 ## 0.15.0 (2026-11-24)
 
 - Search options: whole word and ignore accents (on by default, so "exportacao" finds "exportação"), next to match case.

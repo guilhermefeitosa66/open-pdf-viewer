@@ -141,4 +141,6 @@
     <string name="whole_word">Whole word</string>
     <string name="ignore_accents">Ignore accents</string>
     <string name="all_results">All results</string>
+    <string name="copy_page_image">Copy page as image</string>
+    <string name="page_copied_image">Page copied as an image</string>
 </resources>

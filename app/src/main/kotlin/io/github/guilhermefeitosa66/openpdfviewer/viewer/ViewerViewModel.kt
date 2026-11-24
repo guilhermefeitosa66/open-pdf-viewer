@@ -54,7 +54,15 @@ data class Match(
     val after: String = "",
 )
 
-data class Selection(val page: Int, val start: Int, val end: Int, val rects: List<RectF>)
+/**
+ * Selected text from [start] on [startPage] up to [end] (exclusive) on [endPage]; it can span
+ * pages. [rects] holds the highlight rectangles of each page involved.
+ */
+data class Selection(val startPage: Int, val start: Int, val endPage: Int, val end: Int, val rects: Map<Int, List<RectF>>) {
+    val page get() = startPage
+    val firstRect get() = rects[startPage]?.firstOrNull()
+    val lastRect get() = rects[endPage]?.lastOrNull()
+}
 
 class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     private val recent = RecentFiles.get(app)
@@ -375,6 +383,31 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         readAloud = null
     }
 
+    /**
+     * Renders the current page at about 150 dpi to a PNG and puts it on the clipboard (as a
+     * content URI other apps can paste). Returns false when it could not.
+     */
+    suspend fun copyPageAsImage(): Boolean {
+        val r = ready ?: return false
+        val app = getApplication<Application>()
+        val page = r.viewport.currentPage
+        val size = r.doc.pageSizes[page]
+        val scale = 150f / 72f
+        val w = (size.width * scale).toInt().coerceIn(1, 3000)
+        val h = (size.height * w / size.width).toInt().coerceIn(1, 4200)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        if (!r.doc.render(page, bmp, w, h)) return false
+        val file = withContext(Dispatchers.IO) {
+            val dir = java.io.File(app.cacheDir, "share/pages").apply { mkdirs() }
+            java.io.File(dir, "page-${page + 1}.png").apply { outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) } }
+        }
+        bmp.recycle()
+        val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".files", file)
+        val cm = app.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        cm.setPrimaryClip(android.content.ClipData.newUri(app.contentResolver, file.name, uri))
+        return true
+    }
+
     // ---- Bookmarks ----
 
     fun isBookmarked(page: Int) = bookmarks.any { it.page == page }
@@ -467,38 +500,58 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 while (s > 0 && NormalizedText.isWordChar(text[s - 1])) s--
                 while (e < text.length && NormalizedText.isWordChar(text[e])) e++
             }
-            setSelection(r, hit.page, s, e)
+            setSelection(r, hit.page, s, hit.page, e)
         }
     }
 
     fun selectAllOnPage() {
         val r = ready ?: return
-        val page = selection?.page ?: r.viewport.currentPage
+        val page = selection?.startPage ?: r.viewport.currentPage
         selectionJob?.cancel()
         selectionJob = viewModelScope.launch {
             val len = r.doc.text(page).length
-            if (len > 0) setSelection(r, page, 0, len)
+            if (len > 0) setSelection(r, page, 0, page, len)
         }
     }
 
-    /** Moves one end of the selection to the character nearest to screen point [p]. */
+    /**
+     * Moves one end of the selection to the character nearest to screen point [p], which may be on
+     * another page than the selection so far.
+     */
     fun dragHandle(start: Boolean, p: Offset) {
         val r = ready ?: return
-        val sel = selection ?: return
-        val hit = r.viewport.screenToPage(p, clampToPage = sel.page) ?: return
+        if (selection == null) return
+        val hit = r.viewport.nearestPageHit(p) ?: return
         selectionJob?.cancel()
         selectionJob = viewModelScope.launch {
-            val idx = r.doc.charIndexAt(sel.page, hit.x, hit.y, 24f)
-            if (idx < 0) return@launch
+            var idx = r.doc.charIndexAt(hit.page, hit.x, hit.y, 24f)
+            if (idx < 0) {
+                // Above or below all text of that page: snap to its first or last character.
+                val len = r.doc.text(hit.page).length
+                if (len == 0) return@launch
+                idx = if (hit.y < 0.5f) 0 else len - 1
+            }
             val cur = selection ?: return@launch
-            if (start) setSelection(r, cur.page, minOf(idx, cur.end - 1), cur.end)
-            else setSelection(r, cur.page, cur.start, maxOf(idx + 1, cur.start + 1))
+            if (start) {
+                // Keep start before end.
+                if (hit.page > cur.endPage || (hit.page == cur.endPage && idx >= cur.end)) return@launch
+                setSelection(r, hit.page, idx, cur.endPage, cur.end)
+            } else {
+                if (hit.page < cur.startPage || (hit.page == cur.startPage && idx < cur.start)) return@launch
+                setSelection(r, cur.startPage, cur.start, hit.page, idx + 1)
+            }
         }
     }
 
-    private suspend fun setSelection(r: DocState.Ready, page: Int, start: Int, end: Int) {
-        val rects = r.doc.textRects(page, start, end - start)
-        selection = Selection(page, start, end, rects)
+    private suspend fun setSelection(r: DocState.Ready, startPage: Int, start: Int, endPage: Int, end: Int) {
+        val rects = HashMap<Int, List<RectF>>()
+        // Rectangles only for a reasonable span; text beyond it is still copied.
+        for (p in startPage..minOf(endPage, startPage + MAX_SELECTION_PAGES)) {
+            val from = if (p == startPage) start else 0
+            val to = if (p == endPage) end else r.doc.text(p).length
+            if (to > from) rects[p] = r.doc.textRects(p, from, to - from)
+        }
+        selection = Selection(startPage, start, endPage, end, rects)
     }
 
     fun clearSelection() {
@@ -509,7 +562,14 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun selectedText(): String {
         val r = ready ?: return ""
         val sel = selection ?: return ""
-        return NormalizedText.forClipboard(r.doc.text(sel.page), sel.start, sel.end)
+        val parts = ArrayList<String>()
+        for (p in sel.startPage..sel.endPage) {
+            val text = r.doc.text(p)
+            val from = if (p == sel.startPage) sel.start else 0
+            val to = if (p == sel.endPage) sel.end else text.length
+            parts += NormalizedText.forClipboard(text, from, to)
+        }
+        return parts.joinToString("\n").trim()
     }
 
     // ---- Lifecycle ----
@@ -540,6 +600,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         private const val MAX_MATCHES = 5000
+        private const val MAX_SELECTION_PAGES = 30
         private val closingScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }

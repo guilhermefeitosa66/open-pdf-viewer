@@ -234,10 +234,13 @@ fun PdfCanvas(
                 }
             }
         }
-        if (selection != null && selection.page in range) {
-            for (rc in selection.rects) {
-                val sr = vp.toScreen(selection.page, rc.left, rc.top, rc.right, rc.bottom)
-                drawRect(colors.selection, sr.topLeft, sr.size)
+        if (selection != null) {
+            for ((page, list) in selection.rects) {
+                if (page !in range) continue
+                for (rc in list) {
+                    val sr = vp.toScreen(page, rc.left, rc.top, rc.right, rc.bottom)
+                    drawRect(colors.selection, sr.topLeft, sr.size)
+                }
             }
         }
     }

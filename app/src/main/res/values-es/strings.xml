@@ -140,4 +140,6 @@
     <string name="whole_word">Palabra completa</string>
     <string name="ignore_accents">Ignorar acentos</string>
     <string name="all_results">Todos los resultados</string>
+    <string name="copy_page_image">Copiar la página como imagen</string>
+    <string name="page_copied_image">Página copiada como imagen</string>
 </resources>
