@@ -76,5 +76,8 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
 - **minSdk 26**, target/compile 36. ABIs: arm64-v8a, armeabi-v7a, x86_64.
 - **Dois módulos** (`:app`, `:pdfium`) em vez dos três do plano: o `:core` ficou dentro do `:app`
   até haver um segundo consumidor.
+- **Handles nativos são opacos.** No arm64 os ponteiros do heap têm tag no byte alto e viram
+  `jlong` negativo: nunca usar sinal de handle como erro (só `0` = falha). O emulador x86_64 não
+  pega isso; mudança na camada JNI se testa também num aparelho arm64.
 - **Seleção** limitada a uma página por vez na v0.1.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).
