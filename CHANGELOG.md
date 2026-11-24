@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.18.0 (2026-11-24)
+
+- Free-hand drawing (Draw in the viewer menu): one finger or the stylus draws ink, two fingers still scroll and zoom; pen color, width and opacity in the pen settings; the eraser removes whole strokes. Once a stylus is used, fingers only scroll (palm rejection). Strokes are standard ink annotations, kept in memory until saved.
+
 ## 0.17.0 (2026-11-24)
 
 - Text markup from a selection: highlight (one tap in the selection bar), underline, strikethrough and squiggly underline, in a palette color or any hue. Added as standard PDF annotations to the open document; writing them to the file comes with saving (next steps).

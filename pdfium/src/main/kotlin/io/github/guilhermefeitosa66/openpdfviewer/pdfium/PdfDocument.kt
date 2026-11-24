@@ -184,6 +184,27 @@ class PdfDocument private constructor(private val handle: Long) {
             ok
         }
 
+    /** Adds a free-hand stroke (normalized points [x0, y0, x1, y1...]) as an ink annotation. */
+    suspend fun addInk(index: Int, xy: FloatArray, argb: Int, widthPt: Float, author: String?): Boolean =
+        withContext(PdfiumThread.dispatcher) {
+            if (closed || xy.size < 2) return@withContext false
+            val lp = page(index) ?: return@withContext false
+            val ok = PdfiumNative.addInk(lp.page, xy, argb, widthPt, author) >= 0
+            if (ok) modified = true
+            ok
+        }
+
+    /** Removes the ink stroke passing near a normalized point; true when one was removed. */
+    suspend fun eraseInkAt(index: Int, x: Float, y: Float, tolerancePt: Float): Boolean =
+        withContext(PdfiumThread.dispatcher) {
+            if (closed) return@withContext false
+            val lp = page(index) ?: return@withContext false
+            val annot = PdfiumNative.inkAt(lp.page, x, y, tolerancePt)
+            val ok = annot >= 0 && PdfiumNative.removeAnnot(lp.page, annot)
+            if (ok) modified = true
+            ok
+        }
+
     /**
      * Writes the document to [pfd] (a full rewrite). With [removeSecurity] a password-protected
      * document, opened with its password, is written without encryption.

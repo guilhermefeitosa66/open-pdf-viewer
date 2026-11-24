@@ -149,4 +149,11 @@
     <string name="squiggly">Squiggly underline</string>
     <string name="markup_color">Color…</string>
     <string name="custom_color">Any color</string>
+    <string name="draw">Draw</string>
+    <string name="pen">Pen</string>
+    <string name="eraser">Eraser</string>
+    <string name="pen_settings">Pen settings</string>
+    <string name="pen_width">Width: %1$s pt</string>
+    <string name="pen_opacity">Opacity: %1$d%%</string>
+    <string name="done">Done</string>
 </resources>

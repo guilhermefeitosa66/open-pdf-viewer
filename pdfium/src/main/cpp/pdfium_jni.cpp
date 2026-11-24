@@ -579,3 +579,102 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addTextMarku
 }
 
 }  // extern "C"
+
+namespace {
+
+// Normalized page point (0..1, top-left) to PDF page coordinates.
+bool toPagePoint(FPDF_PAGE page, float nx, float ny, double* px, double* py) {
+    int w, h;
+    deviceSize(page, &w, &h);
+    return FPDF_DeviceToPage(page, 0, 0, w, h, 0, static_cast<int>(nx * w), static_cast<int>(ny * h), px, py);
+}
+
+}  // namespace
+
+extern "C" {
+
+// Adds one ink stroke as an Ink annotation. xy = normalized [x0, y0, x1, y1, ...]; width in
+// points. Returns the annotation index or -1.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addInk(
+        JNIEnv* env, jobject, jlong pageHandle, jfloatArray xy, jint argb, jfloat width, jstring author) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    jsize n = env->GetArrayLength(xy) / 2;
+    if (n < 1) return -1;
+    std::vector<jfloat> raw(static_cast<size_t>(n) * 2);
+    env->GetFloatArrayRegion(xy, 0, n * 2, raw.data());
+    std::vector<FS_POINTF> pts;
+    pts.reserve(static_cast<size_t>(n));
+    double minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    for (jsize i = 0; i < n; i++) {
+        double px, py;
+        if (!toPagePoint(page, raw[i * 2], raw[i * 2 + 1], &px, &py)) continue;
+        pts.push_back(FS_POINTF{static_cast<float>(px), static_cast<float>(py)});
+        minX = std::fmin(minX, px); maxX = std::fmax(maxX, px);
+        minY = std::fmin(minY, py); maxY = std::fmax(maxY, py);
+    }
+    if (pts.empty()) return -1;
+    if (pts.size() == 1) pts.push_back(FS_POINTF{pts[0].x + 0.1f, pts[0].y + 0.1f});  // a dot
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_INK);
+    if (!annot) return -1;
+    FPDFAnnot_AddInkStroke(annot, pts.data(), pts.size());
+    float pad = width;
+    FS_RECTF rect{static_cast<float>(minX - pad), static_cast<float>(maxY + pad), static_cast<float>(maxX + pad), static_cast<float>(minY - pad)};
+    FPDFAnnot_SetRect(annot, &rect);
+    unsigned int a = (static_cast<unsigned int>(argb) >> 24) & 0xFF;
+    unsigned int r = (static_cast<unsigned int>(argb) >> 16) & 0xFF;
+    unsigned int g = (static_cast<unsigned int>(argb) >> 8) & 0xFF;
+    unsigned int b = static_cast<unsigned int>(argb) & 0xFF;
+    FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, r, g, b, a);
+    FPDFAnnot_SetBorder(annot, 0, 0, width);
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+// Index of the ink annotation passing within tolerance (points) of a normalized point, or -1.
+// The topmost (last drawn) wins.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_inkAt(
+        JNIEnv*, jobject, jlong pageHandle, jfloat nx, jfloat ny, jfloat tolerance) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double px, py;
+    if (!toPagePoint(page, nx, ny, &px, &py)) return -1;
+    int count = FPDFPage_GetAnnotCount(page);
+    for (int i = count - 1; i >= 0; i--) {
+        FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, i);
+        if (!annot) continue;
+        bool hit = false;
+        if (FPDFAnnot_GetSubtype(annot) == FPDF_ANNOT_INK) {
+            unsigned long paths = FPDFAnnot_GetInkListCount(annot);
+            for (unsigned long k = 0; k < paths && !hit; k++) {
+                unsigned long len = FPDFAnnot_GetInkListPath(annot, k, nullptr, 0);
+                std::vector<FS_POINTF> pts(len);
+                if (len > 0) FPDFAnnot_GetInkListPath(annot, k, pts.data(), len);
+                for (unsigned long j = 0; j < len && !hit; j++) {
+                    // Distance to the segment j..j+1 (or the point when it is the last one).
+                    const FS_POINTF& a = pts[j];
+                    const FS_POINTF& b = pts[j + 1 < len ? j + 1 : j];
+                    double dx = b.x - a.x, dy = b.y - a.y;
+                    double l2 = dx * dx + dy * dy;
+                    double t = l2 > 0 ? ((px - a.x) * dx + (py - a.y) * dy) / l2 : 0;
+                    t = t < 0 ? 0 : (t > 1 ? 1 : t);
+                    double cx = a.x + t * dx - px, cy = a.y + t * dy - py;
+                    if (cx * cx + cy * cy <= tolerance * tolerance) hit = true;
+                }
+            }
+        }
+        FPDFPage_CloseAnnot(annot);
+        if (hit) return i;
+    }
+    return -1;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_removeAnnot(
+        JNIEnv*, jobject, jlong pageHandle, jint index) {
+    return FPDFPage_RemoveAnnot(reinterpret_cast<FPDF_PAGE>(pageHandle), index) ? JNI_TRUE : JNI_FALSE;
+}
+
+}  // extern "C"

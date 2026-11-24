@@ -148,4 +148,11 @@
     <string name="squiggly">Sublinhado ondulado</string>
     <string name="markup_color">Cor…</string>
     <string name="custom_color">Qualquer cor</string>
+    <string name="draw">Desenhar</string>
+    <string name="pen">Caneta</string>
+    <string name="eraser">Borracha</string>
+    <string name="pen_settings">Ajustes da caneta</string>
+    <string name="pen_width">Espessura: %1$s pt</string>
+    <string name="pen_opacity">Opacidade: %1$d%%</string>
+    <string name="done">Concluir</string>
 </resources>

@@ -576,6 +576,76 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Free-hand drawing ----
+
+    enum class DrawTool { PEN, ERASER }
+
+    var drawing by mutableStateOf(false)
+        private set
+    var drawTool by mutableStateOf(DrawTool.PEN)
+    /** Once a stylus touches the screen, fingers only scroll and zoom (palm rejection). */
+    var stylusSeen = false
+    /** The stroke being drawn: page and normalized points. */
+    var liveStroke by mutableStateOf<Pair<Int, List<Offset>>?>(null)
+        private set
+    private var eraseJob: Job? = null
+
+    fun startDrawing() {
+        clearSelection()
+        drawing = true
+        drawTool = DrawTool.PEN
+    }
+
+    fun stopDrawing() {
+        drawing = false
+        liveStroke = null
+    }
+
+    fun beginStroke(page: Int, p: Offset) {
+        liveStroke = page to listOf(p)
+    }
+
+    fun extendStroke(p: Offset) {
+        val (page, pts) = liveStroke ?: return
+        // Skip points closer than ~0.2% of the page: smaller paths, same look.
+        val last = pts.last()
+        if (kotlin.math.abs(p.x - last.x) + kotlin.math.abs(p.y - last.y) < 0.002f) return
+        liveStroke = page to pts + p
+    }
+
+    fun cancelStroke() {
+        liveStroke = null
+    }
+
+    fun endStroke() {
+        val r = ready ?: return
+        val (page, pts) = liveStroke ?: return
+        val settings = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication())
+        val author = settings.authorName.ifBlank { null }
+        val xy = FloatArray(pts.size * 2).also { a -> pts.forEachIndexed { i, o -> a[i * 2] = o.x; a[i * 2 + 1] = o.y } }
+        viewModelScope.launch {
+            if (r.doc.addInk(page, xy, settings.inkColor, settings.inkWidth, author)) {
+                r.renderer.invalidate(page, r.viewport)
+                unsaved = r.doc.modified
+            }
+            // Keep the live stroke until the page shows the real one.
+            delay(120)
+            if (liveStroke?.second === pts) liveStroke = null
+        }
+    }
+
+    /** Eraser: removes the ink stroke under a normalized point of [page]. */
+    fun eraseAt(page: Int, p: Offset) {
+        val r = ready ?: return
+        if (eraseJob?.isActive == true) return
+        eraseJob = viewModelScope.launch {
+            if (r.doc.eraseInkAt(page, p.x, p.y, 8f)) {
+                r.renderer.invalidate(page, r.viewport)
+                unsaved = r.doc.modified
+            }
+        }
+    }
+
     fun clearSelection() {
         selectionJob?.cancel()
         selection = null
@@ -607,6 +677,8 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         attachments = null
         stopReadAloud()
         unsaved = false
+        drawing = false
+        liveStroke = null
         bookmarks = emptyList()
         history.clear()
         historyTop = null

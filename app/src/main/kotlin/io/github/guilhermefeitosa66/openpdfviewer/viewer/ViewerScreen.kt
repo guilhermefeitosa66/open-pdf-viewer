@@ -126,6 +126,7 @@ fun ViewerScreen(
     BackHandler {
         when {
             vm.selection != null -> vm.clearSelection()
+            vm.drawing -> vm.stopDrawing()
             vm.searchOpen -> vm.closeSearch()
             vm.goBack() -> Unit
             else -> leave()
@@ -187,6 +188,8 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     )
 
     SelectionOverlay(vm, vp)
+
+    if (vm.drawing) DrawToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
 
     vm.readAloud?.let { ra ->
         ReadAloudBar(ra, onClose = vm::stopReadAloud, modifier = Modifier.align(Alignment.BottomCenter))
@@ -411,6 +414,13 @@ private fun TopBar(
                         },
                     )
                 }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.draw)) },
+                    onClick = {
+                        menu = false
+                        vm.startDrawing()
+                    },
+                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.layout)) },
                     onClick = {
@@ -1117,6 +1127,74 @@ fun ColorPickerDialog(initial: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit
             }
         },
         confirmButton = { TextButton(onClick = { onPick(color) }) { Text(stringResource(R.string.apply)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** Ink colors: strong ones, like pens. */
+private val InkPalette = listOf(0xFF1A1A1A, 0xFF1F3A93, 0xFFC62828, 0xFF2E7D32, 0xFFEF6C00, 0xFF6A1B9A, 0xFFFFD600, 0xFFFFFFFF).map { it.toInt() }
+
+@Composable
+private fun DrawToolbar(vm: ViewerViewModel, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+    var penDialog by remember { mutableStateOf(false) }
+    Box(modifier.navigationBarsPadding().padding(bottom = 84.dp)) {
+        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = 6.dp) {
+            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilterChip(
+                    selected = vm.drawTool == ViewerViewModel.DrawTool.PEN,
+                    onClick = { vm.drawTool = ViewerViewModel.DrawTool.PEN },
+                    label = { Text(stringResource(R.string.pen)) },
+                    leadingIcon = { Box(Modifier.size(14.dp).background(Color(settings.inkColor), androidx.compose.foundation.shape.CircleShape)) },
+                )
+                Spacer(Modifier.width(6.dp))
+                FilterChip(
+                    selected = vm.drawTool == ViewerViewModel.DrawTool.ERASER,
+                    onClick = { vm.drawTool = ViewerViewModel.DrawTool.ERASER },
+                    label = { Text(stringResource(R.string.eraser)) },
+                )
+                IconButton(onClick = { penDialog = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.pen_settings)) }
+                TextButton(onClick = vm::stopDrawing) { Text(stringResource(R.string.done)) }
+            }
+        }
+    }
+    if (penDialog) PenDialog(settings.inkColor, settings.inkWidth, onPick = { c, w -> settings.choosePen(c, w); penDialog = false }, onDismiss = { penDialog = false })
+}
+
+/** Pen color, opacity and width, with a preview stroke. */
+@Composable
+private fun PenDialog(initialColor: Int, initialWidth: Float, onPick: (Int, Float) -> Unit, onDismiss: () -> Unit) {
+    var rgb by remember { mutableStateOf(initialColor or 0xFF000000.toInt()) }
+    var opacity by remember { mutableStateOf(((initialColor ushr 24) and 0xFF) / 255f) }
+    var width by remember { mutableStateOf(initialWidth) }
+    val color = (rgb and 0xFFFFFF) or ((opacity * 255).toInt().coerceIn(25, 255) shl 24)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.pen_settings)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (c in InkPalette) {
+                        val label = String.format("#%06X", c and 0xFFFFFF)
+                        Box(
+                            Modifier.size(36.dp).background(Color(c), androidx.compose.foundation.shape.CircleShape)
+                                .border(if (c == rgb) 3.dp else 1.dp, if (c == rgb) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, androidx.compose.foundation.shape.CircleShape)
+                                .clickable { rgb = c }
+                                .semantics { contentDescription = label },
+                        )
+                    }
+                }
+                Text(stringResource(R.string.pen_width, String.format("%.1f", width)), fontSize = 13.sp)
+                androidx.compose.material3.Slider(value = width, onValueChange = { width = it }, valueRange = 0.5f..12f)
+                Text(stringResource(R.string.pen_opacity, (opacity * 100).toInt()), fontSize = 13.sp)
+                androidx.compose.material3.Slider(value = opacity, onValueChange = { opacity = it }, valueRange = 0.1f..1f)
+                androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(36.dp).background(Color.White, RoundedCornerShape(8.dp))) {
+                    drawLine(Color(color), Offset(24f, size.height / 2), Offset(size.width - 24f, size.height / 2), strokeWidth = width * density * 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onPick(color, width) }) { Text(stringResource(R.string.apply)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

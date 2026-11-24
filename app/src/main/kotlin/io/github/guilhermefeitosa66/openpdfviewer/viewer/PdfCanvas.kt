@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -135,6 +136,35 @@ fun PdfCanvas(
         modifier
             .fillMaxSize()
             .onSizeChanged { size = it }
+            .pointerInput(ready, vm.drawing) {
+                // Drawing mode: one finger (or the stylus) draws or erases; two fingers still
+                // scroll and zoom. After a stylus shows up, fingers never draw (palm rejection).
+                if (!vm.drawing) return@pointerInput
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val stylus = down.type == PointerType.Stylus || down.type == PointerType.Eraser
+                    if (stylus) vm.stylusSeen = true
+                    if (vm.stylusSeen && !stylus) return@awaitEachGesture
+                    val hit = vp.nearestPageHit(down.position) ?: return@awaitEachGesture
+                    val page = hit.page
+                    val erasing = vm.drawTool == ViewerViewModel.DrawTool.ERASER || down.type == PointerType.Eraser
+                    down.consume()
+                    if (erasing) vm.eraseAt(page, Offset(hit.x, hit.y)) else vm.beginStroke(page, Offset(hit.x, hit.y))
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.count { it.pressed } > 1) {
+                            vm.cancelStroke()
+                            return@awaitEachGesture
+                        }
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) break
+                        val h = vp.screenToPage(change.position, clampToPage = page) ?: continue
+                        if (erasing) vm.eraseAt(page, Offset(h.x, h.y)) else vm.extendStroke(Offset(h.x, h.y))
+                        change.consume()
+                    }
+                    if (!erasing) vm.endStroke()
+                }
+            }
             .pointerInput(ready) {
                 // Pinch to zoom (two fingers), taking over from the scrollables below.
                 awaitEachGesture {
@@ -223,6 +253,23 @@ fun PdfCanvas(
                     close()
                 }
                 drawPath(path, colors.handle)
+            }
+        }
+        // The stroke being drawn, before it becomes an annotation.
+        vm.liveStroke?.let { (page, pts) ->
+            if (page in range && pts.isNotEmpty()) {
+                val pr = vp.pageRect(page)
+                val pxPerPt = pr.width / ready.doc.pageSizes[page].width
+                val path = androidx.compose.ui.graphics.Path()
+                pts.forEachIndexed { i, o ->
+                    val x = pr.left + o.x * pr.width
+                    val y = pr.top + o.y * pr.height
+                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                drawPath(
+                    path, Color(settings.inkColor),
+                    style = Stroke(width = (settings.inkWidth * pxPerPt).coerceAtLeast(1f), cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round),
+                )
             }
         }
         // The sentence being read aloud.

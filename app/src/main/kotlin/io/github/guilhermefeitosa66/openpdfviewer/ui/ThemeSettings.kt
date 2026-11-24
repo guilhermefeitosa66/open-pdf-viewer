@@ -97,6 +97,18 @@ class ThemeSettings private constructor(context: Context) {
     var authorName by mutableStateOf(prefs.getString(KEY_AUTHOR, "") ?: "")
         private set
 
+    /** Pen for free-hand drawing: color (ARGB with opacity) and width in points. */
+    var inkColor by mutableStateOf(prefs.getInt(KEY_INK_COLOR, 0xFF1F3A93.toInt()))
+        private set
+    var inkWidth by mutableStateOf(prefs.getFloat(KEY_INK_WIDTH, 2f))
+        private set
+
+    fun choosePen(argb: Int, width: Float) {
+        inkColor = argb
+        inkWidth = width
+        prefs.edit().putInt(KEY_INK_COLOR, argb).putFloat(KEY_INK_WIDTH, width).apply()
+    }
+
     fun chooseMarkupColor(argb: Int) {
         markupColor = argb
         prefs.edit().putInt(KEY_MARKUP_COLOR, argb).apply()
@@ -140,6 +152,8 @@ class ThemeSettings private constructor(context: Context) {
         private const val KEY_RTL = "rtl"
         private const val KEY_MARKUP_COLOR = "markup_color"
         private const val KEY_AUTHOR = "author"
+        private const val KEY_INK_COLOR = "ink_color"
+        private const val KEY_INK_WIDTH = "ink_width"
         const val DEFAULT_MARKUP_COLOR = 0xFFFFE066.toInt()
         private const val KEY_CACHE = "theme_cache"
         private const val KEY_CACHE_VERSION = "theme_cache_version"

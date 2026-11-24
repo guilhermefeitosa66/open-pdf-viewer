@@ -148,4 +148,11 @@
     <string name="squiggly">Subrayado ondulado</string>
     <string name="markup_color">Color…</string>
     <string name="custom_color">Cualquier color</string>
+    <string name="draw">Dibujar</string>
+    <string name="pen">Bolígrafo</string>
+    <string name="eraser">Borrador</string>
+    <string name="pen_settings">Ajustes del bolígrafo</string>
+    <string name="pen_width">Grosor: %1$s pt</string>
+    <string name="pen_opacity">Opacidad: %1$d%%</string>
+    <string name="done">Listo</string>
 </resources>
