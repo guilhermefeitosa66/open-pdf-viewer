@@ -60,6 +60,29 @@ class ThemeSettings private constructor(context: Context) {
         prefs.edit().putString(KEY_PAGE_MODE, mode.name).apply()
     }
 
+    /** Reading options from the viewer menu, global. */
+    var keepScreenOn by mutableStateOf(prefs.getBoolean(KEY_KEEP_ON, false))
+        private set
+    var lockRotation by mutableStateOf(prefs.getBoolean(KEY_LOCK_ROTATION, false))
+        private set
+    var fullScreen by mutableStateOf(prefs.getBoolean(KEY_FULL_SCREEN, true))
+        private set
+
+    fun toggleKeepScreenOn() {
+        keepScreenOn = !keepScreenOn
+        prefs.edit().putBoolean(KEY_KEEP_ON, keepScreenOn).apply()
+    }
+
+    fun toggleLockRotation() {
+        lockRotation = !lockRotation
+        prefs.edit().putBoolean(KEY_LOCK_ROTATION, lockRotation).apply()
+    }
+
+    fun toggleFullScreen() {
+        fullScreen = !fullScreen
+        prefs.edit().putBoolean(KEY_FULL_SCREEN, fullScreen).apply()
+    }
+
     fun setBackground(enabled: Boolean) {
         backgroundEnabled = enabled
         prefs.edit().putBoolean(KEY_BACKGROUND, enabled).apply()
@@ -69,6 +92,9 @@ class ThemeSettings private constructor(context: Context) {
         private const val KEY_THEME = "theme"
         private const val KEY_BACKGROUND = "background"
         private const val KEY_PAGE_MODE = "page_mode"
+        private const val KEY_KEEP_ON = "keep_screen_on"
+        private const val KEY_LOCK_ROTATION = "lock_rotation"
+        private const val KEY_FULL_SCREEN = "full_screen"
         private const val KEY_CACHE = "theme_cache"
         private const val KEY_CACHE_VERSION = "theme_cache_version"
 

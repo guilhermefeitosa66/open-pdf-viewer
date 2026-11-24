@@ -77,4 +77,7 @@
     <string name="page_normal">Page: normal</string>
     <string name="page_night">Page: night</string>
     <string name="page_sepia">Page: sepia</string>
+    <string name="keep_screen_on">Keep screen on</string>
+    <string name="lock_rotation">Lock rotation</string>
+    <string name="full_screen">Full screen while reading</string>
 </resources>

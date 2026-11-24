@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.5.0 (2026-11-24)
+
+- Reading options in the viewer menu: keep screen on, lock rotation, and full screen while reading (the app and system bars hide once the page scrolls; a tap brings them back). Page padding ignores system bar visibility, so pages do not jump.
+
 ## 0.4.0 (2026-11-24)
 
 - Page color for reading: normal, night or sepia, from the viewer menu. Applied as a color filter when drawing, so switching is instant and nothing is re-rendered; remembered globally, like the theme.

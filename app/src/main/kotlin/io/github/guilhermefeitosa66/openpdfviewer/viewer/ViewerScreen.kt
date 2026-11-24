@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -62,7 +64,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -142,6 +146,7 @@ private fun Loading() {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewModel, ready: DocState.Ready, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -150,14 +155,16 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     val fileActions = rememberFileActions()
     var barsVisible by rememberSaveable { mutableStateOf(true) }
     var pagesOpen by rememberSaveable { mutableStateOf(false) }
-    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Ignoring visibility: hiding the system bars in full screen must not shift the pages.
+    val statusTop = WindowInsets.statusBarsIgnoringVisibility.asPaddingValues().calculateTopPadding()
+    val navBottom = WindowInsets.navigationBarsIgnoringVisibility.asPaddingValues().calculateBottomPadding()
     val padTop = with(density) { (statusTop + 64.dp).toPx() }
     val padBottom = with(density) { (navBottom + 72.dp).toPx() }
 
     LaunchedEffect(ready) {
         (context as? Activity)?.reportFullyDrawn()
     }
+    ReadingWindowOptions(vm, vp, barsVisible, onHideBars = { barsVisible = false })
 
     PdfCanvas(
         vm = vm,
@@ -333,6 +340,21 @@ private fun TopBar(
                         onClick = {
                             menu = false
                             settings.choosePageMode(mode)
+                        },
+                    )
+                }
+                HorizontalDivider()
+                for ((label, on, toggle) in listOf(
+                    Triple(R.string.keep_screen_on, settings.keepScreenOn, settings::toggleKeepScreenOn),
+                    Triple(R.string.lock_rotation, settings.lockRotation, settings::toggleLockRotation),
+                    Triple(R.string.full_screen, settings.fullScreen, settings::toggleFullScreen),
+                )) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(label)) },
+                        trailingIcon = { if (on) Icon(Icons.Filled.Check, null) },
+                        onClick = {
+                            menu = false
+                            toggle()
                         },
                     )
                 }
@@ -649,3 +671,53 @@ private fun Failure(kind: DocState.Failed.Kind, onBack: () -> Unit, onPickFile: 
 }
 
 
+
+/**
+ * Window-level reading options: keep the screen on, lock the rotation, and full screen (the
+ * app bars hide when the page scrolls, the system bars with them; a tap brings both back).
+ */
+@Composable
+private fun ReadingWindowOptions(vm: ViewerViewModel, vp: Viewport, barsVisible: Boolean, onHideBars: () -> Unit) {
+    val context = LocalContext.current
+    val activity = context as? Activity ?: return
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+    val density = LocalDensity.current
+
+    DisposableEffect(settings.keepScreenOn) {
+        if (settings.keepScreenOn) activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose { activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+    }
+    DisposableEffect(settings.lockRotation) {
+        activity.requestedOrientation = if (settings.lockRotation) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        onDispose { activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
+
+    // Hide the bars once the reader scrolls a little.
+    val threshold = with(density) { 24.dp.toPx() }
+    LaunchedEffect(vp, settings.fullScreen) {
+        if (!settings.fullScreen) return@LaunchedEffect
+        var anchor = vp.scrollY
+        snapshotFlow { vp.scrollY }.collect { y ->
+            if (kotlin.math.abs(y - anchor) > threshold) {
+                anchor = y
+                if (!vm.searchOpen && vm.selection == null) onHideBars()
+            }
+        }
+    }
+
+    val immersive = settings.fullScreen && !barsVisible && !vm.searchOpen
+    DisposableEffect(immersive) {
+        val controller = androidx.core.view.WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+        if (immersive) {
+            controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose { controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars()) }
+    }
+}
