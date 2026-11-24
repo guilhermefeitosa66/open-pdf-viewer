@@ -2,6 +2,12 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.7.0 (2026-11-24)
+
+- Page layout dialog in the viewer menu: continuous scroll (default) or page by page, with horizontal swipes that snap to whole pages.
+- Two pages side by side in landscape and on tablets (page-by-page mode), with the first page alone as a cover by default.
+- Optional right-to-left reading order for slots and spreads.
+
 ## 0.6.0 (2026-11-24)
 
 - The exact reading position is remembered per document: page, offset inside it, zoom and horizontal position, restored when the file opens again.

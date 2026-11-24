@@ -37,6 +37,8 @@ import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -217,7 +219,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
         )
     }
 
-    if (vp.pageCount > 3) FastScroller(vp, padTop, padBottom)
+    if (vp.pageCount > 3 && !vp.paged) FastScroller(vp, padTop, padBottom)
 
     // Bottom page indicator.
     AnimatedVisibility(
@@ -286,8 +288,10 @@ private fun TopBar(
     onSaveCopy: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
+    var layoutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val vp = ready.viewport
+    if (layoutDialog) LayoutDialog(onDismiss = { layoutDialog = false })
     Row(
         Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -343,6 +347,13 @@ private fun TopBar(
                         },
                     )
                 }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.layout)) },
+                    onClick = {
+                        menu = false
+                        layoutDialog = true
+                    },
+                )
                 HorizontalDivider()
                 for ((label, on, toggle) in listOf(
                     Triple(R.string.keep_screen_on, settings.keepScreenOn, settings::toggleKeepScreenOn),
@@ -727,4 +738,59 @@ private fun ReadingWindowOptions(vm: ViewerViewModel, vp: Viewport, barsVisible:
         }
         onDispose { controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars()) }
     }
+}
+
+/** Page layout: continuous scroll or page by page, plus spreads and reading direction. */
+@Composable
+private fun LayoutDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+    var paged by remember { mutableStateOf(settings.pagedLayout) }
+    var two by remember { mutableStateOf(settings.twoPages) }
+    var cover by remember { mutableStateOf(settings.coverAlone) }
+    var rtl by remember { mutableStateOf(settings.rightToLeft) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.layout)) },
+        text = {
+            Column {
+                for ((value, label) in listOf(false to R.string.layout_scroll, true to R.string.layout_paged)) {
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .selectable(selected = paged == value, onClick = { paged = value }, role = androidx.compose.ui.semantics.Role.RadioButton)
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.RadioButton(selected = paged == value, onClick = null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(label))
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                for ((value, label, set) in listOf(
+                    Triple(two, R.string.layout_two_pages) { v: Boolean -> two = v },
+                    Triple(cover, R.string.layout_cover_alone) { v: Boolean -> cover = v },
+                    Triple(rtl, R.string.layout_rtl) { v: Boolean -> rtl = v },
+                )) {
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .toggleable(value = value, enabled = paged, onValueChange = set, role = androidx.compose.ui.semantics.Role.Checkbox)
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.Checkbox(checked = value, onCheckedChange = null, enabled = paged)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(label), color = if (paged) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                settings.setLayout(paged, two, cover, rtl)
+                onDismiss()
+            }) { Text(stringResource(R.string.apply)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }

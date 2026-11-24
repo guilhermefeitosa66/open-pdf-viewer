@@ -68,6 +68,29 @@ class ThemeSettings private constructor(context: Context) {
     var fullScreen by mutableStateOf(prefs.getBoolean(KEY_FULL_SCREEN, true))
         private set
 
+    /** Page layout: continuous scroll or page by page, two-page spreads, cover alone, right to left. */
+    var pagedLayout by mutableStateOf(prefs.getBoolean(KEY_PAGED, false))
+        private set
+    var twoPages by mutableStateOf(prefs.getBoolean(KEY_TWO_PAGES, true))
+        private set
+    var coverAlone by mutableStateOf(prefs.getBoolean(KEY_COVER_ALONE, true))
+        private set
+    var rightToLeft by mutableStateOf(prefs.getBoolean(KEY_RTL, false))
+        private set
+
+    fun setLayout(paged: Boolean, twoPages: Boolean, coverAlone: Boolean, rightToLeft: Boolean) {
+        pagedLayout = paged
+        this.twoPages = twoPages
+        this.coverAlone = coverAlone
+        this.rightToLeft = rightToLeft
+        prefs.edit()
+            .putBoolean(KEY_PAGED, paged)
+            .putBoolean(KEY_TWO_PAGES, twoPages)
+            .putBoolean(KEY_COVER_ALONE, coverAlone)
+            .putBoolean(KEY_RTL, rightToLeft)
+            .apply()
+    }
+
     fun toggleKeepScreenOn() {
         keepScreenOn = !keepScreenOn
         prefs.edit().putBoolean(KEY_KEEP_ON, keepScreenOn).apply()
@@ -95,6 +118,10 @@ class ThemeSettings private constructor(context: Context) {
         private const val KEY_KEEP_ON = "keep_screen_on"
         private const val KEY_LOCK_ROTATION = "lock_rotation"
         private const val KEY_FULL_SCREEN = "full_screen"
+        private const val KEY_PAGED = "paged"
+        private const val KEY_TWO_PAGES = "two_pages"
+        private const val KEY_COVER_ALONE = "cover_alone"
+        private const val KEY_RTL = "rtl"
         private const val KEY_CACHE = "theme_cache"
         private const val KEY_CACHE_VERSION = "theme_cache_version"
 

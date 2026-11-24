@@ -84,5 +84,8 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   monocromáticas nos modos noturno/sépia, de propósito.
 - **Links**: internos pulam e empilham a posição anterior (chip "Voltar à página N" e o voltar do
   sistema); externos pedem confirmação e abrem no navegador (o app continua sem `INTERNET`).
+- **Layout** (`Viewport` + `LayoutOptions`): contínuo vertical (padrão) ou página a página com
+  snap horizontal. Página dupla só no modo página a página e só onde cabe (paisagem ou tablet,
+  `smallestScreenWidthDp >= 600`); capa sozinha e direita-para-esquerda são opções. Escolha global.
 - **Seleção** limitada a uma página por vez na v0.1.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

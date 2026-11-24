@@ -79,4 +79,11 @@
     <string name="keep_screen_on">Mantener la pantalla encendida</string>
     <string name="lock_rotation">Bloquear la rotación</string>
     <string name="full_screen">Pantalla completa al leer</string>
+    <string name="layout">Diseño de página…</string>
+    <string name="layout_scroll">Desplazamiento continuo</string>
+    <string name="layout_paged">Página a página</string>
+    <string name="layout_two_pages">Dos páginas lado a lado en horizontal y en tabletas</string>
+    <string name="layout_cover_alone">Primera página sola (portada)</string>
+    <string name="layout_rtl">De derecha a izquierda</string>
+    <string name="apply">Aplicar</string>
 </resources>

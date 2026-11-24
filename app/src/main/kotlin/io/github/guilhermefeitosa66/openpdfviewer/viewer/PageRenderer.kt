@@ -46,7 +46,7 @@ class PageRenderer(
     }
     private val baseJobs = HashMap<Int, Job>()
     private val thumbJobs = HashMap<Int, Job>()
-    private var baseWidth = 0f
+    private var baseLayout = -1
     private var detailJob: Job? = null
     private var tiles: List<DetailTile> = emptyList()
     private var firstPageLogged = false
@@ -58,8 +58,8 @@ class PageRenderer(
     /** Makes sure the visible pages (and one on each side) have a base bitmap. */
     fun request(vp: Viewport) {
         if (!vp.ready) return
-        if (vp.width != baseWidth) {
-            baseWidth = vp.width
+        if (vp.layoutVersion != baseLayout) {
+            baseLayout = vp.layoutVersion
             base.evictAll()
             baseJobs.values.forEach { it.cancel() }
             baseJobs.clear()
@@ -73,9 +73,8 @@ class PageRenderer(
         val order = visible.toList() + wanted.filter { it !in visible }
         for (i in order) {
             if (base.get(i) != null || baseJobs[i]?.isActive == true) continue
-            val scale = vp.baseScale
-            val w = (doc.pageSizes[i].width * scale).roundToInt().coerceIn(1, MAX_BASE_SIDE)
-            val h = (doc.pageSizes[i].height * scale).roundToInt().coerceIn(1, MAX_BASE_SIDE)
+            val w = vp.pageWidth1(i).roundToInt().coerceIn(1, MAX_BASE_SIDE)
+            val h = vp.pageHeight1(i).roundToInt().coerceIn(1, MAX_BASE_SIDE)
             baseJobs[i] = scope.launch {
                 val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 if (doc.render(i, bmp, w, h)) {

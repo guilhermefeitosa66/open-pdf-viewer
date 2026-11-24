@@ -266,7 +266,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         val r = ready ?: return
         val m = matches.getOrNull(currentMatch) ?: return
         val first = m.rects.firstOrNull()
-        if (first == null) {
+        if (first == null || (r.viewport.paged && r.viewport.zoom <= 1.05f)) {
             r.viewport.scrollToPage(m.page)
         } else {
             r.viewport.reveal(r.viewport.toScreen(m.page, first.left, first.top, first.right, first.bottom))

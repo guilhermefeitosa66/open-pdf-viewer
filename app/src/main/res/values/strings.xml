@@ -80,4 +80,11 @@
     <string name="keep_screen_on">Keep screen on</string>
     <string name="lock_rotation">Lock rotation</string>
     <string name="full_screen">Full screen while reading</string>
+    <string name="layout">Page layout…</string>
+    <string name="layout_scroll">Continuous scroll</string>
+    <string name="layout_paged">Page by page</string>
+    <string name="layout_two_pages">Two pages side by side in landscape and on tablets</string>
+    <string name="layout_cover_alone">Show the first page alone (cover)</string>
+    <string name="layout_rtl">Right to left</string>
+    <string name="apply">Apply</string>
 </resources>

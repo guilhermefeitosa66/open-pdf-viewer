@@ -69,9 +69,19 @@ fun PdfCanvas(
     var size by remember { mutableStateOf(IntSize.Zero) }
     var placed by remember(ready) { mutableStateOf(false) }
 
-    LaunchedEffect(ready, size, padTop, padBottom) {
+    // Two-page spreads only where they fit: landscape or tablets.
+    val wide = size.width > size.height || androidx.compose.ui.platform.LocalConfiguration.current.smallestScreenWidthDp >= 600
+    val layout = LayoutOptions(
+        paged = settings.pagedLayout,
+        dual = settings.pagedLayout && settings.twoPages && wide,
+        coverAlone = settings.coverAlone,
+        rtl = settings.pagedLayout && settings.rightToLeft,
+    )
+    LaunchedEffect(ready, size, padTop, padBottom, layout) {
         if (size.width == 0 || size.height == 0) return@LaunchedEffect
+        if (!placed) vp.setLayout(layout)
         vp.setSize(size.width.toFloat(), size.height.toFloat(), padTop, padBottom, gap, gap)
+        if (placed) vp.setLayout(layout)
         if (!placed) {
             if (ready.initialOffset == 0f && ready.initialZoom == 1f) vp.scrollToPage(ready.initialPage)
             else vp.restore(ready.initialZoom, ready.initialPage, ready.initialOffset, ready.initialScrollX)
@@ -102,6 +112,24 @@ fun PdfCanvas(
 
     val vScroll = rememberScrollableState { d -> -vp.scrollBy(0f, -d).y }
     val hScroll = rememberScrollableState { d -> -vp.scrollBy(-d, 0f).x }
+    // Page by page: a horizontal fling settles on a whole page (or spread) unless zoomed in.
+    val defaultFling = androidx.compose.foundation.gestures.ScrollableDefaults.flingBehavior()
+    val snapThreshold = with(density) { 400.dp.toPx() }
+    val hFling = remember(vp, defaultFling) {
+        object : androidx.compose.foundation.gestures.FlingBehavior {
+            override suspend fun androidx.compose.foundation.gestures.ScrollScope.performFling(initialVelocity: Float): Float {
+                if (!vp.paged || vp.zoom > 1.05f) return with(defaultFling) { performFling(initialVelocity) }
+                // Scrollable deltas point opposite to scrollX: dragging right shows the left page.
+                val target = vp.snapTarget(-initialVelocity, snapThreshold)
+                var last = vp.scrollX
+                animate(vp.scrollX, target, animationSpec = tween(220)) { v, _ ->
+                    scrollBy(-(v - last))
+                    last = v
+                }
+                return 0f
+            }
+        }
+    }
 
     Canvas(
         modifier
@@ -137,7 +165,7 @@ fun PdfCanvas(
                 )
             }
             .scrollable(vScroll, Orientation.Vertical)
-            .scrollable(hScroll, Orientation.Horizontal),
+            .scrollable(hScroll, Orientation.Horizontal, flingBehavior = hFling),
     ) {
         drawRect(colors.gutter)
         if (!vp.ready) return@Canvas
