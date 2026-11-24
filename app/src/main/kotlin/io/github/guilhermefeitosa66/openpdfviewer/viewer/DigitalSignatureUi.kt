@@ -70,13 +70,14 @@ fun DigitalSignatureEffects(vm: ViewerViewModel) {
             vm.signResult = null
         }
     }
-    val exporter = rememberLauncherForActivityResult(io.github.guilhermefeitosa66.openpdfviewer.ui.CreateTypedDocument()) { vm.exportSigned(it) }
-    vm.signedToExport?.let { file ->
-        LaunchedEffect(file) {
+    val exporter = rememberLauncherForActivityResult(io.github.guilhermefeitosa66.openpdfviewer.ui.CreateTypedDocument()) { vm.exportPending(it) }
+    vm.fileToExport?.let { pending ->
+        LaunchedEffect(pending) {
             val name = (vm.state as? DocState.Ready)?.name?.removeSuffix(".pdf")?.removeSuffix(".PDF") ?: "document"
-            exporter.launch(io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName("$name (signed)") to "application/pdf")
+            exporter.launch(io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName("$name (${pending.second})") to "application/pdf")
         }
     }
+    (vm.state as? DocState.Ready)?.let { if (vm.organizeOpen) PageOrganizer(vm, it) }
     if (vm.digitalSignOpen) DigitalSignatureSheet(vm)
     vm.signatureChecks?.let { SignatureChecksDialog(it) { vm.signatureChecks = null } }
 }

@@ -141,6 +141,9 @@ fun PagesSheet(
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleLarge,
                 )
+                androidx.compose.material3.TextButton(onClick = { onDismiss(); vm.organizeOpen = true }) {
+                    Text(stringResource(R.string.organize))
+                }
                 Text(stringResource(R.string.go_to), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                 OutlinedTextField(
                     value = goto,

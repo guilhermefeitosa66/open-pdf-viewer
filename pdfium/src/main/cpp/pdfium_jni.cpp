@@ -19,6 +19,7 @@
 #include "fpdf_edit.h"
 #include "fpdf_flatten.h"
 #include "fpdf_formfill.h"
+#include "fpdf_ppo.h"
 #include "fpdf_save.h"
 #include "fpdf_signature.h"
 #include "fpdf_text.h"
@@ -1264,6 +1265,53 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addImageStam
     setAuthor(env, annot, author);
     FPDFPage_CloseAnnot(annot);
     return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+}  // extern "C"
+
+extern "C" {
+
+// Rebuilds the page list of the document: order[i] is the original index of the page that ends
+// up at position i (an index may repeat, a duplicate is copied from src, a second open instance
+// of the same bytes); pages not listed are deleted. rotations[i] is added to the page's rotation
+// in quarter turns.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_rearrangePages(
+        JNIEnv* env, jobject, jlong handle, jlong srcHandle, jintArray orderArr, jintArray rotArr) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    auto* src = reinterpret_cast<Document*>(srcHandle);
+    int n = FPDF_GetPageCount(d->doc);
+    jsize len = env->GetArrayLength(orderArr);
+    if (len <= 0 || env->GetArrayLength(rotArr) != len) return JNI_FALSE;
+    std::vector<int> order(len), rot(len);
+    env->GetIntArrayRegion(orderArr, 0, len, order.data());
+    env->GetIntArrayRegion(rotArr, 0, len, rot.data());
+    std::vector<bool> used(n, false);
+    std::vector<int> current(len);
+    int appended = 0;
+    for (int i = 0; i < len; i++) {
+        int o = order[i];
+        if (o < 0 || o >= n) return JNI_FALSE;
+        if (!used[o]) {
+            used[o] = true;
+            current[i] = o;
+        } else {
+            if (!src || !FPDF_ImportPagesByIndex(d->doc, src->doc, &o, 1, n + appended)) return JNI_FALSE;
+            current[i] = n + appended;
+            appended++;
+        }
+    }
+    if (!FPDF_MovePages(d->doc, current.data(), static_cast<unsigned long>(len), 0)) return JNI_FALSE;
+    for (int k = n + appended - 1; k >= len; k--) FPDFPage_Delete(d->doc, k);
+    for (int i = 0; i < len; i++) {
+        int delta = ((rot[i] % 4) + 4) % 4;
+        if (delta == 0) continue;
+        FPDF_PAGE page = FPDF_LoadPage(d->doc, i);
+        if (!page) continue;
+        FPDFPage_SetRotation(page, (FPDFPage_GetRotation(page) + delta) % 4);
+        FPDF_ClosePage(page);
+    }
+    return JNI_TRUE;
 }
 
 }  // extern "C"

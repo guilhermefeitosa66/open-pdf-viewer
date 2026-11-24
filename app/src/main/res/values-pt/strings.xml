@@ -244,4 +244,14 @@
     <string name="sig_trusted">Certificado emitido por uma autoridade em que este aparelho confia</string>
     <string name="sig_untrusted">Certificado não vem de uma autoridade em que este aparelho confia (autoassinado ou desconhecido)</string>
     <string name="sig_offline_note">Verificado sem internet: revogação e carimbo de tempo não são consultados.</string>
+    <string name="organize">Organizar</string>
+    <string name="organize_pages">Organizar páginas</string>
+    <string name="n_selected">%1$d selecionadas</string>
+    <string name="organize_hint">Toque nas páginas para selecionar. Toque e segure uma página e arraste para mudar de lugar.</string>
+    <string name="select_all">Todas</string>
+    <string name="rotate_left">Esquerda</string>
+    <string name="rotate_right">Direita</string>
+    <string name="duplicate">Duplicar</string>
+    <string name="save_as_copy">Salvar como cópia…</string>
+    <string name="organize_discard_title">Descartar as mudanças nas páginas?</string>
 </resources>

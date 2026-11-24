@@ -320,6 +320,20 @@ class PdfDocument private constructor(private val handle: Long) {
         PdfiumNative.flattenAll(handle).also { if (it > 0) modified = true }
     }
 
+    /**
+     * Rebuilds the page list: [order] holds the original index of each resulting page (repeats
+     * are duplicates, copied from [source], another open instance of the same file), [rotations]
+     * the quarter turns to add. Meant for a separate copy, like [flattenAll].
+     */
+    suspend fun rearrangePages(source: PdfDocument, order: IntArray, rotations: IntArray): Boolean =
+        withContext(PdfiumThread.dispatcher) {
+            if (closed || source.closed) return@withContext false
+            pages.values.forEach { it.close() }
+            pages.clear()
+            textCache.clear()
+            PdfiumNative.rearrangePages(handle, source.handle, order, rotations).also { if (it) modified = true }
+        }
+
     /** Form fields of page [index], in the order they appear in the page. */
     suspend fun formFields(index: Int): List<FormField> = withContext(PdfiumThread.dispatcher) {
         if (closed || !hasForm) return@withContext emptyList()

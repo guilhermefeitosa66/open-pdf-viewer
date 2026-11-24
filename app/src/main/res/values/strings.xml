@@ -245,4 +245,14 @@
     <string name="sig_trusted">Certificate issued by an authority this device trusts</string>
     <string name="sig_untrusted">Certificate not from an authority this device trusts (self-signed or unknown)</string>
     <string name="sig_offline_note">Checked offline: revocation and timestamps are not looked up.</string>
+    <string name="organize">Organize</string>
+    <string name="organize_pages">Organize pages</string>
+    <string name="n_selected">%1$d selected</string>
+    <string name="organize_hint">Tap pages to select them. Long-press a page and drag it to move it.</string>
+    <string name="select_all">All</string>
+    <string name="rotate_left">Left</string>
+    <string name="rotate_right">Right</string>
+    <string name="duplicate">Duplicate</string>
+    <string name="save_as_copy">Save as copy…</string>
+    <string name="organize_discard_title">Discard the page changes?</string>
 </resources>

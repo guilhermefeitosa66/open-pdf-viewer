@@ -912,8 +912,11 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var digitalSignOpen by mutableStateOf(false)
     /** Result of a signature: null while nothing to report. */
     var signResult by mutableStateOf<SignOutcome?>(null)
-    /** A signed file that could not be written in place: the screen asks where to save it. */
-    var signedToExport by mutableStateOf<java.io.File?>(null)
+    /**
+     * A finished file (signed, reorganized) that is not written in place: the screen asks where
+     * to save it, suggesting the document name with the given suffix.
+     */
+    var fileToExport by mutableStateOf<Pair<java.io.File, String>?>(null)
     var signatureChecks by mutableStateOf<List<io.github.guilhermefeitosa66.openpdfviewer.signing.SignatureCheck>?>(null)
 
     enum class SignOutcome { SIGNED, WRONG_PASSWORD, FAILED }
@@ -956,7 +959,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                     reopenAt(target, r)
                     return@launch
                 }
-                signedToExport = out
+                fileToExport = out to "signed"
                 SignOutcome.SIGNED
             } catch (e: io.github.guilhermefeitosa66.openpdfviewer.data.Certificates.WrongPassword) {
                 SignOutcome.WRONG_PASSWORD
@@ -971,10 +974,10 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Writes the signed file to [target] (when the original was not writable). */
-    fun exportSigned(target: Uri?) {
-        val file = signedToExport ?: return
-        signedToExport = null
+    /** Writes the pending file to [target] and continues reading it there. */
+    fun exportPending(target: Uri?) {
+        val file = fileToExport?.first ?: return
+        fileToExport = null
         if (target == null) return
         val r = ready
         viewModelScope.launch {
@@ -1004,6 +1007,61 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 android.util.Log.w("OpenPdfViewer", "validation failed", it)
                 emptyList()
             }
+        }
+    }
+
+    // ---- Organize pages ----
+
+    var organizeOpen by mutableStateOf(false)
+
+    /**
+     * Applies a new page list (see [PdfDocument.rearrangePages]) to a copy of the document with
+     * its changes, then saves it over the file, or asks where to save it when [asCopy] or when
+     * the file is not writable. The open document is not touched until it is reopened.
+     */
+    fun applyOrganize(order: IntArray, rotations: IntArray, asCopy: Boolean) {
+        val r = ready ?: return
+        val target = uri ?: return
+        if (saving || order.isEmpty()) return
+        saving = true
+        organizeOpen = false
+        viewModelScope.launch {
+            val out = runCatching {
+                val tmp = writeToTemp(r.doc) ?: return@runCatching null
+                suspend fun openTmp() = withContext(Dispatchers.IO) {
+                    android.os.ParcelFileDescriptor.open(tmp, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                }.use { pfd -> io.github.guilhermefeitosa66.openpdfviewer.pdfium.PdfDocument.open(pfd, password) }
+                val dst = openTmp()
+                val src = openTmp()
+                try {
+                    if (!dst.rearrangePages(src, order, rotations)) return@runCatching null
+                    val f = java.io.File(tmp.parentFile, "organized.pdf")
+                    val ok = withContext(Dispatchers.IO) {
+                        android.os.ParcelFileDescriptor.open(
+                            f,
+                            android.os.ParcelFileDescriptor.MODE_CREATE or android.os.ParcelFileDescriptor.MODE_TRUNCATE or android.os.ParcelFileDescriptor.MODE_WRITE_ONLY,
+                        ).use { dst.saveCopy(it) }
+                    }
+                    if (ok) f else null
+                } finally {
+                    dst.closeAsync()
+                    src.closeAsync()
+                }
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "organize failed", it) }.getOrNull()
+            if (out == null) {
+                saving = false
+                exportResult = false
+                return@launch
+            }
+            if (!asCopy && DocumentSource.overwrite(getApplication(), target, out)) {
+                r.doc.markSaved()
+                unsaved = false
+                saving = false
+                reopenAt(target, r)
+                return@launch
+            }
+            saving = false
+            fileToExport = out to "organized"
         }
     }
 
@@ -1167,6 +1225,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         placementTarget = null
         placingSignature = null
         signatureSheetOpen = false
+        organizeOpen = false
         openedAnnot = null
     }
 

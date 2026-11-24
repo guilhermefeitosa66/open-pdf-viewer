@@ -110,4 +110,9 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   Validação offline (sem revogação nem carimbo de tempo). Documento assinado é salvo de forma
   incremental (`FPDF_INCREMENTAL`) para não quebrar as assinaturas; o `/Contents` vem com zeros de
   preenchimento, então só o primeiro objeto DER é lido.
+- **Organizar páginas** (Páginas › Organizar): a grade só edita uma lista (página de origem +
+  quartos de volta); ao salvar, `rearrangePages` roda numa **cópia** (duplicatas importadas de uma
+  segunda instância do mesmo arquivo, `FPDF_MovePages`, apaga o resto, soma a rotação), grava e
+  reabre. O documento aberto nunca é mexido. O arraste pega os eventos no passe `Initial` depois do
+  toque longo, senão a rolagem da grade fica com o movimento.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

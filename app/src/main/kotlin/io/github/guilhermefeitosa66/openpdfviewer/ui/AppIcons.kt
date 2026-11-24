@@ -95,4 +95,27 @@ object AppIcons {
             }
         }
     }
+
+    val RotateRight: ImageVector by lazy {
+        stroke("RotateRight") {
+            line { moveTo(5f, 13f); arcTo(7f, 7f, 0f, false, true, 12f, 6f) }
+            line { moveTo(9.5f, 3.5f); lineTo(12f, 6f); lineTo(9.5f, 8.5f) }
+            line { moveTo(12f, 12f); lineTo(19f, 12f); lineTo(19f, 20f); lineTo(12f, 20f); close() }
+        }
+    }
+
+    val RotateLeft: ImageVector by lazy {
+        stroke("RotateLeft") {
+            line { moveTo(19f, 13f); arcTo(7f, 7f, 0f, false, false, 12f, 6f) }
+            line { moveTo(14.5f, 3.5f); lineTo(12f, 6f); lineTo(14.5f, 8.5f) }
+            line { moveTo(5f, 12f); lineTo(12f, 12f); lineTo(12f, 20f); lineTo(5f, 20f); close() }
+        }
+    }
+
+    val SelectAll: ImageVector by lazy {
+        stroke("SelectAll") {
+            line { moveTo(4f, 4f); lineTo(20f, 4f); lineTo(20f, 20f); lineTo(4f, 20f); close() }
+            line { moveTo(8f, 12f); lineTo(11f, 15f); lineTo(16f, 9f) }
+        }
+    }
 }

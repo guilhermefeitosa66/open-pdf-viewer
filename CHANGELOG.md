@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.29.0 (2026-11-24)
+
+- Organize pages (Pages › Organize): select pages, rotate them left or right, duplicate or delete them, and long-press a page to drag it to a new place. Undo while organizing; Save writes the file, Save as copy leaves the original as it was.
+
 ## 0.28.0 (2026-11-24)
 
 - Digital signature (Annotate… › Digital signature…): import a personal certificate (.p12 / .pfx), kept encrypted on the device with a key in the Android Keystore; its password is asked for each signature and never saved. Signs the document as PAdES-B (CAdES detached, SHA-256), with optional reason and place.

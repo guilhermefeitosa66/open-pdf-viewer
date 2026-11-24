@@ -47,6 +47,7 @@ internal object PdfiumNative {
     external fun formSetText(handle: Long, page: Long, index: Int, text: String): Boolean
     external fun formSelect(handle: Long, page: Long, index: Int, option: Int): Boolean
     external fun addImageStamp(handle: Long, page: Long, l: Float, t: Float, r: Float, b: Float, bitmap: Bitmap, author: String?): Int
+    external fun rearrangePages(handle: Long, src: Long, order: IntArray, rotations: IntArray): Boolean
     external fun saveCopy(handle: Long, fd: Int, removeSecurity: Boolean): Boolean
     external fun linkAt(handle: Long, page: Long, x: Float, y: Float): String?
     external fun charIndexAt(page: Long, text: Long, x: Float, y: Float, tolerance: Float): Int
