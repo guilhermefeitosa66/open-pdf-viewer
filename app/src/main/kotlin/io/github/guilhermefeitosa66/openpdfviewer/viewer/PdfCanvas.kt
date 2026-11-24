@@ -1,0 +1,188 @@
+package io.github.guilhermefeitosa66.openpdfviewer.viewer
+
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalReaderColors
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
+
+/** The scrolling, zooming page surface: draws pages, search highlights and the selection. */
+@OptIn(FlowPreview::class)
+@Composable
+fun PdfCanvas(
+    vm: ViewerViewModel,
+    ready: DocState.Ready,
+    padTop: Float,
+    padBottom: Float,
+    onTap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val vp = ready.viewport
+    val renderer = ready.renderer
+    val colors = LocalReaderColors.current
+    val density = LocalDensity.current
+    val gap = with(density) { 8.dp.toPx() }
+    val scope = rememberCoroutineScope()
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    var placed by remember(ready) { mutableStateOf(false) }
+
+    LaunchedEffect(ready, size, padTop, padBottom) {
+        if (size.width == 0 || size.height == 0) return@LaunchedEffect
+        vp.setSize(size.width.toFloat(), size.height.toFloat(), padTop, padBottom, gap, gap)
+        if (!placed) {
+            vp.scrollToPage(ready.initialPage)
+            placed = true
+        }
+        renderer.request(vp)
+    }
+    LaunchedEffect(ready) {
+        snapshotFlow { listOf(vp.scrollX, vp.scrollY, vp.zoom, vp.width) }
+            .collect { renderer.request(vp) }
+    }
+    LaunchedEffect(ready) {
+        snapshotFlow { listOf(vp.scrollX, vp.scrollY, vp.zoom, vp.width) }
+            .collectLatest {
+                delay(150)
+                renderer.refreshDetail(vp)
+            }
+    }
+    LaunchedEffect(ready) {
+        snapshotFlow { vp.currentPage }
+            .distinctUntilChanged()
+            .debounce(600)
+            .collect { if (placed) vm.onPageChanged(it) }
+    }
+
+    val vScroll = rememberScrollableState { d -> -vp.scrollBy(0f, -d).y }
+    val hScroll = rememberScrollableState { d -> -vp.scrollBy(-d, 0f).x }
+
+    Canvas(
+        modifier
+            .fillMaxSize()
+            .onSizeChanged { size = it }
+            .pointerInput(ready) {
+                // Pinch to zoom (two fingers), taking over from the scrollables below.
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.count { it.pressed } >= 2) {
+                            val zoom = event.calculateZoom()
+                            val pan = event.calculatePan()
+                            val centroid = event.calculateCentroid(useCurrent = true)
+                            if (zoom != 1f) vp.zoomTo(vp.zoom * zoom, centroid)
+                            vp.scrollBy(-pan.x, -pan.y)
+                            event.changes.forEach { it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            }
+            .pointerInput(ready) {
+                detectTapGestures(
+                    onTap = { onTap() },
+                    onDoubleTap = { p ->
+                        val target = if (abs(vp.zoom - 1f) < 0.05f) 2f else 1f
+                        scope.launch {
+                            animate(vp.zoom, target, animationSpec = tween(220)) { v, _ -> vp.zoomTo(v, p) }
+                        }
+                    },
+                    onLongPress = { p -> vm.selectWordAt(p) },
+                )
+            }
+            .scrollable(vScroll, Orientation.Vertical)
+            .scrollable(hScroll, Orientation.Horizontal),
+    ) {
+        drawRect(colors.gutter)
+        if (!vp.ready) return@Canvas
+        renderer.version.intValue // redraw when bitmaps arrive
+        vm.matchesVersion
+        val current = vm.currentMatch
+        val selection = vm.selection
+        val range = vp.visiblePages()
+        val shadow = Color(0x2E1E1612)
+
+        for (i in range) {
+            val r = vp.pageRect(i)
+            drawRect(shadow, Offset(r.left, r.top + 1.5f), r.size)
+            drawRect(Color.White, r.topLeft, r.size)
+            renderer.base(i)?.let { drawBitmap(it, r) }
+        }
+        for (t in renderer.tiles()) {
+            if (t.page in range) drawBitmap(t.image, vp.toScreen(t.page, t.left, t.top, t.right, t.bottom))
+        }
+        for (i in range) {
+            for (mi in vm.matchesOnPage(i)) {
+                val m = vm.matches.getOrNull(mi) ?: continue
+                val isCurrent = mi == current
+                for (rc in m.rects) {
+                    val sr = vp.toScreen(i, rc.left, rc.top, rc.right, rc.bottom).inflate(1.5f)
+                    drawRect(
+                        if (isCurrent) colors.highlightCurrent else colors.highlight,
+                        sr.topLeft, sr.size, blendMode = BlendMode.Multiply,
+                    )
+                    if (isCurrent) {
+                        drawRect(colors.highlightCurrentRing, sr.topLeft, sr.size, style = Stroke(2f * density.density))
+                    }
+                }
+            }
+        }
+        if (selection != null && selection.page in range) {
+            for (rc in selection.rects) {
+                val sr = vp.toScreen(selection.page, rc.left, rc.top, rc.right, rc.bottom)
+                drawRect(colors.selection, sr.topLeft, sr.size)
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawBitmap(img: ImageBitmap, dst: Rect) {
+    drawImage(
+        image = img,
+        srcOffset = IntOffset.Zero,
+        srcSize = IntSize(img.width, img.height),
+        dstOffset = IntOffset(dst.left.roundToInt(), dst.top.roundToInt()),
+        dstSize = IntSize(dst.width.roundToInt().coerceAtLeast(1), dst.height.roundToInt().coerceAtLeast(1)),
+        filterQuality = FilterQuality.Medium,
+    )
+}

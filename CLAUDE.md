@@ -1,0 +1,66 @@
+# CLAUDE.md
+
+Visualizador de PDF para Android (Kotlin, Jetpack Compose), 100% offline. Parte da libre-apps.
+
+## Regras
+
+- **Idioma.** Código, comentários, commits, README e issues em **inglês**. Conversa com o
+  Guilherme em português. Textos do app em `res/values*/strings.xml`: inglês (padrão), `values-pt`
+  e `values-es`. Texto novo entra nos três.
+- **Nada de rede.** O manifest não declara `INTERNET` nem permissão de armazenamento. Arquivo
+  chega só pelo SAF (picker, "Abrir com", Compartilhar). Dependência que traga `INTERNET` para o
+  manifest mesclado é recusada. Sem anúncio, sem analytics, sem conta.
+- **Licença Apache-2.0.** Nada AGPL (MuPDF está fora). Toda dependência nova tem a licença
+  conferida e listada no README.
+- **Nome e id.** O app se chama "Open PDF Viewer" (não "OpenPDF", que é uma biblioteca Java
+  conhecida). `applicationId` = `io.github.guilhermefeitosa66.openpdfviewer`; o debug ganha o
+  sufixo `.debug` e o benchmark `.bench`. O id não muda depois da primeira publicação.
+- **Abrir rápido é requisito.** Regressão de cold start ou de "abrir até a primeira página" é bug
+  (veja Medir).
+
+## Comandos
+
+```bash
+tools/fetch-pdfium.sh                 # uma vez: baixa o PDFium fixado (SHA-256) para pdfium/prebuilt/
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleBenchmark      # release assinado com a chave de debug, para medir
+```
+
+Nesta máquina: `memoria-livre --precisa 3` antes de Gradle (o `gradle.properties` já desliga o
+daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
+
+## Medir
+
+- Cold start: `adb shell am start -W -n io.github.guilhermefeitosa66.openpdfviewer.bench/io.github.guilhermefeitosa66.openpdfviewer.MainActivity` (TotalTime).
+- Abrir até a primeira página: o app loga `OpenPdfViewer: open to first page: N ms`.
+- Referência (2026-11-24, emulador x86_64 API 35 sem GPU, build benchmark): cold start
+  500 a 650 ms; primeira página 146 ms na primeira abertura, ~25 ms ao reabrir.
+
+## Onde está o quê
+
+- `docs/roadmap.md`: levantamento (Acrobat Reader, iLovePDF) e as etapas. `docs/plan.md`: motor,
+  minSdk, arquitetura e orçamento de desempenho.
+- `pdfium/`: módulo com a camada JNI (`src/main/cpp/pdfium_jni.cpp`) e `PdfDocument`. O PDFium não
+  é thread-safe: toda chamada passa por `PdfiumThread`. Binários em `pdfium/prebuilt/` (fora do
+  git), versão e hashes em `tools/fetch-pdfium.sh`; as licenças dos binários viram assets do app.
+- `app/.../viewer/Viewport.kt`: geometria da rolagem contínua e do zoom (coordenadas de conteúdo,
+  tela e página normalizada 0..1).
+- `app/.../viewer/PageRenderer.kt`: bitmaps base (página no zoom 1, LRU pelo heap), detalhe (parte
+  visível em resolução cheia quando parado com zoom > 1,1) e miniaturas.
+- `app/.../viewer/TextSearch.kt`: normaliza o texto do PDFium (quebras `\r\n`, hífen de quebra
+  U+0002) para busca e cópia, mantendo o mapa para os índices de caractere. Testado.
+- `app/.../viewer/ViewerViewModel.kt`: abrir (senha, erros), busca, seleção.
+- `app/.../data/`: recentes (`recent.json` + miniaturas em cache) e acesso via SAF (copia para o
+  cache quando o provedor entrega um pipe).
+
+## Decisões
+
+- **Motor: PDFium** por JNI própria (justificativa em `docs/plan.md`). Edição futura (anotações,
+  formulários, mesclar, dividir, girar, salvar) usa o mesmo PDFium; qpdf ou PdfBox-Android só se
+  faltar algo.
+- **minSdk 26**, target/compile 36. ABIs: arm64-v8a, armeabi-v7a, x86_64.
+- **Dois módulos** (`:app`, `:pdfium`) em vez dos três do plano: o `:core` ficou dentro do `:app`
+  até haver um segundo consumidor.
+- **Seleção** limitada a uma página por vez na v0.1.
+- **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).
