@@ -156,6 +156,16 @@ class PdfDocument private constructor(private val handle: Long) {
         DocumentInfo(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], nums[0], nums[1] >= 0, nums[2], nums[3])
     }
 
+    /**
+     * Writes the document to [pfd] (a full rewrite). With [removeSecurity] a password-protected
+     * document, opened with its password, is written without encryption.
+     */
+    suspend fun saveCopy(pfd: ParcelFileDescriptor, removeSecurity: Boolean = false): Boolean =
+        withContext(PdfiumThread.dispatcher) {
+            if (closed) return@withContext false
+            PdfiumNative.saveCopy(handle, pfd.fd, removeSecurity)
+        }
+
     /** The link under a normalized point of page [index], if any. */
     suspend fun linkAt(index: Int, x: Float, y: Float): LinkTarget? = withContext(PdfiumThread.dispatcher) {
         if (closed) return@withContext null

@@ -296,6 +296,16 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Sends the document to the Android print dialog (it needs an Activity context). */
+    fun print(context: android.content.Context) {
+        val r = ready ?: return
+        val target = uri ?: return
+        viewModelScope.launch {
+            val encrypted = r.doc.info()?.encrypted == true
+            PdfPrintAdapter.print(context, viewModelScope, target, r.name, r.doc, encrypted)
+        }
+    }
+
     // ---- Bookmarks ----
 
     fun isBookmarked(page: Int) = bookmarks.any { it.page == page }

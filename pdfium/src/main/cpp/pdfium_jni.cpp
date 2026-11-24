@@ -14,6 +14,7 @@
 
 #include "fpdf_doc.h"
 #include "fpdf_formfill.h"
+#include "fpdf_save.h"
 #include "fpdf_signature.h"
 #include "fpdf_text.h"
 #include "fpdfview.h"
@@ -423,6 +424,50 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_documentInfo
     env->SetObjectArrayElement(result, 0, meta);
     env->SetObjectArrayElement(result, 1, jn);
     return result;
+}
+
+}  // extern "C"
+
+namespace {
+
+struct FdWriter : FPDF_FILEWRITE {
+    int fd;
+    bool failed;
+};
+
+int writeBlock(FPDF_FILEWRITE* self, const void* data, unsigned long size) {
+    auto* w = static_cast<FdWriter*>(self);
+    const auto* p = static_cast<const unsigned char*>(data);
+    unsigned long done = 0;
+    while (done < size) {
+        ssize_t n = write(w->fd, p + done, size - done);
+        if (n <= 0) {
+            w->failed = true;
+            return 0;
+        }
+        done += static_cast<unsigned long>(n);
+    }
+    return 1;
+}
+
+}  // namespace
+
+extern "C" {
+
+// Writes the whole document to fd (a full rewrite, not incremental). removeSecurity drops the
+// encryption of a password-protected document opened with its password.
+JNIEXPORT jboolean JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_saveCopy(
+        JNIEnv*, jobject, jlong handle, jint fd, jboolean removeSecurity) {
+    auto* d = reinterpret_cast<Document*>(handle);
+    FdWriter w{};
+    w.version = 1;
+    w.WriteBlock = writeBlock;
+    w.fd = fd;
+    w.failed = false;
+    FPDF_DWORD flags = FPDF_NO_INCREMENTAL | (removeSecurity ? FPDF_REMOVE_SECURITY : 0);
+    bool ok = FPDF_SaveAsCopy(d->doc, &w, flags);
+    return (ok && !w.failed) ? JNI_TRUE : JNI_FALSE;
 }
 
 }  // extern "C"

@@ -413,6 +413,13 @@ private fun TopBar(
                     },
                 )
                 DropdownMenuItem(
+                    text = { Text(stringResource(R.string.print)) },
+                    onClick = {
+                        menu = false
+                        vm.print(context)
+                    },
+                )
+                DropdownMenuItem(
                     text = { Text(stringResource(R.string.document_info)) },
                     onClick = {
                         menu = false

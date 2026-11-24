@@ -25,6 +25,7 @@ internal object PdfiumNative {
     external fun textRects(page: Long, text: Long, start: Int, count: Int): FloatArray
     external fun outline(handle: Long): Array<Any>
     external fun documentInfo(handle: Long): Array<Any>
+    external fun saveCopy(handle: Long, fd: Int, removeSecurity: Boolean): Boolean
     external fun linkAt(handle: Long, page: Long, x: Float, y: Float): String?
     external fun charIndexAt(page: Long, text: Long, x: Float, y: Float, tolerance: Float): Int
 }
