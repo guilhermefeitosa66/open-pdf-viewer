@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.4.0 (2026-11-24)
+
+- Page color for reading: normal, night or sepia, from the viewer menu. Applied as a color filter when drawing, so switching is instant and nothing is re-rendered; remembered globally, like the theme.
+
 ## 0.3.0 (2026-11-24)
 
 - Contents: the document outline as an expandable tree in a new tab of the pages sheet; the branch of the current page starts open.
