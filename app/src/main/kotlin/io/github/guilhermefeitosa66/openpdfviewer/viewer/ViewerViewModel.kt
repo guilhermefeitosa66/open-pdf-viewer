@@ -38,6 +38,9 @@ sealed interface DocState {
         val viewport: Viewport,
         val renderer: PageRenderer,
         val initialPage: Int,
+        val initialOffset: Float = 0f,
+        val initialZoom: Float = 1f,
+        val initialScrollX: Float = 0.5f,
     ) : DocState
 }
 
@@ -142,6 +145,9 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 viewport = Viewport(doc.pageSizes),
                 renderer = PageRenderer(doc, viewModelScope, startedAt),
                 initialPage = initialPage,
+                initialOffset = known?.offset ?: 0f,
+                initialZoom = known?.zoom ?: 1f,
+                initialScrollX = known?.scrollX ?: 0.5f,
             )
             recent.upsert(
                 RecentFile(
@@ -150,6 +156,9 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                     pageCount = doc.pageCount,
                     lastPage = initialPage,
                     openedAt = System.currentTimeMillis(),
+                    offset = known?.offset ?: 0f,
+                    zoom = known?.zoom ?: 1f,
+                    scrollX = known?.scrollX ?: 0.5f,
                 )
             )
             saveThumbnail(doc, target)
@@ -175,9 +184,10 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun onPageChanged(page: Int) {
+    /** Saves where the reader is (page, offset in it, zoom, horizontal position). */
+    fun onPositionChanged(page: Int, offset: Float, zoom: Float, scrollX: Float) {
         val target = uri ?: return
-        viewModelScope.launch { recent.setLastPage(target, page) }
+        viewModelScope.launch { recent.setPosition(target, page, offset, zoom, scrollX) }
     }
 
     // ---- Search ----

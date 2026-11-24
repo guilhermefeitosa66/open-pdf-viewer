@@ -179,19 +179,32 @@ class Viewport(private val sizes: List<PageSize>) {
         scrollY = scrollY.coerceIn(0f, (contentHeight - height).coerceAtLeast(0f))
     }
 
+    /** Horizontal position when zoomed in: 0 = left edge, 1 = right edge. */
+    val scrollXFraction: Float
+        get() = if (contentWidth <= width) 0.5f else (scrollX / (contentWidth - width)).coerceIn(0f, 1f)
+
+    /** Restores a saved reading position: zoom, then page and offset, then horizontal position. */
+    fun restore(zoom: Float, page: Int, offset: Float, xFraction: Float) {
+        this.zoom = zoom.coerceIn(MIN_ZOOM, MAX_ZOOM)
+        val p = page.coerceIn(0, (sizes.size - 1).coerceAtLeast(0))
+        scrollY = pageTop(p) + offset.coerceIn(0f, 1f) * pageHeight(p) - padTop - gap * zoom
+        scrollX = xFraction.coerceIn(0f, 1f) * (contentWidth - width)
+        clamp()
+    }
+
     /** The page at the top of the reading area and how far into it (normalized). */
     fun topAnchor(): Pair<Int, Float> = currentAnchor().let { it.page to it.offset.coerceIn(0f, 1f) }
 
     private data class Anchor(val page: Int, val offset: Float)
 
     private fun currentAnchor(): Anchor {
-        val y = scrollY + padTop
+        val y = scrollY + padTop + gap * zoom
         val i = pageAtContentY(y)
         return Anchor(i, ((y - pageTop(i)) / pageHeight(i)).coerceIn(-0.5f, 1f))
     }
 
     private fun restoreAnchor(a: Anchor) {
-        scrollY = pageTop(a.page) + a.offset * pageHeight(a.page) - padTop
+        scrollY = pageTop(a.page) + a.offset * pageHeight(a.page) - padTop - gap * zoom
         clamp()
     }
 

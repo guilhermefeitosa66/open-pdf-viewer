@@ -73,7 +73,8 @@ fun PdfCanvas(
         if (size.width == 0 || size.height == 0) return@LaunchedEffect
         vp.setSize(size.width.toFloat(), size.height.toFloat(), padTop, padBottom, gap, gap)
         if (!placed) {
-            vp.scrollToPage(ready.initialPage)
+            if (ready.initialOffset == 0f && ready.initialZoom == 1f) vp.scrollToPage(ready.initialPage)
+            else vp.restore(ready.initialZoom, ready.initialPage, ready.initialOffset, ready.initialScrollX)
             placed = true
         }
         renderer.request(vp)
@@ -90,10 +91,13 @@ fun PdfCanvas(
             }
     }
     LaunchedEffect(ready) {
-        snapshotFlow { vp.currentPage }
+        // Remember the reading position (page shown, offset into the page at the top, zoom).
+        snapshotFlow { Triple(vp.topAnchor(), vp.zoom, vp.scrollXFraction) }
             .distinctUntilChanged()
             .debounce(600)
-            .collect { if (placed) vm.onPageChanged(it) }
+            .collect { (anchor, zoom, x) ->
+                if (placed) vm.onPositionChanged(anchor.first, anchor.second, zoom, x)
+            }
     }
 
     val vScroll = rememberScrollableState { d -> -vp.scrollBy(0f, -d).y }

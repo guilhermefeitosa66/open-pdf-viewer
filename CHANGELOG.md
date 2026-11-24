@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.6.0 (2026-11-24)
+
+- The exact reading position is remembered per document: page, offset inside it, zoom and horizontal position, restored when the file opens again.
+- Fix: restoring the position no longer counts as scrolling, so full screen does not hide the bars right after opening.
+
 ## 0.5.0 (2026-11-24)
 
 - Reading options in the viewer menu: keep screen on, lock rotation, and full screen while reading (the app and system bars hide once the page scrolls; a tap brings them back). Page padding ignores system bar visibility, so pages do not jump.

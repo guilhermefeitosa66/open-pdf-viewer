@@ -701,7 +701,14 @@ private fun ReadingWindowOptions(vm: ViewerViewModel, vp: Viewport, barsVisible:
     LaunchedEffect(vp, settings.fullScreen) {
         if (!settings.fullScreen) return@LaunchedEffect
         var anchor = vp.scrollY
-        snapshotFlow { vp.scrollY }.collect { y ->
+        var wasReady = vp.ready
+        snapshotFlow { vp.ready to vp.scrollY }.collect { (ready, y) ->
+            // The first placement (restoring the saved position) is not the reader scrolling.
+            if (!wasReady || !ready) {
+                wasReady = ready
+                anchor = y
+                return@collect
+            }
             if (kotlin.math.abs(y - anchor) > threshold) {
                 anchor = y
                 if (!vm.searchOpen && vm.selection == null) onHideBars()

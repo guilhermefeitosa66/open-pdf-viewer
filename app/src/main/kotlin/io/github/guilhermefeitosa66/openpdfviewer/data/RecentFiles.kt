@@ -20,6 +20,10 @@ data class RecentFile(
     val pageCount: Int,
     val lastPage: Int,
     val openedAt: Long,
+    /** Where the reader was: offset into [lastPage] (0..1), zoom, horizontal position (0..1). */
+    val offset: Float = 0f,
+    val zoom: Float = 1f,
+    val scrollX: Float = 0.5f,
 ) {
     val key: String get() = keyOf(uri)
 
@@ -60,8 +64,10 @@ class RecentFiles(context: Context) {
         listOf(entry) + list.filterNot { it.uri == entry.uri }
     }
 
-    suspend fun setLastPage(uri: Uri, page: Int) = update { list ->
-        list.map { if (it.uri == uri.toString()) it.copy(lastPage = page) else it }
+    suspend fun setPosition(uri: Uri, page: Int, offset: Float, zoom: Float, scrollX: Float) = update { list ->
+        list.map {
+            if (it.uri == uri.toString()) it.copy(lastPage = page, offset = offset, zoom = zoom, scrollX = scrollX) else it
+        }
     }
 
     suspend fun remove(entry: RecentFile) {
@@ -95,6 +101,9 @@ class RecentFiles(context: Context) {
                 pageCount = o.optInt("pageCount", 0),
                 lastPage = o.optInt("lastPage", 0),
                 openedAt = o.optLong("openedAt", 0L),
+                offset = o.optDouble("offset", 0.0).toFloat(),
+                zoom = o.optDouble("zoom", 1.0).toFloat(),
+                scrollX = o.optDouble("scrollX", 0.5).toFloat(),
             )
         }
     }.getOrDefault(emptyList())
@@ -109,6 +118,9 @@ class RecentFiles(context: Context) {
                     .put("pageCount", it.pageCount)
                     .put("lastPage", it.lastPage)
                     .put("openedAt", it.openedAt)
+                    .put("offset", it.offset.toDouble())
+                    .put("zoom", it.zoom.toDouble())
+                    .put("scrollX", it.scrollX.toDouble())
             )
         }
         val tmp = File(file.parentFile, file.name + ".tmp")
