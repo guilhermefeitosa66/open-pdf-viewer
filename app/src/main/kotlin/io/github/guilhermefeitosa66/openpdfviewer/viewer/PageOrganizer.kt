@@ -270,6 +270,10 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                         }
                         pages.clear(); pages.addAll(out)
                     }
+                    ActionButton(AppIcons.Download, stringResource(R.string.extract), has) {
+                        val chosen = pages.filter { it.id in selected }
+                        vm.applyOrganize(chosen.map { it.source }.toIntArray(), chosen.map { it.turns }.toIntArray(), extras.toList(), asCopy = true, extract = true)
+                    }
                     ActionButton(Icons.Filled.Delete, stringResource(R.string.delete), has && selected.size < pages.size) {
                         snapshot()
                         pages.removeAll { it.id in selected }

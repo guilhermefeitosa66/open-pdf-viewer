@@ -267,4 +267,5 @@
     <string name="pages_to_insert">Pages</string>
     <string name="all_pages_n">All (1–%1$d)</string>
     <string name="range_hint">For example: 1-3, 5, 8-</string>
+    <string name="extract">Extract</string>
 </resources>

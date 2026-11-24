@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.31.0 (2026-11-24)
+
+- Organize pages › Extract: the selected pages (in their order, with any rotation) become a new PDF saved where you choose; the open document does not change.
+
 ## 0.30.0 (2026-11-24)
 
 - Organize pages › Insert: a blank page (same size as the page before, A4 or Letter) or pages from another PDF, with a page range such as 1-3, 5, 8- and a password prompt for protected files. New pages go after the selected ones.

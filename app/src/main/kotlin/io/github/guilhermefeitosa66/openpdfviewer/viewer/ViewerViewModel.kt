@@ -974,13 +974,22 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** The pending file is extracted pages: saving it does not switch documents. */
+    private var extracting = false
+
     /** Writes the pending file to [target] and continues reading it there. */
     fun exportPending(target: Uri?) {
         val file = fileToExport?.first ?: return
         fileToExport = null
+        val onlyExport = extracting
+        extracting = false
         if (target == null) return
         val r = ready
         viewModelScope.launch {
+            if (onlyExport) {
+                exportResult = DocumentSource.overwrite(getApplication(), target, file)
+                return@launch
+            }
             if (DocumentSource.overwrite(getApplication(), target, file)) {
                 r?.doc?.markSaved()
                 unsaved = false
@@ -1025,12 +1034,16 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         data class FromFile(val uri: Uri, val password: String?, val index: Int, val name: String) : InsertedPage
     }
 
-    fun applyOrganize(order: IntArray, rotations: IntArray, extras: List<InsertedPage>, asCopy: Boolean) {
+    /**
+     * [extract]: the result is a new file with just these pages; the open document stays as it
+     * is (and the organizer stays open).
+     */
+    fun applyOrganize(order: IntArray, rotations: IntArray, extras: List<InsertedPage>, asCopy: Boolean, extract: Boolean = false) {
         val r = ready ?: return
         val target = uri ?: return
         if (saving || order.isEmpty()) return
         saving = true
-        organizeOpen = false
+        if (!extract) organizeOpen = false
         viewModelScope.launch {
             val out = runCatching {
                 val tmp = writeToTemp(r.doc) ?: return@runCatching null
@@ -1077,6 +1090,15 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
             if (out == null) {
                 saving = false
                 exportResult = false
+                return@launch
+            }
+            if (extract) {
+                // A separate file so a later save of the organizer does not overwrite it.
+                val kept = java.io.File(out.parentFile, "extracted.pdf")
+                out.copyTo(kept, overwrite = true)
+                saving = false
+                extracting = true
+                fileToExport = kept to "pages"
                 return@launch
             }
             if (!asCopy && DocumentSource.overwrite(getApplication(), target, out)) {
