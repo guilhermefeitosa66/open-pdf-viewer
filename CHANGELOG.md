@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.15.0 (2026-11-24)
+
+- Search options: whole word and ignore accents (on by default, so "exportacao" finds "exportação"), next to match case.
+- All results: a list of every match with a short excerpt around it, grouped by page; tap one to jump there.
+
 ## 0.14.1 (2026-11-24)
 
 - Faster home screen start: plain text tabs instead of a Material TabRow, and favorites and folders load after the first frame.

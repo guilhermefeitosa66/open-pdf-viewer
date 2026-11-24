@@ -138,4 +138,7 @@
     <string name="sort_name">Name</string>
     <string name="sort_date">Date modified</string>
     <string name="sort_size">Size</string>
+    <string name="whole_word">Whole word</string>
+    <string name="ignore_accents">Ignore accents</string>
+    <string name="all_results">All results</string>
 </resources>

@@ -44,7 +44,15 @@ sealed interface DocState {
     ) : DocState
 }
 
-data class Match(val page: Int, val start: Int, val length: Int, val rects: List<RectF>)
+data class Match(
+    val page: Int,
+    val start: Int,
+    val length: Int,
+    val rects: List<RectF>,
+    val before: String = "",
+    val text: String = "",
+    val after: String = "",
+)
 
 data class Selection(val page: Int, val start: Int, val end: Int, val rects: List<RectF>)
 
@@ -63,6 +71,10 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var query by mutableStateOf("")
         private set
     var matchCase by mutableStateOf(false)
+        private set
+    var wholeWord by mutableStateOf(false)
+        private set
+    var ignoreAccents by mutableStateOf(true)
         private set
     var searching by mutableStateOf(false)
         private set
@@ -208,6 +220,23 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         runSearch()
     }
 
+    fun toggleWholeWord() {
+        wholeWord = !wholeWord
+        runSearch()
+    }
+
+    fun toggleIgnoreAccents() {
+        ignoreAccents = !ignoreAccents
+        runSearch()
+    }
+
+    /** Jumps to match [index] (from the results list). */
+    fun goToMatch(index: Int) {
+        if (index !in matches.indices) return
+        currentMatch = index
+        revealMatch()
+    }
+
     fun closeSearch() {
         searchOpen = false
         searchJob?.cancel()
@@ -231,17 +260,17 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         clearMatches()
         val r = ready ?: return
         val q = query
-        val case = matchCase
+        val options = NormalizedText.Options(matchCase = matchCase, wholeWord = wholeWord, ignoreAccents = ignoreAccents)
         if (NormalizedText.normalizeQuery(q).isEmpty()) return
         searching = true
         searchJob = viewModelScope.launch {
             delay(250)
             val startPage = r.viewport.currentPage
             for (page in 0 until r.doc.pageCount) {
-                val found = normalizedText(r.doc, page).find(q, case, MAX_MATCHES - matches.size)
-                for ((start, len) in found) {
-                    val rects = r.doc.textRects(page, start, len)
-                    matches += Match(page, start, len, rects)
+                val found = normalizedText(r.doc, page).findHits(q, options, MAX_MATCHES - matches.size)
+                for (hit in found) {
+                    val rects = r.doc.textRects(page, hit.start, hit.count)
+                    matches += Match(page, hit.start, hit.count, rects, hit.before, hit.match, hit.after)
                     matchesByPage.getOrPut(page) { ArrayList() } += matches.lastIndex
                     if (currentMatch < 0 && page >= startPage) {
                         currentMatch = matches.lastIndex

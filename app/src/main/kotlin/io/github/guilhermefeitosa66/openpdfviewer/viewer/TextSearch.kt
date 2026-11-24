@@ -65,24 +65,75 @@ class NormalizedText(source: String) {
         return out
     }
 
+    /** Search options beyond the text itself. */
+    data class Options(val matchCase: Boolean = false, val wholeWord: Boolean = false, val ignoreAccents: Boolean = true)
+
+    /** One hit: the page char range plus a short excerpt around it for the results list. */
+    data class Hit(val start: Int, val count: Int, val before: String, val match: String, val after: String)
+
+    /** Accent-folded copy of [text], same length, so indices stay aligned. */
+    private val folded: String by lazy { fold(text) }
+
     /** All matches as (page char start, page char count). */
-    fun find(query: String, matchCase: Boolean, limit: Int = Int.MAX_VALUE): List<Pair<Int, Int>> {
-        val q = normalizeQuery(query)
+    fun find(query: String, matchCase: Boolean, limit: Int = Int.MAX_VALUE): List<Pair<Int, Int>> =
+        findHits(query, Options(matchCase = matchCase, ignoreAccents = false), limit).map { it.start to it.count }
+
+    fun findHits(query: String, options: Options, limit: Int = Int.MAX_VALUE): List<Hit> {
+        var q = normalizeQuery(query)
         if (q.isEmpty()) return emptyList()
-        val out = ArrayList<Pair<Int, Int>>()
+        val hay = if (options.ignoreAccents) folded else text
+        if (options.ignoreAccents) q = fold(q)
+        val out = ArrayList<Hit>()
         var from = 0
         while (out.size < limit) {
-            val idx = text.indexOf(q, from, ignoreCase = !matchCase)
+            val idx = hay.indexOf(q, from, ignoreCase = !options.matchCase)
             if (idx < 0) break
-            val start = map[idx]
-            val end = map[idx + q.length - 1] + 1
-            out += start to (end - start)
+            val end = idx + q.length
             from = idx + q.length.coerceAtLeast(1)
+            if (options.wholeWord && (isWordAt(idx - 1) || isWordAt(end))) continue
+            val start = map[idx]
+            val pageEnd = map[end - 1] + 1
+            out += Hit(
+                start, pageEnd - start,
+                before = excerpt(text, (idx - CONTEXT).coerceAtLeast(0), idx, leading = true),
+                match = text.substring(idx, end),
+                after = excerpt(text, end, (end + CONTEXT).coerceAtMost(text.length), leading = false),
+            )
         }
         return out
     }
 
+    private fun isWordAt(i: Int) = i in text.indices && text[i].isLetterOrDigit()
+
     companion object {
+        private const val CONTEXT = 40
+
+        /** Removes diacritics char by char (á → a, ç → c), keeping the length. */
+        fun fold(s: String): String {
+            val sb = StringBuilder(s.length)
+            for (c in s) {
+                val d = java.text.Normalizer.normalize(c.toString(), java.text.Normalizer.Form.NFD)
+                val base = d[0]
+                val onlyMarks = d.length > 1 && d.substring(1).all { Character.getType(it) == Character.NON_SPACING_MARK.toInt() }
+                sb.append(if (onlyMarks || d.length == 1) base else c)
+            }
+            return sb.toString()
+        }
+
+        /** A piece of context cut at a word boundary, with an ellipsis when cut. */
+        private fun excerpt(t: String, from: Int, to: Int, leading: Boolean): String {
+            var a = from
+            var b = to
+            if (leading && a > 0) { val sp = t.indexOf(' ', a); if (sp in a until b) a = sp + 1 }
+            if (!leading && b < t.length) { val sp = t.lastIndexOf(' ', b - 1); if (sp > a) b = sp }
+            val core = t.substring(a, b)
+            return when {
+                leading && a > 0 -> "…$core"
+                !leading && b < t.length -> "$core…"
+                else -> core
+            }
+        }
+
         fun normalizeQuery(q: String): String = q.trim().replace(Regex("\\s+"), " ")
 
         /** Text for the clipboard: line breaks kept, wrap hyphens joined. */

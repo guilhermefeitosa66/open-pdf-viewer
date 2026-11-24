@@ -37,6 +37,9 @@ import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
@@ -476,6 +479,7 @@ private fun SearchBar(vm: ViewerViewModel) {
     LaunchedEffect(Unit) { focus.requestFocus() }
     @Suppress("UNUSED_VARIABLE") val version = vm.matchesVersion // re-read matches when they change
     val hasMatches = vm.matches.isNotEmpty()
+    var resultsOpen by remember { mutableStateOf(false) }
     Column {
         Row(
             Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
@@ -509,9 +513,9 @@ private fun SearchBar(vm: ViewerViewModel) {
             }
         }
         Row(
-            Modifier.fillMaxWidth().padding(start = 56.dp, end = 16.dp, bottom = 6.dp).height(36.dp),
+            Modifier.fillMaxWidth().padding(start = 56.dp, end = 8.dp).height(36.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             val count = vm.matches.size
             val m = vm.matches.getOrNull(vm.currentMatch)
@@ -529,11 +533,60 @@ private fun SearchBar(vm: ViewerViewModel) {
                     }
                 }
             }
-            FilterChip(
-                selected = vm.matchCase,
-                onClick = vm::toggleMatchCase,
-                label = { Text(stringResource(R.string.match_case), fontSize = 13.sp) },
-            )
+            if (count > 0) TextButton(onClick = { resultsOpen = true }) { Text(stringResource(R.string.all_results), fontSize = 13.sp) }
+        }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(start = 56.dp, end = 16.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(selected = vm.matchCase, onClick = vm::toggleMatchCase, label = { Text(stringResource(R.string.match_case), fontSize = 13.sp) })
+            FilterChip(selected = vm.wholeWord, onClick = vm::toggleWholeWord, label = { Text(stringResource(R.string.whole_word), fontSize = 13.sp) })
+            FilterChip(selected = vm.ignoreAccents, onClick = vm::toggleIgnoreAccents, label = { Text(stringResource(R.string.ignore_accents), fontSize = 13.sp) })
+        }
+    }
+    if (resultsOpen) SearchResultsSheet(vm, onDismiss = { resultsOpen = false })
+}
+
+/** Every match with a bit of context, grouped by page; tapping one jumps to it. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchResultsSheet(vm: ViewerViewModel, onDismiss: () -> Unit) {
+    @Suppress("UNUSED_VARIABLE") val version = vm.matchesVersion
+    val matches = vm.matches.toList()
+    val strong = MaterialTheme.colorScheme.primary
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().fillMaxHeight(0.85f)) {
+            var lastPage = -1
+            matches.forEachIndexed { i, m ->
+                if (m.page != lastPage) {
+                    lastPage = m.page
+                    item(key = "p${m.page}") {
+                        Text(
+                            stringResource(R.string.page_n, m.page + 1),
+                            modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 4.dp),
+                            fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                item(key = i) {
+                    Text(
+                        androidx.compose.ui.text.buildAnnotatedString {
+                            append(m.before)
+                            pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = strong))
+                            append(m.text)
+                            pop()
+                            append(m.after)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable { vm.goToMatch(i); onDismiss() }
+                            .background(if (i == vm.currentMatch) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        fontSize = 14.sp, lineHeight = 20.sp,
+                    )
+                }
+            }
         }
     }
 }

@@ -52,3 +52,41 @@ class SentencesTest {
         org.junit.Assert.assertEquals("Then\r\nshoot!", page.substring(start, start + count))
     }
 }
+
+class AdvancedSearchTest {
+    private val page = "A função de exportação\r\nexporta tudo. Exportar é fácil; não-exportável."
+
+    @org.junit.Test
+    fun ignoresAccentsByDefault() {
+        val hits = NormalizedText(page).findHits("exportacao", NormalizedText.Options())
+        org.junit.Assert.assertEquals(listOf("exportação"), hits.map { it.match })
+    }
+
+    @org.junit.Test
+    fun accentsCanMatter() {
+        val hits = NormalizedText(page).findHits("exportacao", NormalizedText.Options(ignoreAccents = false))
+        org.junit.Assert.assertEquals(0, hits.size)
+    }
+
+    @org.junit.Test
+    fun wholeWordSkipsPartials() {
+        val all = NormalizedText(page).findHits("exporta", NormalizedText.Options())
+        val whole = NormalizedText(page).findHits("exporta", NormalizedText.Options(wholeWord = true))
+        org.junit.Assert.assertEquals(4, all.size)
+        org.junit.Assert.assertEquals(listOf("exporta"), whole.map { it.match })
+    }
+
+    @org.junit.Test
+    fun contextAroundTheMatch() {
+        val hit = NormalizedText(page).findHits("fácil", NormalizedText.Options()).single()
+        org.junit.Assert.assertTrue(hit.before.endsWith("Exportar é "))
+        org.junit.Assert.assertTrue(hit.after.startsWith("; não"))
+    }
+
+    @org.junit.Test
+    fun foldKeepsLength() {
+        val s = "Ação, pingüim, naïve, Ñandú"
+        org.junit.Assert.assertEquals(s.length, NormalizedText.fold(s).length)
+        org.junit.Assert.assertEquals("Acao, pinguim, naive, Nandu", NormalizedText.fold(s))
+    }
+}

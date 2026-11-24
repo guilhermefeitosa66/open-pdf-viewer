@@ -137,4 +137,7 @@
     <string name="sort_name">Nome</string>
     <string name="sort_date">Data de modificação</string>
     <string name="sort_size">Tamanho</string>
+    <string name="whole_word">Palavra inteira</string>
+    <string name="ignore_accents">Ignorar acentos</string>
+    <string name="all_results">Todos os resultados</string>
 </resources>
