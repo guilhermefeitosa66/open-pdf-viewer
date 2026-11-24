@@ -94,6 +94,7 @@ import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
 import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalBackgroundAsset
 import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalReaderColors
 import io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeBackground
+import io.github.guilhermefeitosa66.openpdfviewer.ui.rememberFileActions
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -145,6 +146,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     val context = LocalContext.current
     val density = LocalDensity.current
     val vp = ready.viewport
+    val fileActions = rememberFileActions()
     var barsVisible by rememberSaveable { mutableStateOf(true) }
     var pagesOpen by rememberSaveable { mutableStateOf(false) }
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -203,7 +205,8 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
                     onBack = onBack,
                     onSearch = { vm.searchOpen = true },
                     onPages = { pagesOpen = true },
-                    onShare = { shareFile(context, vm.uri) },
+                    onShare = { vm.uri?.let { fileActions.share(it, ready.name) } },
+                    onSaveCopy = { vm.uri?.let { fileActions.saveCopy(it, ready.name) } },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -233,6 +236,7 @@ private fun TopBar(
     onSearch: () -> Unit,
     onPages: () -> Unit,
     onShare: () -> Unit,
+    onSaveCopy: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     val vp = ready.viewport
@@ -281,6 +285,13 @@ private fun TopBar(
                     onClick = {
                         menu = false
                         onShare()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.save_copy)) },
+                    onClick = {
+                        menu = false
+                        onSaveCopy()
                     },
                 )
             }
@@ -580,11 +591,4 @@ private fun Failure(kind: DocState.Failed.Kind, onBack: () -> Unit, onPickFile: 
     }
 }
 
-private fun shareFile(context: Context, uri: Uri?) {
-    if (uri == null) return
-    val send = Intent(Intent.ACTION_SEND)
-        .setType("application/pdf")
-        .putExtra(Intent.EXTRA_STREAM, uri)
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    runCatching { context.startActivity(Intent.createChooser(send, null)) }
-}
+

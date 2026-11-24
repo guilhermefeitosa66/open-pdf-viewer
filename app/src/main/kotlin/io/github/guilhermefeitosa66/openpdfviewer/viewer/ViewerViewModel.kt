@@ -143,6 +143,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 )
             )
             saveThumbnail(doc, target)
+            DocumentSource.keepPrivateCopy(app, target)
         }
     }
 

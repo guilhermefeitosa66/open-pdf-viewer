@@ -60,4 +60,11 @@
     <string name="background_image">Background image</string>
     <string name="background_image_desc">Shown on the home screen and behind the bars. Documents always sit on a solid color.</string>
     <string name="background_image_none">This theme has no background image.</string>
+    <string name="save_copy">Save a copy…</string>
+    <string name="saved_copy">Copy saved</string>
+    <string name="copying">Copying…</string>
+    <string name="copy_failed">Could not copy the file.</string>
+    <string name="file_unavailable">This file is no longer available. Open it again from the app that sent it.</string>
+    <string name="remove_from_list">Remove from list</string>
+    <string name="file_options">Options for %1$s</string>
 </resources>

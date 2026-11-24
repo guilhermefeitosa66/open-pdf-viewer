@@ -37,13 +37,21 @@ data class RecentFile(
 class RecentFiles(context: Context) {
     private val file = File(context.filesDir, "recent.json")
     val thumbDir = File(context.cacheDir, "thumbs")
+    private val receivedDir = File(context.filesDir, "received")
     private val mutex = Mutex()
     private val _items = MutableStateFlow<List<RecentFile>?>(null)
     val items: StateFlow<List<RecentFile>?> = _items.asStateFlow()
 
     suspend fun load() = mutex.withLock {
         if (_items.value != null) return@withLock
-        _items.value = withContext(Dispatchers.IO) { read() }
+        _items.value = withContext(Dispatchers.IO) {
+            read().also { list ->
+                // Private copies of files no longer in the list go away at the next start
+                // (not on removal, so "Undo" keeps working).
+                val keep = list.mapTo(HashSet()) { it.key + ".pdf" }
+                receivedDir.listFiles()?.forEach { if (it.name !in keep) it.delete() }
+            }
+        }
     }
 
     fun find(uri: Uri): RecentFile? = _items.value?.firstOrNull { it.uri == uri.toString() }

@@ -77,6 +77,7 @@ import io.github.guilhermefeitosa66.openpdfviewer.data.RecentFiles
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
 import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalBackgroundAsset
 import io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeBackground
+import io.github.guilhermefeitosa66.openpdfviewer.ui.rememberFileActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -98,6 +99,7 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
     // With a background image, content sits on the theme surface at ~85% so text stays readable.
     val hasImage = LocalBackgroundAsset.current != null
     val panel = if (hasImage) MaterialTheme.colorScheme.surface.copy(alpha = 0.85f) else Color.Transparent
+    val fileActions = rememberFileActions()
     val removedText = stringResource(R.string.removed_from_list)
     val undoText = stringResource(R.string.undo)
 
@@ -177,7 +179,18 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                                 },
                             )
                             SwipeToDismissBox(state = state, backgroundContent = {}) {
-                                RecentRow(entry, recent, if (hasImage) panel else MaterialTheme.colorScheme.background) { onOpen(Uri.parse(entry.uri)) }
+                                RecentRow(
+                                    entry, recent, if (hasImage) panel else MaterialTheme.colorScheme.background,
+                                    onShare = { fileActions.share(Uri.parse(entry.uri), entry.name) },
+                                    onSaveCopy = { fileActions.saveCopy(Uri.parse(entry.uri), entry.name) },
+                                    onRemove = {
+                                        scope.launch {
+                                            recent.remove(entry)
+                                            val r = snackbar.showSnackbar(removedText, undoText, duration = SnackbarDuration.Short)
+                                            if (r == SnackbarResult.ActionPerformed) recent.restore(entry)
+                                        }
+                                    },
+                                ) { onOpen(Uri.parse(entry.uri)) }
                             }
                         }
                         item {
@@ -244,7 +257,16 @@ private fun EmptyState(panel: Color) {
 }
 
 @Composable
-private fun RecentRow(entry: RecentFile, recent: RecentFiles, rowColor: Color, onClick: () -> Unit) {
+private fun RecentRow(
+    entry: RecentFile,
+    recent: RecentFiles,
+    rowColor: Color,
+    onShare: () -> Unit,
+    onSaveCopy: () -> Unit,
+    onRemove: () -> Unit,
+    onClick: () -> Unit,
+) {
+    var menu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val thumb by produceState<ImageBitmap?>(null, entry.key, entry.openedAt) {
         value = withContext(Dispatchers.IO) {
@@ -299,6 +321,16 @@ private fun RecentRow(entry: RecentFile, recent: RecentFiles, rowColor: Color, o
                 drawStopIndicator = {},
                 gapSize = 0.dp,
             )
+        }
+        Box {
+            IconButton(onClick = { menu = true }) {
+                Icon(Icons.Filled.MoreVert, stringResource(R.string.file_options, entry.name))
+            }
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; onShare() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; onSaveCopy() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.remove_from_list)) }, onClick = { menu = false; onRemove() })
+            }
         }
     }
 }

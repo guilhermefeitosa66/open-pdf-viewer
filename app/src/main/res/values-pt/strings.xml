@@ -59,4 +59,11 @@
     <string name="background_image">Imagem de fundo</string>
     <string name="background_image_desc">Aparece na tela inicial e atrás das barras. O documento fica sempre sobre cor sólida.</string>
     <string name="background_image_none">Este tema não tem imagem de fundo.</string>
+    <string name="save_copy">Salvar uma cópia…</string>
+    <string name="saved_copy">Cópia salva</string>
+    <string name="copying">Copiando…</string>
+    <string name="copy_failed">Não foi possível copiar o arquivo.</string>
+    <string name="file_unavailable">Este arquivo não está mais disponível. Abra de novo pelo app que o enviou.</string>
+    <string name="remove_from_list">Tirar da lista</string>
+    <string name="file_options">Opções de %1$s</string>
 </resources>
