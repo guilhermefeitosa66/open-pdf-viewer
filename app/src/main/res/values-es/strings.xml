@@ -53,4 +53,10 @@
     <string name="pick_again">Elegir el archivo</string>
     <string name="today">Hoy</string>
     <string name="yesterday">Ayer</string>
+    <string name="settings">Ajustes</string>
+    <string name="theme">Tema</string>
+    <string name="theme_libre_apps">libre-apps (sigue el sistema)</string>
+    <string name="background_image">Imagen de fondo</string>
+    <string name="background_image_desc">Aparece en la pantalla de inicio y detrás de las barras. El documento siempre queda sobre un color sólido.</string>
+    <string name="background_image_none">Este tema no tiene imagen de fondo.</string>
 </resources>

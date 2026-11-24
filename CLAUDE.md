@@ -37,6 +37,20 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
 - Referência (2026-11-24, emulador x86_64 API 35 sem GPU, build benchmark): cold start
   500 a 650 ms; primeira página 146 ms na primeira abertura, ~25 ms ao reabrir.
 
+## Temas
+
+- Vêm de `~/projetos/pessoal/libre-apps-themes` **copiados** para `app/src/main/assets/themes/` por
+  `tools/sync-themes.py` (nunca referenciar a pasta de fora). Padrão: libre-apps seguindo o sistema.
+- Regras do README dos temas: imagem de fundo só na tela inicial/recentes e atrás das barras
+  (superfície a 85%); **a área do documento é sempre cor sólida**; o fundo carrega depois do
+  primeiro quadro (`ThemeBackground`, `BackgroundCache`) e pode ser desligado nas configurações.
+- A abertura não lê o `themes.json`: o tema escolhido fica em cache nas preferências
+  (`ThemeSettings.current`, refeito quando muda o versionCode).
+- A página do PDF é papel branco em qualquer tema, então o destaque de busca usa as cores de papel
+  (as `searchHit` dos temas escuros são para fundo escuro); seleção = `accent` a 30%.
+- Contraste: onde um token não passa AA em texto pequeno (Pastel: `accent` 3,8 e `textMuted` 3,6),
+  `schemeFor` usa o token mais forte do próprio tema (`link`, `text`). Não inventar cor.
+
 ## Onde está o quê
 
 - `docs/roadmap.md`: levantamento (Acrobat Reader, iLovePDF) e as etapas. `docs/plan.md`: motor,

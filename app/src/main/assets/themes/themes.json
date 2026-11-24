@@ -1,0 +1,78 @@
+{
+  "$comment": "Temas padrão dos apps libre-apps. 'libre-apps' (claro/escuro da marca) segue sendo o padrão; estes são extras escolhidos pelo usuário. Cores em hex sRGB.",
+  "version": 1,
+  "themes": [
+    {
+      "id": "pastel",
+      "name": "Pastel",
+      "scheme": "light",
+      "background": "backgrounds/svg/pastel.svg",
+      "ui": {
+        "bg": "#FBF7F4", "surface": "#FFFFFF", "surfaceAlt": "#F3EDF7", "border": "#E6DEEC",
+        "text": "#3D3A4B", "textMuted": "#857F94", "accent": "#8E6CD1", "onAccent": "#FFFFFF",
+        "accent2": "#E58BA5", "selection": "#E4D8F7", "searchHit": "#FBE7A6", "link": "#6C55B8",
+        "success": "#4E9E80", "warning": "#C98A3D", "error": "#C9566F"
+      },
+      "syntax": {
+        "keyword": "#8A5CC2", "string": "#3A8F6E", "number": "#C0662D", "comment": "#A19CAE",
+        "function": "#3F74B0", "type": "#B84F78", "variable": "#3D3A4B", "constant": "#C0662D",
+        "operator": "#6F6A80", "punctuation": "#857F94", "tag": "#B84F78", "attribute": "#9A7A1E"
+      },
+      "markdown": { "heading": "#6C55B8", "quoteBar": "#F4A7B9", "codeBg": "#F3EDF7", "hr": "#E6DEEC" }
+    },
+    {
+      "id": "dracula",
+      "name": "Dracula",
+      "scheme": "dark",
+      "background": "backgrounds/svg/dracula.svg",
+      "ui": {
+        "bg": "#282A36", "surface": "#21222C", "surfaceAlt": "#343746", "border": "#44475A",
+        "text": "#F8F8F2", "textMuted": "#A4A9C7", "accent": "#BD93F9", "onAccent": "#282A36",
+        "accent2": "#FF79C6", "selection": "#44475A", "searchHit": "#6B6B3A", "link": "#8BE9FD",
+        "success": "#50FA7B", "warning": "#FFB86C", "error": "#FF5555"
+      },
+      "syntax": {
+        "keyword": "#FF79C6", "string": "#F1FA8C", "number": "#BD93F9", "comment": "#6272A4",
+        "function": "#50FA7B", "type": "#8BE9FD", "variable": "#F8F8F2", "constant": "#BD93F9",
+        "operator": "#FF79C6", "punctuation": "#F8F8F2", "tag": "#FF79C6", "attribute": "#50FA7B"
+      },
+      "markdown": { "heading": "#BD93F9", "quoteBar": "#6272A4", "codeBg": "#21222C", "hr": "#44475A" }
+    },
+    {
+      "id": "kitty",
+      "name": "Kitty",
+      "scheme": "dark",
+      "background": "backgrounds/svg/kitty.svg",
+      "ui": {
+        "bg": "#1C1820", "surface": "#231E28", "surfaceAlt": "#2E2734", "border": "#3D3445",
+        "text": "#EEE3F2", "textMuted": "#A595AF", "accent": "#F5A9C8", "onAccent": "#2A1E26",
+        "accent2": "#C7A6F2", "selection": "#46384F", "searchHit": "#5E4A2E", "link": "#9CCFF0",
+        "success": "#A6E3C4", "warning": "#F6C1A0", "error": "#F28FA0"
+      },
+      "syntax": {
+        "keyword": "#C7A6F2", "string": "#A6E3C4", "number": "#F6C1A0", "comment": "#7E7088",
+        "function": "#9CCFF0", "type": "#F5A9C8", "variable": "#EEE3F2", "constant": "#F6C1A0",
+        "operator": "#D8B4E2", "punctuation": "#A595AF", "tag": "#F5A9C8", "attribute": "#F3DFA2"
+      },
+      "markdown": { "heading": "#F5A9C8", "quoteBar": "#C7A6F2", "codeBg": "#231E28", "hr": "#3D3445" }
+    },
+    {
+      "id": "neon",
+      "name": "Neon (Tokyo Night)",
+      "scheme": "dark",
+      "background": "backgrounds/svg/neon.svg",
+      "ui": {
+        "bg": "#1A1B26", "surface": "#16161E", "surfaceAlt": "#24283B", "border": "#2F3549",
+        "text": "#C0CAF5", "textMuted": "#7A82AB", "accent": "#7AA2F7", "onAccent": "#16161E",
+        "accent2": "#BB9AF7", "selection": "#283457", "searchHit": "#4A3F2A", "link": "#7DCFFF",
+        "success": "#9ECE6A", "warning": "#E0AF68", "error": "#F7768E"
+      },
+      "syntax": {
+        "keyword": "#BB9AF7", "string": "#9ECE6A", "number": "#FF9E64", "comment": "#565F89",
+        "function": "#7AA2F7", "type": "#2AC3DE", "variable": "#C0CAF5", "constant": "#FF9E64",
+        "operator": "#89DDFF", "punctuation": "#A9B1D6", "tag": "#F7768E", "attribute": "#73DACA"
+      },
+      "markdown": { "heading": "#7AA2F7", "quoteBar": "#BB9AF7", "codeBg": "#16161E", "hr": "#2F3549" }
+    }
+  ]
+}

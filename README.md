@@ -29,7 +29,10 @@ Part of [libre-apps](https://libre-apps.org), alongside OpenEmux, OpenTuner and 
 - Page thumbnails in a bottom sheet.
 - Recent files with the page where you stopped.
 - Opens from the file picker, "Open with" and Share. Password-protected PDFs are supported.
-- Light and dark theme following the system. English, Portuguese and Spanish.
+- Themes: libre-apps (follows the system light/dark setting, the default), Pastel, Dracula, Kitty
+  and Neon (Tokyo Night), with an optional background image on the home screen and behind the bars.
+  The document always sits on a solid color.
+- English, Portuguese and Spanish.
 
 What comes next is in [docs/roadmap.md](docs/roadmap.md): reading comfort, annotations, page
 organization, forms and signatures, compression. Everything local.
@@ -56,6 +59,9 @@ tools/fetch-pdfium.sh          # downloads the pinned PDFium binaries (checked b
 ./gradlew :app:testDebugUnitTest
 ```
 
+`tools/sync-themes.py` copies the shared libre-apps themes into `app/src/main/assets/themes/`
+(run it when the themes change, then commit).
+
 `./gradlew :app:assembleBenchmark` builds release code signed with the debug key, for measuring
 start-up on a device.
 
@@ -74,6 +80,8 @@ The app is licensed under the [Apache License 2.0](LICENSE).
 | [PDFium](https://pdfium.googlesource.com/pdfium/) | BSD-3-Clause / Apache-2.0 |
 | [pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) (prebuilt PDFium, `chromium/8179`) | MIT |
 | Libraries bundled inside PDFium (FreeType, HarfBuzz, ICU, libjpeg-turbo, libpng, OpenJPEG, Little CMS, zlib, Abseil and others) | Permissive; full texts in the app under About › Open-source licenses |
+| Dracula and Tokyo Night color palettes (in the Dracula and Neon themes) | MIT |
+| Pastel and Kitty palettes, all background art ([libre-apps themes](https://libre-apps.org)) | libre-apps, original work |
 | Kotlin, kotlinx.coroutines | Apache-2.0 |
 | AndroidX (core, activity, lifecycle), Jetpack Compose, Material 3 | Apache-2.0 |
 | JUnit (tests only) | EPL-1.0 |

@@ -99,12 +99,85 @@ private val DarkScheme = darkColorScheme(
 
 val LocalReaderColors = staticCompositionLocalOf { LightReader }
 
+/** Asset path of the background image to show behind home/recents/bars, or null for none. */
+val LocalBackgroundAsset = staticCompositionLocalOf<String?> { null }
+
+/** Whether the active theme is dark (drives the system bar icons). */
+val LocalThemeIsDark = staticCompositionLocalOf { false }
+
 @Composable
 fun OpenPdfTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val settings = androidx.compose.runtime.remember { ThemeSettings.get(context) }
+    val systemDark = isSystemInDarkTheme()
+    val extra = settings.current
+    val dark = extra?.dark ?: systemDark
+    val scheme = extra?.let { androidx.compose.runtime.remember(it) { schemeFor(it) } }
+        ?: if (dark) DarkScheme else LightScheme
+    val reader = extra?.let { androidx.compose.runtime.remember(it) { readerFor(it) } }
+        ?: if (dark) DarkReader else LightReader
+    val background = extra?.background?.takeIf { settings.backgroundEnabled }
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalReaderColors provides if (dark) DarkReader else LightReader,
+        LocalReaderColors provides reader,
+        LocalBackgroundAsset provides background,
+        LocalThemeIsDark provides dark,
     ) {
-        MaterialTheme(colorScheme = if (dark) DarkScheme else LightScheme, content = content)
+        MaterialTheme(colorScheme = scheme) {
+            // Screens that draw on a transparent container still get readable text.
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides scheme.onBackground,
+                content = content,
+            )
+        }
     }
+}
+
+/** Colors for the extra themes. The page itself is white paper, so its highlights stay paper colors. */
+private fun readerFor(t: AppTheme) = ReaderColors(
+    gutter = t.ui.bg,
+    highlight = LightReader.highlight,
+    highlightCurrent = LightReader.highlightCurrent,
+    highlightCurrentRing = t.ui.accent,
+    selection = t.ui.accent.copy(alpha = 0.30f),
+    handle = t.ui.accent,
+    pill = t.ui.text,
+    onPill = t.ui.bg,
+    scrollThumb = t.ui.accent.copy(alpha = 0.85f),
+)
+
+/**
+ * Material scheme from the theme tokens. Where a token misses WCAG AA for small text on the
+ * background (Pastel's accent and textMuted), the theme's own stronger token takes its place:
+ * link for the accent, text for the muted text.
+ */
+private fun schemeFor(t: AppTheme): androidx.compose.material3.ColorScheme {
+    val u = t.ui
+    val primary = if (contrast(u.accent, u.bg) >= 4.5f) u.accent else u.link
+    val muted = if (contrast(u.textMuted, u.bg) >= 4.5f && contrast(u.textMuted, u.surface) >= 4.5f) u.textMuted else u.text
+    val base = if (t.dark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = primary,
+        onPrimary = u.onAccent,
+        primaryContainer = u.selection,
+        onPrimaryContainer = u.text,
+        secondary = u.link,
+        onSecondary = u.onAccent,
+        tertiary = u.accent2,
+        background = u.bg,
+        onBackground = u.text,
+        surface = u.surface,
+        onSurface = u.text,
+        surfaceVariant = u.surfaceAlt,
+        onSurfaceVariant = muted,
+        surfaceContainerLowest = u.bg,
+        surfaceContainerLow = u.surface,
+        surfaceContainer = u.surface,
+        surfaceContainerHigh = u.surfaceAlt,
+        surfaceContainerHighest = u.surfaceAlt,
+        outline = u.textMuted,
+        outlineVariant = u.border,
+        error = u.error,
+        inverseSurface = u.text,
+        inverseOnSurface = u.bg,
+    )
 }

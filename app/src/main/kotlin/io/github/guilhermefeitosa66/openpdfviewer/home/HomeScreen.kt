@@ -75,6 +75,8 @@ import io.github.guilhermefeitosa66.openpdfviewer.R
 import io.github.guilhermefeitosa66.openpdfviewer.data.RecentFile
 import io.github.guilhermefeitosa66.openpdfviewer.data.RecentFiles
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
+import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalBackgroundAsset
+import io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeBackground
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -83,7 +85,7 @@ private const val SOURCE_URL = "https://github.com/guilhermefeitosa66/open-pdf-v
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
+fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     val recent = remember { RecentFiles.get(context) }
     LaunchedEffect(Unit) { recent.load() }
@@ -93,9 +95,14 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     var about by remember { mutableStateOf(false) }
     var licenses by remember { mutableStateOf(false) }
+    // With a background image, content sits on the theme surface at ~85% so text stays readable.
+    val hasImage = LocalBackgroundAsset.current != null
+    val panel = if (hasImage) MaterialTheme.colorScheme.surface.copy(alpha = 0.85f) else Color.Transparent
     val removedText = stringResource(R.string.removed_from_list)
     val undoText = stringResource(R.string.undo)
 
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    ThemeBackground(Modifier.fillMaxSize())
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
@@ -108,11 +115,12 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) { inner ->
         Column(Modifier.fillMaxSize().padding(inner)) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+                Modifier.fillMaxWidth().background(panel).padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -127,6 +135,10 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings)) },
+                            onClick = { menu = false; onSettings() },
+                        )
+                        DropdownMenuItem(
                             text = { Text(stringResource(R.string.about)) },
                             onClick = { menu = false; about = true },
                         )
@@ -137,11 +149,11 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
             val list = items
             when {
                 list == null -> Unit
-                list.isEmpty() -> EmptyState()
+                list.isEmpty() -> EmptyState(panel)
                 else -> {
                     Text(
                         stringResource(R.string.recent).uppercase(),
-                        modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 8.dp),
+                        modifier = Modifier.fillMaxWidth().background(panel).padding(start = 20.dp, top = 12.dp, bottom = 8.dp),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 0.4.sp,
@@ -165,13 +177,13 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
                                 },
                             )
                             SwipeToDismissBox(state = state, backgroundContent = {}) {
-                                RecentRow(entry, recent) { onOpen(Uri.parse(entry.uri)) }
+                                RecentRow(entry, recent, if (hasImage) panel else MaterialTheme.colorScheme.background) { onOpen(Uri.parse(entry.uri)) }
                             }
                         }
                         item {
                             Text(
                                 stringResource(R.string.swipe_hint),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
+                                modifier = Modifier.padding(top = 8.dp).clip(RoundedCornerShape(16.dp)).background(panel).padding(horizontal = 12.dp, vertical = 12.dp),
                                 fontSize = 13.sp,
                                 lineHeight = 19.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -181,6 +193,8 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
                 }
             }
         }
+    }
+
     }
 
     if (about) {
@@ -209,9 +223,9 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(panel: Color) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 96.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 96.dp).clip(RoundedCornerShape(20.dp)).background(panel).padding(horizontal = 12.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -230,7 +244,7 @@ private fun EmptyState() {
 }
 
 @Composable
-private fun RecentRow(entry: RecentFile, recent: RecentFiles, onClick: () -> Unit) {
+private fun RecentRow(entry: RecentFile, recent: RecentFiles, rowColor: Color, onClick: () -> Unit) {
     val context = LocalContext.current
     val thumb by produceState<ImageBitmap?>(null, entry.key, entry.openedAt) {
         value = withContext(Dispatchers.IO) {
@@ -254,7 +268,7 @@ private fun RecentRow(entry: RecentFile, recent: RecentFiles, onClick: () -> Uni
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.background)
+            .background(rowColor)
             .clickable(onClick = onClick)
             .heightIn(min = 72.dp)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -307,7 +321,9 @@ private fun LicensesDialog(onDismiss: () -> Unit) {
                 } else {
                     Text(
                         "Kotlin, kotlinx.coroutines, AndroidX, Jetpack Compose, Material 3: Apache License 2.0.\n" +
-                            "PDFium: BSD-3-Clause / Apache License 2.0. Its bundled libraries are listed below.",
+                            "PDFium: BSD-3-Clause / Apache License 2.0. Its bundled libraries are listed below.\n" +
+                            "Themes: the Dracula and Tokyo Night color palettes are used under the MIT License; " +
+                            "Pastel, Kitty and all background art are original libre-apps work.",
                         fontSize = 13.sp,
                     )
                     Spacer(Modifier.height(8.dp))

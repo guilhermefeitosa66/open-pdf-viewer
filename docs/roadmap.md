@@ -34,7 +34,8 @@ Each stage ships as a release. Measuring cold start and time to first page is pa
 6. Select text by long press, adjust with handles, copy / share. Select all on page.
 7. Page thumbnails in a bottom sheet, tap to jump.
 8. Password-protected PDFs: ask for the password and open (decrypt in memory only).
-9. Light and dark UI following the system (the page itself stays as authored).
+9. Light and dark UI following the system (the page itself stays as authored), plus the shared
+   libre-apps themes (Pastel, Dracula, Kitty, Neon) with optional background art, chosen in Settings.
 10. English and Portuguese, then Spanish (same as the other libre-apps).
 
 ### v0.2 · Reading comfort

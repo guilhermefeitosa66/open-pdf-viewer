@@ -91,7 +91,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.guilhermefeitosa66.openpdfviewer.R
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppIcons
+import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalBackgroundAsset
 import io.github.guilhermefeitosa66.openpdfviewer.ui.LocalReaderColors
+import io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeBackground
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -185,8 +187,12 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
         exit = slideOutVertically { -it },
         modifier = Modifier.align(Alignment.TopCenter),
     ) {
+        // The theme image may show behind the bar (surface at ~85%); never behind the document.
+        val barImage = LocalBackgroundAsset.current != null
+        Box(Modifier.background(MaterialTheme.colorScheme.surface)) {
+        ThemeBackground(Modifier.matchParentSize(), alignment = Alignment.TopCenter)
         Surface(
-            color = MaterialTheme.colorScheme.surface,
+            color = if (barImage) MaterialTheme.colorScheme.surface.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             Column(Modifier.statusBarsPadding()) {
@@ -201,6 +207,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
+        }
         }
     }
 
