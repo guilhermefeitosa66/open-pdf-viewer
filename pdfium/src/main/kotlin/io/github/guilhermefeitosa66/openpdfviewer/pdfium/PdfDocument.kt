@@ -219,6 +219,21 @@ class PdfDocument private constructor(private val handle: Long) {
     suspend fun addText(index: Int, x: Float, y: Float, text: String, font: StandardFont, sizePt: Float, argb: Int, author: String?): Boolean =
         edit(index) { lp -> PdfiumNative.addTextStamp(handle, lp.page, x, y, text, font.pdfName, sizePt, argb, author) >= 0 }
 
+    /** Rectangle ([ellipse] false) or ellipse between two normalized corners; [fill] 0 = none. */
+    suspend fun addBox(index: Int, x0: Float, y0: Float, x1: Float, y1: Float, ellipse: Boolean, stroke: Int, fill: Int, widthPt: Float, author: String?): Boolean =
+        edit(index) { lp -> PdfiumNative.addShape(lp.page, if (ellipse) 6 else 5, x0, y0, x1, y1, stroke, fill, widthPt, author) >= 0 }
+
+    /** Polylines (each a list of normalized points) as one ink annotation. */
+    suspend fun addPaths(index: Int, paths: List<List<Pair<Float, Float>>>, argb: Int, widthPt: Float, author: String?): Boolean {
+        val usable = paths.filter { it.size >= 2 }
+        if (usable.isEmpty()) return false
+        val xy = FloatArray(usable.sumOf { it.size } * 2)
+        var i = 0
+        for (path in usable) for ((x, y) in path) { xy[i++] = x; xy[i++] = y }
+        val lengths = IntArray(usable.size) { usable[it].size }
+        return edit(index) { lp -> PdfiumNative.addInkPaths(lp.page, xy, lengths, argb, widthPt, author) >= 0 }
+    }
+
     suspend fun annotAt(index: Int, x: Float, y: Float): AnnotHit? = withContext(PdfiumThread.dispatcher) {
         if (closed) return@withContext null
         val lp = page(index) ?: return@withContext null

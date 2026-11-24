@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.20.0 (2026-11-24)
+
+- Shapes (Shapes in the viewer menu): rectangle and ellipse (with optional fill), line, arrow and polygon. Drag to size them; for a polygon tap each corner and then Close shape. Line color and width come from the pen settings.
+
 ## 0.19.0 (2026-11-24)
 
 - Sticky notes: Add note, tap where it goes, type the text; tap a note to read, edit or delete it.

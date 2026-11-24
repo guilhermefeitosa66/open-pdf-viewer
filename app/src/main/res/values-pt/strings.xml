@@ -167,4 +167,14 @@
     <string name="font_serif">Serifada</string>
     <string name="font_mono">Monoespaçada</string>
     <string name="font_size">Tamanho: %1$d pt</string>
+    <string name="shapes">Formas</string>
+    <string name="shape_rectangle">Retângulo</string>
+    <string name="shape_ellipse">Elipse</string>
+    <string name="shape_line">Linha</string>
+    <string name="shape_arrow">Seta</string>
+    <string name="shape_polygon">Polígono</string>
+    <string name="line_color">Contorno</string>
+    <string name="fill">Preenchimento</string>
+    <string name="no_fill">Sem preenchimento</string>
+    <string name="finish_polygon">Fechar forma</string>
 </resources>

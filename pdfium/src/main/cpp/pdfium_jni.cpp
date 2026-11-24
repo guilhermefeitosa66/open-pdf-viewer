@@ -817,3 +817,69 @@ Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_setAnnotCont
 }
 
 }  // extern "C"
+
+extern "C" {
+
+// Square (5) or Circle (6) annotation spanning two normalized corners. fillArgb 0 = no fill.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addShape(
+        JNIEnv* env, jobject, jlong pageHandle, jint subtype, jfloat x0, jfloat y0, jfloat x1, jfloat y1,
+        jint strokeArgb, jint fillArgb, jfloat width, jstring author) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    double ax, ay, bx, by;
+    if (!toPagePoint(page, x0, y0, &ax, &ay) || !toPagePoint(page, x1, y1, &bx, &by)) return -1;
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, subtype);
+    if (!annot) return -1;
+    FS_RECTF rect{static_cast<float>(std::fmin(ax, bx)), static_cast<float>(std::fmax(ay, by)),
+                  static_cast<float>(std::fmax(ax, bx)), static_cast<float>(std::fmin(ay, by))};
+    FPDFAnnot_SetRect(annot, &rect);
+    unsigned int s = static_cast<unsigned int>(strokeArgb);
+    FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, (s >> 16) & 0xFF, (s >> 8) & 0xFF, s & 0xFF, (s >> 24) & 0xFF);
+    unsigned int f = static_cast<unsigned int>(fillArgb);
+    if (f != 0) FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_InteriorColor, (f >> 16) & 0xFF, (f >> 8) & 0xFF, f & 0xFF, (f >> 24) & 0xFF);
+    FPDFAnnot_SetBorder(annot, 0, 0, width);
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+// Several polylines in one Ink annotation (lines, arrows, polygons). xy holds all normalized
+// points; lengths the number of points of each path.
+JNIEXPORT jint JNICALL
+Java_io_github_guilhermefeitosa66_openpdfviewer_pdfium_PdfiumNative_addInkPaths(
+        JNIEnv* env, jobject, jlong pageHandle, jfloatArray xy, jintArray lengths, jint argb, jfloat width, jstring author) {
+    auto page = reinterpret_cast<FPDF_PAGE>(pageHandle);
+    jsize total = env->GetArrayLength(xy) / 2;
+    jsize paths = env->GetArrayLength(lengths);
+    std::vector<jfloat> raw(static_cast<size_t>(total) * 2);
+    env->GetFloatArrayRegion(xy, 0, total * 2, raw.data());
+    std::vector<jint> lens(static_cast<size_t>(paths));
+    env->GetIntArrayRegion(lengths, 0, paths, lens.data());
+    FPDF_ANNOTATION annot = FPDFPage_CreateAnnot(page, FPDF_ANNOT_INK);
+    if (!annot) return -1;
+    double minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    jsize at = 0;
+    for (jsize p = 0; p < paths; p++) {
+        std::vector<FS_POINTF> pts;
+        for (jint k = 0; k < lens[p] && at < total; k++, at++) {
+            double px, py;
+            if (!toPagePoint(page, raw[at * 2], raw[at * 2 + 1], &px, &py)) continue;
+            pts.push_back(FS_POINTF{static_cast<float>(px), static_cast<float>(py)});
+            minX = std::fmin(minX, px); maxX = std::fmax(maxX, px);
+            minY = std::fmin(minY, py); maxY = std::fmax(maxY, py);
+        }
+        if (pts.size() >= 2) FPDFAnnot_AddInkStroke(annot, pts.data(), pts.size());
+    }
+    FS_RECTF rect{static_cast<float>(minX - width), static_cast<float>(maxY + width), static_cast<float>(maxX + width), static_cast<float>(minY - width)};
+    FPDFAnnot_SetRect(annot, &rect);
+    unsigned int s = static_cast<unsigned int>(argb);
+    FPDFAnnot_SetColor(annot, FPDFANNOT_COLORTYPE_Color, (s >> 16) & 0xFF, (s >> 8) & 0xFF, s & 0xFF, (s >> 24) & 0xFF);
+    FPDFAnnot_SetBorder(annot, 0, 0, width);
+    FPDFAnnot_SetFlags(annot, FPDF_ANNOT_FLAG_PRINT);
+    setAuthor(env, annot, author);
+    FPDFPage_CloseAnnot(annot);
+    return FPDFPage_GetAnnotCount(page) - 1;
+}
+
+}  // extern "C"

@@ -647,6 +647,8 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     fun stopDrawing() {
         drawing = false
         liveStroke = null
+        shapeKind = null
+        shapePreview = null
         placing = null
         placementTarget = null
         openedAnnot = null
@@ -682,6 +684,73 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
             // Keep the live stroke until the page shows the real one.
             delay(120)
             if (liveStroke?.second === pts) liveStroke = null
+        }
+    }
+
+    // ---- Shapes ----
+
+    /** The shape tool in use, or null when not adding shapes. */
+    var shapeKind by mutableStateOf<Shapes.Kind?>(null)
+    /** Fill for rectangles and ellipses (ARGB), 0 = none. */
+    var shapeFill by mutableStateOf(0)
+    /** Shape being drawn: page and its normalized points (start/end, or polygon vertices). */
+    var shapePreview by mutableStateOf<Pair<Int, List<Offset>>?>(null)
+        private set
+
+    fun startShapes() {
+        clearSelection()
+        drawing = false
+        shapeKind = Shapes.Kind.RECTANGLE
+    }
+
+    fun stopShapes() {
+        shapeKind = null
+        shapePreview = null
+    }
+
+    fun shapeDown(page: Int, p: Offset) {
+        val kind = shapeKind ?: return
+        val current = shapePreview
+        shapePreview = if (kind == Shapes.Kind.POLYGON && current != null && current.first == page) {
+            page to current.second + p
+        } else {
+            page to listOf(p, p)
+        }
+    }
+
+    fun shapeMove(p: Offset) {
+        val kind = shapeKind ?: return
+        if (kind == Shapes.Kind.POLYGON) return
+        val (page, pts) = shapePreview ?: return
+        shapePreview = page to listOf(pts.first(), p)
+    }
+
+    /** Ends a drag; for every tool except the polygon this commits the shape. */
+    fun shapeUp() {
+        if (shapeKind != Shapes.Kind.POLYGON) commitShape()
+    }
+
+    fun commitShape() {
+        val r = ready ?: return
+        val kind = shapeKind ?: return
+        val (page, pts) = shapePreview ?: return
+        shapePreview = null
+        val settings = io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(getApplication())
+        val stroke = settings.inkColor
+        val width = settings.inkWidth
+        val size = r.doc.pageSizes[page]
+        val a = pts.first()
+        val b = pts.last()
+        // Ignore taps that did not drag into a shape.
+        if (kind != Shapes.Kind.POLYGON && kotlin.math.abs(a.x - b.x) * size.width < 3f && kotlin.math.abs(a.y - b.y) * size.height < 3f) return
+        change(page) { doc ->
+            when (kind) {
+                Shapes.Kind.RECTANGLE, Shapes.Kind.ELLIPSE ->
+                    doc.addBox(page, a.x, a.y, b.x, b.y, kind == Shapes.Kind.ELLIPSE, stroke, shapeFill, width, authorName)
+                Shapes.Kind.LINE -> doc.addPaths(page, listOf(listOf(a.x to a.y, b.x to b.y)), stroke, width, authorName)
+                Shapes.Kind.ARROW -> doc.addPaths(page, Shapes.arrow(a.x, a.y, b.x, b.y, size.width, size.height, 6f + width * 3f), stroke, width, authorName)
+                Shapes.Kind.POLYGON -> doc.addPaths(page, Shapes.polygon(pts.map { it.x to it.y }), stroke, width, authorName)
+            }
         }
     }
 
@@ -730,6 +799,8 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         unsaved = false
         drawing = false
         liveStroke = null
+        shapeKind = null
+        shapePreview = null
         placing = null
         placementTarget = null
         openedAnnot = null

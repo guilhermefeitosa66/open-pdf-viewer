@@ -168,4 +168,14 @@
     <string name="font_serif">Serif</string>
     <string name="font_mono">Mono</string>
     <string name="font_size">Size: %1$d pt</string>
+    <string name="shapes">Shapes</string>
+    <string name="shape_rectangle">Rectangle</string>
+    <string name="shape_ellipse">Ellipse</string>
+    <string name="shape_line">Line</string>
+    <string name="shape_arrow">Arrow</string>
+    <string name="shape_polygon">Polygon</string>
+    <string name="line_color">Line</string>
+    <string name="fill">Fill</string>
+    <string name="no_fill">No fill</string>
+    <string name="finish_polygon">Close shape</string>
 </resources>

@@ -127,6 +127,7 @@ fun ViewerScreen(
         when {
             vm.selection != null -> vm.clearSelection()
             vm.drawing -> vm.stopDrawing()
+            vm.shapeKind != null -> vm.stopShapes()
             vm.placing != null -> vm.placing = null
             vm.searchOpen -> vm.closeSearch()
             vm.goBack() -> Unit
@@ -191,6 +192,7 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     SelectionOverlay(vm, vp)
 
     if (vm.drawing) DrawToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
+    if (vm.shapeKind != null) ShapeToolbar(vm, modifier = Modifier.align(Alignment.BottomCenter))
     AnnotationDialogs(vm)
     vm.placing?.let { mode ->
         Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp)) {
@@ -445,6 +447,13 @@ private fun TopBar(
                     onClick = {
                         menu = false
                         vm.startDrawing()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.shapes)) },
+                    onClick = {
+                        menu = false
+                        vm.startShapes()
                     },
                 )
                 DropdownMenuItem(
@@ -1325,4 +1334,62 @@ private fun TextBoxDialog(
         confirmButton = { TextButton(onClick = { onSave(text.trimEnd(), font, size, color) }, enabled = text.isNotBlank()) { Text(stringResource(R.string.add)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+@Composable
+private fun ShapeToolbar(vm: ViewerViewModel, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val settings = remember { io.github.guilhermefeitosa66.openpdfviewer.ui.ThemeSettings.get(context) }
+    var penDialog by remember { mutableStateOf(false) }
+    var fillMenu by remember { mutableStateOf(false) }
+    Column(modifier.navigationBarsPadding().padding(bottom = 84.dp, start = 12.dp, end = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = 6.dp) {
+            Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for ((kind, label) in listOf(
+                        Shapes.Kind.RECTANGLE to R.string.shape_rectangle,
+                        Shapes.Kind.ELLIPSE to R.string.shape_ellipse,
+                        Shapes.Kind.LINE to R.string.shape_line,
+                        Shapes.Kind.ARROW to R.string.shape_arrow,
+                        Shapes.Kind.POLYGON to R.string.shape_polygon,
+                    )) {
+                        FilterChip(selected = vm.shapeKind == kind, onClick = { vm.commitShape(); vm.shapeKind = kind }, label = { Text(stringResource(label)) })
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { penDialog = true }) {
+                        Box(Modifier.size(14.dp).background(Color(settings.inkColor), androidx.compose.foundation.shape.CircleShape))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.line_color))
+                    }
+                    Box {
+                        TextButton(onClick = { fillMenu = true }) {
+                            Box(
+                                Modifier.size(14.dp)
+                                    .background(if (vm.shapeFill == 0) Color.Transparent else Color(vm.shapeFill), androidx.compose.foundation.shape.CircleShape)
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.CircleShape),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.fill))
+                        }
+                        DropdownMenu(expanded = fillMenu, onDismissRequest = { fillMenu = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.no_fill)) }, onClick = { vm.shapeFill = 0; fillMenu = false })
+                            for (c in MarkupPalette) {
+                                DropdownMenuItem(
+                                    text = { Text(String.format("#%06X", c and 0xFFFFFF)) },
+                                    leadingIcon = { Box(Modifier.size(18.dp).background(Color(c), androidx.compose.foundation.shape.CircleShape)) },
+                                    onClick = { vm.shapeFill = c; fillMenu = false },
+                                )
+                            }
+                        }
+                    }
+                    if (vm.shapeKind == Shapes.Kind.POLYGON && (vm.shapePreview?.second?.size ?: 0) >= 3) {
+                        TextButton(onClick = vm::commitShape) { Text(stringResource(R.string.finish_polygon)) }
+                    }
+                    TextButton(onClick = { vm.commitShape(); vm.stopShapes() }) { Text(stringResource(R.string.done)) }
+                }
+            }
+        }
+    }
+    if (penDialog) PenDialog(settings.inkColor, settings.inkWidth, onPick = { c, w -> settings.choosePen(c, w); penDialog = false }, onDismiss = { penDialog = false })
 }

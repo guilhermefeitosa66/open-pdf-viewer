@@ -136,6 +136,28 @@ fun PdfCanvas(
         modifier
             .fillMaxSize()
             .onSizeChanged { size = it }
+            .pointerInput(ready, vm.shapeKind != null) {
+                // Shape mode: drag to size a rectangle, ellipse, line or arrow; tap to add polygon
+                // vertices. Two fingers still scroll and zoom.
+                if (vm.shapeKind == null) return@pointerInput
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val hit = vp.nearestPageHit(down.position) ?: return@awaitEachGesture
+                    val page = hit.page
+                    down.consume()
+                    vm.shapeDown(page, Offset(hit.x, hit.y))
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.count { it.pressed } > 1) return@awaitEachGesture
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) break
+                        val h = vp.screenToPage(change.position, clampToPage = page) ?: continue
+                        vm.shapeMove(Offset(h.x, h.y))
+                        change.consume()
+                    }
+                    vm.shapeUp()
+                }
+            }
             .pointerInput(ready, vm.drawing) {
                 // Drawing mode: one finger (or the stylus) draws or erases; two fingers still
                 // scroll and zoom. After a stylus shows up, fingers never draw (palm rejection).
@@ -270,6 +292,45 @@ fun PdfCanvas(
                     path, Color(settings.inkColor),
                     style = Stroke(width = (settings.inkWidth * pxPerPt).coerceAtLeast(1f), cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round),
                 )
+            }
+        }
+        // The shape being drawn.
+        vm.shapePreview?.let { (page, pts) ->
+            val kind = vm.shapeKind
+            if (page in range && kind != null && pts.isNotEmpty()) {
+                val pr = vp.pageRect(page)
+                val pxPerPt = pr.width / ready.doc.pageSizes[page].width
+                val stroke = Stroke(width = (settings.inkWidth * pxPerPt).coerceAtLeast(1f), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                val ink = Color(settings.inkColor)
+                fun at(o: Offset) = Offset(pr.left + o.x * pr.width, pr.top + o.y * pr.height)
+                val a = at(pts.first())
+                val b = at(pts.last())
+                val tl = Offset(minOf(a.x, b.x), minOf(a.y, b.y))
+                val sz = androidx.compose.ui.geometry.Size(kotlin.math.abs(a.x - b.x), kotlin.math.abs(a.y - b.y))
+                when (kind) {
+                    Shapes.Kind.RECTANGLE -> {
+                        if (vm.shapeFill != 0) drawRect(Color(vm.shapeFill), tl, sz)
+                        drawRect(ink, tl, sz, style = stroke)
+                    }
+                    Shapes.Kind.ELLIPSE -> {
+                        if (vm.shapeFill != 0) drawOval(Color(vm.shapeFill), tl, sz)
+                        drawOval(ink, tl, sz, style = stroke)
+                    }
+                    else -> {
+                        val size = ready.doc.pageSizes[page]
+                        val paths = when (kind) {
+                            Shapes.Kind.ARROW -> Shapes.arrow(pts.first().x, pts.first().y, pts.last().x, pts.last().y, size.width, size.height, 6f + settings.inkWidth * 3f)
+                            Shapes.Kind.POLYGON -> listOf(pts.map { it.x to it.y })
+                            else -> listOf(listOf(pts.first().x to pts.first().y, pts.last().x to pts.last().y))
+                        }
+                        for (path in paths) {
+                            val pp = androidx.compose.ui.graphics.Path()
+                            path.forEachIndexed { i, (x, y) -> val o = at(Offset(x, y)); if (i == 0) pp.moveTo(o.x, o.y) else pp.lineTo(o.x, o.y) }
+                            drawPath(pp, ink, style = stroke)
+                        }
+                        if (kind == Shapes.Kind.POLYGON) for (v in pts) drawCircle(ink, 4.dp.toPx(), at(v))
+                    }
+                }
             }
         }
         // The sentence being read aloud.
