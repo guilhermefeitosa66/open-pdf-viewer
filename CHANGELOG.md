@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.11.0 (2026-11-24)
+
+- New app icon: a white page on red. Works as a themed (monochrome) icon too.
+
 ## 0.10.0 (2026-11-24)
 
 - Print from the viewer menu through the Android print framework (page ranges, copies and paper come from the system dialog). Password-protected PDFs are handed to the print service without their encryption, written on the fly by PDFium.
