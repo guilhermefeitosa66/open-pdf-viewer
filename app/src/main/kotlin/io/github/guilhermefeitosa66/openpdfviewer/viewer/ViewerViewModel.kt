@@ -306,6 +306,23 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Read aloud ----
+
+    var readAloud by mutableStateOf<ReadAloud?>(null)
+        private set
+
+    fun startReadAloud() {
+        val r = ready ?: return
+        val ra = readAloud ?: ReadAloud(getApplication(), viewModelScope, r.doc) { page -> normalizedText(r.doc, page) }
+            .also { readAloud = it }
+        ra.start(r.viewport.currentPage)
+    }
+
+    fun stopReadAloud() {
+        readAloud?.release()
+        readAloud = null
+    }
+
     // ---- Bookmarks ----
 
     fun isBookmarked(page: Int) = bookmarks.any { it.page == page }
@@ -453,6 +470,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         selection = null
         normalized.clear()
         outline = null
+        stopReadAloud()
         bookmarks = emptyList()
         history.clear()
         historyTop = null

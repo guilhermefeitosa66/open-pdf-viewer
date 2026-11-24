@@ -225,6 +225,15 @@ fun PdfCanvas(
                 drawPath(path, colors.handle)
             }
         }
+        // The sentence being read aloud.
+        vm.readAloud?.let { ra ->
+            if (ra.state != ReadAloud.State.IDLE && ra.page in range) {
+                for (rc in ra.rects) {
+                    val sr = vp.toScreen(ra.page, rc.left, rc.top, rc.right, rc.bottom).inflate(2f)
+                    drawRect(colors.selection, sr.topLeft, sr.size)
+                }
+            }
+        }
         if (selection != null && selection.page in range) {
             for (rc in selection.rects) {
                 val sr = vp.toScreen(selection.page, rc.left, rc.top, rc.right, rc.bottom)

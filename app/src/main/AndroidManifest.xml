@@ -3,6 +3,13 @@
 
     <!-- No INTERNET and no storage permission: files come through the Storage Access Framework. -->
 
+    <!-- Lets the app find the system text-to-speech engine (read aloud). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

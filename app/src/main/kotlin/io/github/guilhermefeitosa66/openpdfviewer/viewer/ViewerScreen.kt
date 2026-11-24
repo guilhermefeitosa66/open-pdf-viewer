@@ -46,6 +46,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
@@ -181,6 +183,27 @@ private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewMod
     )
 
     SelectionOverlay(vm, vp)
+
+    vm.readAloud?.let { ra ->
+        ReadAloudBar(ra, onClose = vm::stopReadAloud, modifier = Modifier.align(Alignment.BottomCenter))
+        // Follow the sentence being read.
+        LaunchedEffect(ra.page, ra.rects) {
+            val first = ra.rects.firstOrNull() ?: return@LaunchedEffect
+            if (vp.paged && vp.zoom <= 1.05f) {
+                if (vp.currentPage != ra.page && !vp.visiblePages().contains(ra.page)) vp.scrollToPage(ra.page)
+            } else {
+                vp.reveal(vp.toScreen(ra.page, first.left, first.top, first.right, first.bottom))
+            }
+            ready.renderer.request(vp)
+        }
+        if (ra.state == ReadAloud.State.UNAVAILABLE) {
+            val msg = stringResource(R.string.tts_unavailable)
+            LaunchedEffect(Unit) {
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                vm.stopReadAloud()
+            }
+        }
+    }
 
     // After following a link or a contents entry: a way back to where the reader was.
     vm.historyTop?.let { (page, _) ->
@@ -410,6 +433,13 @@ private fun TopBar(
                     onClick = {
                         menu = false
                         onShare()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.read_aloud)) },
+                    onClick = {
+                        menu = false
+                        vm.startReadAloud()
                     },
                 )
                 DropdownMenuItem(
@@ -919,4 +949,30 @@ private fun DocumentInfoDialog(vm: ViewerViewModel, ready: DocState.Ready, onDis
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
     )
+}
+
+@Composable
+private fun ReadAloudBar(ra: ReadAloud, onClose: () -> Unit, modifier: Modifier = Modifier) {
+    val rates = listOf(0.75f, 1f, 1.25f, 1.5f, 2f)
+    Box(modifier.navigationBarsPadding().padding(bottom = 84.dp)) {
+        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = 6.dp) {
+            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                val playing = ra.state == ReadAloud.State.PLAYING || ra.state == ReadAloud.State.STARTING
+                IconButton(onClick = { if (playing) ra.pause() else ra.resume() }) {
+                    Icon(
+                        if (playing) AppIcons.Pause else Icons.Filled.PlayArrow,
+                        stringResource(if (playing) R.string.pause else R.string.play),
+                    )
+                }
+                Text(stringResource(R.string.page_n, ra.page + 1), fontSize = 14.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                TextButton(onClick = {
+                    val next = rates[(rates.indexOf(ra.speed).coerceAtLeast(0) + 1) % rates.size]
+                    ra.setRate(next)
+                }) {
+                    Text(stringResource(R.string.speed, ra.speed.toString().removeSuffix(".0")))
+                }
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, stringResource(R.string.stop_reading)) }
+            }
+        }
+    }
 }

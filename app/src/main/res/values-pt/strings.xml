@@ -113,4 +113,10 @@
     <string name="yes">Sim</string>
     <string name="no">Não</string>
     <string name="print">Imprimir…</string>
+    <string name="read_aloud">Ler em voz alta</string>
+    <string name="play">Tocar</string>
+    <string name="pause">Pausar</string>
+    <string name="stop_reading">Parar a leitura</string>
+    <string name="speed">%1$s×</string>
+    <string name="tts_unavailable">Nenhuma voz de leitura disponível. Instale uma nas configurações do sistema (Acessibilidade › Conversão de texto em voz).</string>
 </resources>

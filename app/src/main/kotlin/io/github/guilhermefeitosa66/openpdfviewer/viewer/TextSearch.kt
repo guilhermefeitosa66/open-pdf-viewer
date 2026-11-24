@@ -37,6 +37,34 @@ class NormalizedText(source: String) {
         map = m.copyOf(n)
     }
 
+    /** Page char range (start, count) of the normalized range [nStart, nEnd). */
+    fun toPage(nStart: Int, nEnd: Int): Pair<Int, Int> {
+        if (map.isEmpty() || nEnd <= nStart) return 0 to 0
+        val start = map[nStart.coerceIn(0, map.size - 1)]
+        val end = map[(nEnd - 1).coerceIn(0, map.size - 1)] + 1
+        return start to (end - start).coerceAtLeast(0)
+    }
+
+    /** Sentences of the page as normalized ranges, skipping blank ones. */
+    fun sentences(locale: java.util.Locale): List<IntRange> {
+        val it = java.text.BreakIterator.getSentenceInstance(locale)
+        it.setText(text)
+        val out = ArrayList<IntRange>()
+        var start = it.first()
+        var end = it.next()
+        while (end != java.text.BreakIterator.DONE) {
+            // Trim spaces so highlights hug the words.
+            var a = start
+            var b = end
+            while (a < b && text[a] == ' ') a++
+            while (b > a && text[b - 1] == ' ') b--
+            if (b > a && text.substring(a, b).any { c -> c.isLetterOrDigit() }) out += a until b
+            start = end
+            end = it.next()
+        }
+        return out
+    }
+
     /** All matches as (page char start, page char count). */
     fun find(query: String, matchCase: Boolean, limit: Int = Int.MAX_VALUE): List<Pair<Int, Int>> {
         val q = normalizeQuery(query)

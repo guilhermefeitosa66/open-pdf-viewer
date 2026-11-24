@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.12.0 (2026-11-24)
+
+- Read aloud from the viewer menu with the system text-to-speech engine (offline when the voice is installed): starts at the current page, highlights the sentence being read and follows it, with play/pause, speed (0.75× to 2×) and stop.
+
 ## 0.11.0 (2026-11-24)
 
 - New app icon: a white page on red. Works as a themed (monochrome) icon too.

@@ -46,6 +46,13 @@ object AppIcons {
         }
     }
 
+    val Pause: ImageVector by lazy {
+        stroke("Pause") {
+            line { moveTo(9f, 6f); lineTo(9f, 18f) }
+            line { moveTo(15f, 6f); lineTo(15f, 18f) }
+        }
+    }
+
     val Copy: ImageVector by lazy {
         stroke("Copy") {
             line {
