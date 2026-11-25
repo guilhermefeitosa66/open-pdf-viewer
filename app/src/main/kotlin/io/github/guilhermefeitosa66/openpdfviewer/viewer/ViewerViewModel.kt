@@ -1286,39 +1286,94 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 exportResult = false
                 return@launch
             }
-            if (folder != null) {
-                val written = withContext(Dispatchers.IO) {
-                    val cr = app.contentResolver
-                    val parent = android.provider.DocumentsContract.buildDocumentUriUsingTree(
-                        folder, android.provider.DocumentsContract.getTreeDocumentId(folder),
-                    )
-                    result.count { f ->
-                        runCatching {
-                            // The provider adds the extension for the MIME type.
-                            val doc = android.provider.DocumentsContract.createDocument(cr, parent, "application/pdf", f.nameWithoutExtension)
-                                ?: return@runCatching false
-                            cr.openOutputStream(doc, "w")?.use { o -> f.inputStream().use { it.copyTo(o) } } != null
-                        }.getOrDefault(false)
-                    }
+            deliverFiles(result, folder, r.name.removeSuffix(".pdf").removeSuffix(".PDF") + " (split)", "application/pdf")
+            saving = false
+        }
+    }
+
+    /**
+     * Hands over generated files: each into [folder] (a tree the user picked), or, when null,
+     * zipped as [zipBase].zip for the share sheet. Sets [splitCount] or [exportResult].
+     */
+    private suspend fun deliverFiles(files: List<java.io.File>, folder: Uri?, zipBase: String, mime: String) {
+        val app = getApplication<Application>()
+        if (folder != null) {
+            val written = withContext(Dispatchers.IO) {
+                val cr = app.contentResolver
+                val parent = android.provider.DocumentsContract.buildDocumentUriUsingTree(
+                    folder, android.provider.DocumentsContract.getTreeDocumentId(folder),
+                )
+                files.count { f ->
+                    runCatching {
+                        // The provider adds the extension for the MIME type.
+                        val doc = android.provider.DocumentsContract.createDocument(cr, parent, mime, f.nameWithoutExtension)
+                            ?: return@runCatching false
+                        cr.openOutputStream(doc, "w")?.use { o -> f.inputStream().use { it.copyTo(o) } } != null
+                    }.getOrDefault(false)
                 }
-                saving = false
-                if (written == result.size) splitCount = written else exportResult = false
-            } else {
-                val zip = withContext(Dispatchers.IO) {
-                    val shareDir = java.io.File(app.cacheDir, "share").apply { mkdirs() }
-                    val z = java.io.File(shareDir, io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName(r.name.removeSuffix(".pdf").removeSuffix(".PDF") + " (split)").removeSuffix(".pdf") + ".zip")
-                    java.util.zip.ZipOutputStream(z.outputStream().buffered()).use { zos ->
-                        for (f in result) {
-                            zos.putNextEntry(java.util.zip.ZipEntry(f.name))
-                            f.inputStream().use { it.copyTo(zos) }
-                            zos.closeEntry()
-                        }
-                    }
-                    z
-                }
-                saving = false
-                zipToShare = zip
             }
+            if (written == files.size) splitCount = written else exportResult = false
+        } else {
+            zipToShare = withContext(Dispatchers.IO) {
+                val shareDir = java.io.File(app.cacheDir, "share").apply { mkdirs() }
+                val z = java.io.File(shareDir, io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName(zipBase).removeSuffix(".pdf") + ".zip")
+                java.util.zip.ZipOutputStream(z.outputStream().buffered()).use { zos ->
+                    for (f in files) {
+                        zos.putNextEntry(java.util.zip.ZipEntry(f.name))
+                        f.inputStream().use { it.copyTo(zos) }
+                        zos.closeEntry()
+                    }
+                }
+                z
+            }
+        }
+    }
+
+    // ---- Export pages as images ----
+
+    var imagesExportOpen by mutableStateOf(false)
+
+    /**
+     * Renders [pages] at [dpi] as PNG or JPEG files, into [folder] or a ZIP. Very large pages are
+     * capped at about 40 megapixels.
+     */
+    fun exportImages(pages: List<Int>, dpi: Int, png: Boolean, folder: Uri?) {
+        val r = ready ?: return
+        if (toolProgress != null || pages.isEmpty()) return
+        imagesExportOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val files = runCatching {
+                val dir = java.io.File(app.cacheDir, "split").apply { deleteRecursively(); mkdirs() }
+                val base = r.name.removeSuffix(".pdf").removeSuffix(".PDF")
+                val digits = r.doc.pageCount.toString().length
+                pages.mapIndexed { i, p ->
+                    val size = r.doc.pageSizes[p]
+                    var scale = dpi / 72f
+                    val mp = size.width * scale * size.height * scale
+                    if (mp > 40_000_000f) scale *= kotlin.math.sqrt(40_000_000f / mp)
+                    val w = (size.width * scale).toInt().coerceAtLeast(1)
+                    val h = (size.height * scale).toInt().coerceAtLeast(1)
+                    val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                    bmp.eraseColor(android.graphics.Color.WHITE)
+                    if (!r.doc.render(p, bmp, w, h)) error("render")
+                    val f = java.io.File(dir, io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName("$base ${(p + 1).toString().padStart(digits, '0')}").removeSuffix(".pdf") + if (png) ".png" else ".jpg")
+                    withContext(Dispatchers.IO) {
+                        f.outputStream().buffered().use { bmp.compress(if (png) android.graphics.Bitmap.CompressFormat.PNG else android.graphics.Bitmap.CompressFormat.JPEG, 90, it) }
+                    }
+                    bmp.recycle()
+                    toolProgress = (i + 1f) / pages.size
+                    f
+                }
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "export images failed", it) }.getOrNull()
+            if (files == null) {
+                toolProgress = null
+                exportResult = false
+                return@launch
+            }
+            deliverFiles(files, folder, r.name.removeSuffix(".pdf").removeSuffix(".PDF") + " (images)", if (png) "image/png" else "image/jpeg")
+            toolProgress = null
         }
     }
 

@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.guilhermefeitosa66.openpdfviewer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 37
-        versionName = "0.36.0"
+        versionCode = 38
+        versionName = "0.37.0"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }

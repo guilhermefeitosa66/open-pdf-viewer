@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.37.0 (2026-11-24)
+
+- Export as images (Tools…): PNG or JPEG at 72, 150 or 300 dpi, for all pages or a range, into a folder you choose or a ZIP to share.
+
 ## 0.36.0 (2026-11-24)
 
 - Images to PDF (home screen › ⋮): pick photos with the system photo picker (no storage permission), put them in order, turn them, and choose the page (fit image, A4 or Letter), margin and orientation. The new PDF opens right away.

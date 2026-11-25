@@ -40,6 +40,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
             PanelItem(stringResource(R.string.compress)) { onDismiss(); vm.compressOpen = true }
+            PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
             PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
         }
     }
@@ -50,6 +51,9 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
 fun ToolEffects(vm: ViewerViewModel) {
     val context = LocalContext.current
     if (vm.compressOpen) CompressDialog(onDismiss = { vm.compressOpen = false }, onCompress = vm::compress)
+    (vm.state as? DocState.Ready)?.let { r ->
+        if (vm.imagesExportOpen) ExportImagesDialog(r.doc.pageCount, onDismiss = { vm.imagesExportOpen = false }, onExport = vm::exportImages)
+    }
     vm.toolProgress?.let { p ->
         AlertDialog(
             onDismissRequest = {},
@@ -112,6 +116,48 @@ private fun CompressDialog(onDismiss: () -> Unit, onCompress: (PdfTools.Compress
             }
         },
         confirmButton = { TextButton(onClick = { onCompress(level, strip) }) { Text(stringResource(R.string.compress_action)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun ExportImagesDialog(pageCount: Int, onDismiss: () -> Unit, onExport: (List<Int>, Int, Boolean, android.net.Uri?) -> Unit) {
+    var png by remember { mutableStateOf(true) }
+    var dpi by remember { mutableStateOf(150) }
+    var range by remember { mutableStateOf("") }
+    val pages = PageRanges.parse(range, pageCount)
+    val folder = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()) { tree ->
+        if (tree != null && pages != null) onExport(pages, dpi, png, tree)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.export_images)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilterChip(selected = png, onClick = { png = true }, label = { Text("PNG") })
+                    androidx.compose.material3.FilterChip(selected = !png, onClick = { png = false }, label = { Text("JPEG") })
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (d in listOf(72, 150, 300)) {
+                        androidx.compose.material3.FilterChip(selected = dpi == d, onClick = { dpi = d }, label = { Text("$d dpi") })
+                    }
+                }
+                androidx.compose.material3.OutlinedTextField(
+                    value = range, onValueChange = { range = it.take(80) }, singleLine = true,
+                    label = { Text(stringResource(R.string.pages_to_insert)) },
+                    placeholder = { Text(stringResource(R.string.all_pages_n, pageCount)) },
+                    isError = pages == null,
+                    supportingText = { Text(stringResource(R.string.range_hint)) },
+                )
+            }
+        },
+        confirmButton = {
+            Row {
+                TextButton(enabled = pages != null, onClick = { pages?.let { onExport(it, dpi, png, null) } }) { Text(stringResource(R.string.share_zip)) }
+                TextButton(enabled = pages != null, onClick = { folder.launch(null) }) { Text(stringResource(R.string.save_to_folder)) }
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

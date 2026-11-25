@@ -335,4 +335,5 @@
     <string name="orientation_auto">Automática</string>
     <string name="orientation_portrait">Vertical</string>
     <string name="orientation_landscape">Horizontal</string>
+    <string name="export_images">Exportar como imágenes…</string>
 </resources>
