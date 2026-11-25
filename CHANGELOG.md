@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.41.0 (2026-11-24)
+
+- Watermark (Tools…): text or an image, 15/30/50 % opacity, turned 0, 45 or 90 degrees, centred or tiled, over or under the content, on all pages or a range.
+
 ## 0.40.0 (2026-11-24)
 
 - Page numbers (Tools…): six positions, formats "1", "1 / 10" and "Page 1 of 10" (in the app's language), three sizes, from a chosen page and starting number. Works on rotated and cropped pages.

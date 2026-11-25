@@ -349,4 +349,17 @@
     <string name="text_size">Tamanho</string>
     <string name="from_page">A partir da página</string>
     <string name="first_number">Número inicial</string>
+    <string name="watermark">Marca d’água…</string>
+    <string name="watermark_kind">Marca</string>
+    <string name="image">Imagem</string>
+    <string name="choose_image">Escolher imagem</string>
+    <string name="change_image">Trocar imagem</string>
+    <string name="opacity">Opacidade</string>
+    <string name="rotation">Rotação</string>
+    <string name="layout_label">Disposição</string>
+    <string name="tiled">Mosaico</string>
+    <string name="layer">Camada</string>
+    <string name="over_content">Por cima</string>
+    <string name="under_content">Por baixo</string>
+    <string name="under_note">Por baixo do conteúdo, a marca pode ficar escondida em páginas com fundo sólido (digitalizações, fotos).</string>
 </resources>

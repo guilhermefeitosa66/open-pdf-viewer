@@ -1356,6 +1356,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     val documentPassword: String? get() = password
 
     var pageNumbersOpen by mutableStateOf(false)
+    var watermarkOpen by mutableStateOf(false)
 
     // ---- Export as text ----
 

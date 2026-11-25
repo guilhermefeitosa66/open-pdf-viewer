@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.guilhermefeitosa66.openpdfviewer.R
 import io.github.guilhermefeitosa66.openpdfviewer.tools.PdfTools
+import kotlinx.coroutines.launch
 import io.github.guilhermefeitosa66.openpdfviewer.tools.NumberPosition as P
 
 /** File tools for the open document. Each one writes a new version and asks before keeping it. */
@@ -42,6 +43,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
             PanelItem(stringResource(R.string.compress)) { onDismiss(); vm.compressOpen = true }
             PanelItem(stringResource(R.string.page_numbers)) { onDismiss(); vm.pageNumbersOpen = true }
+            PanelItem(stringResource(R.string.watermark)) { onDismiss(); vm.watermarkOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
@@ -61,6 +63,17 @@ fun ToolEffects(vm: ViewerViewModel) {
             val app = context.applicationContext
             vm.runFileTool("numbered", asCopy) { input, output ->
                 io.github.guilhermefeitosa66.openpdfviewer.tools.Stamping.addPageNumbers(app, input, output, o, vm.documentPassword)
+            }
+        }
+    }
+    (vm.state as? DocState.Ready)?.let { r ->
+        if (vm.watermarkOpen) {
+            WatermarkDialog(r.doc.pageCount, onDismiss = { vm.watermarkOpen = false }) { o, asCopy ->
+                vm.watermarkOpen = false
+                val app = context.applicationContext
+                vm.runFileTool("watermarked", asCopy) { input, output ->
+                    io.github.guilhermefeitosa66.openpdfviewer.tools.Stamping.addWatermark(app, input, output, o, vm.documentPassword)
+                }
             }
         }
     }
@@ -276,6 +289,81 @@ private fun PageNumbersDialog(onDismiss: () -> Unit, onApply: (io.github.guilher
         confirmButton = {
             val ok = from != null && first != null
             fun opts() = io.github.guilhermefeitosa66.openpdfviewer.tools.PageNumberOptions(position, formats[format], size, fromPage = from!! - 1, firstNumber = first!!)
+            Row {
+                TextButton(enabled = ok, onClick = { onApply(opts(), true) }) { Text(stringResource(R.string.save_as_copy)) }
+                TextButton(enabled = ok, onClick = { onApply(opts(), false) }) { Text(stringResource(R.string.save)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun WatermarkDialog(pageCount: Int, onDismiss: () -> Unit, onApply: (io.github.guilhermefeitosa66.openpdfviewer.tools.WatermarkOptions, Boolean) -> Unit) {
+    val context = LocalContext.current
+    var useImage by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf(context.getString(R.string.stamp_confidential)) }
+    var image by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var opacity by remember { mutableStateOf(0.3f) }
+    var rotation by remember { mutableStateOf(45f) }
+    var tile by remember { mutableStateOf(false) }
+    var under by remember { mutableStateOf(false) }
+    var range by remember { mutableStateOf("") }
+    val pages = PageRanges.parse(range, pageCount)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch {
+            image = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(context.contentResolver, uri)) { d, info, _ ->
+                        d.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+                        val side = maxOf(info.size.width, info.size.height)
+                        if (side > 1500) d.setTargetSize(info.size.width * 1500 / side, info.size.height * 1500 / side)
+                    }
+                }.getOrNull()
+            }
+        }
+    }
+    @Composable
+    fun chips(label: Int, options: List<Pair<String, Boolean>>, onPick: (Int) -> Unit) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            options.forEachIndexed { i, (t, sel) -> androidx.compose.material3.FilterChip(selected = sel, onClick = { onPick(i) }, label = { Text(t) }) }
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.watermark)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                chips(R.string.watermark_kind, listOf(stringResource(R.string.plain_text) to !useImage, stringResource(R.string.image) to useImage)) { useImage = it == 1 }
+                if (useImage) {
+                    androidx.compose.material3.OutlinedButton(onClick = {
+                        picker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) { Text(stringResource(if (image == null) R.string.choose_image else R.string.change_image)) }
+                } else {
+                    androidx.compose.material3.OutlinedTextField(value = text, onValueChange = { text = it.take(60) }, singleLine = true)
+                }
+                chips(R.string.opacity, listOf("15%" to (opacity == 0.15f), "30%" to (opacity == 0.3f), "50%" to (opacity == 0.5f))) { opacity = listOf(0.15f, 0.3f, 0.5f)[it] }
+                chips(R.string.rotation, listOf("0°" to (rotation == 0f), "45°" to (rotation == 45f), "90°" to (rotation == 90f))) { rotation = listOf(0f, 45f, 90f)[it] }
+                chips(R.string.layout_label, listOf(stringResource(R.string.align_center) to !tile, stringResource(R.string.tiled) to tile)) { tile = it == 1 }
+                chips(R.string.layer, listOf(stringResource(R.string.over_content) to !under, stringResource(R.string.under_content) to under)) { under = it == 1 }
+                androidx.compose.material3.OutlinedTextField(
+                    value = range, onValueChange = { range = it.take(80) }, singleLine = true,
+                    label = { Text(stringResource(R.string.pages_to_insert)) },
+                    placeholder = { Text(stringResource(R.string.all_pages_n, pageCount)) },
+                    isError = pages == null,
+                )
+                if (under) Text(stringResource(R.string.under_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            val ok = pages != null && (if (useImage) image != null else text.isNotBlank())
+            fun opts() = io.github.guilhermefeitosa66.openpdfviewer.tools.WatermarkOptions(
+                text = if (useImage) null else text.trim(), image = if (useImage) image else null,
+                opacity = opacity, rotation = rotation, tile = tile, under = under,
+                pages = pages?.toSet()?.takeIf { range.isNotBlank() },
+            )
             Row {
                 TextButton(enabled = ok, onClick = { onApply(opts(), true) }) { Text(stringResource(R.string.save_as_copy)) }
                 TextButton(enabled = ok, onClick = { onApply(opts(), false) }) { Text(stringResource(R.string.save)) }
