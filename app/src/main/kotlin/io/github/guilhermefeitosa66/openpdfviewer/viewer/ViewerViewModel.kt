@@ -1360,6 +1360,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var protectOpen by mutableStateOf(false)
     var metadataOpen by mutableStateOf(false)
     var ocrOpen by mutableStateOf(false)
+    var compareOpen by mutableStateOf(false)
     /** After OCR: how many pages got text (null when nothing to say). */
     var ocrPages by mutableStateOf<Int?>(null)
 

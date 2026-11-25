@@ -416,4 +416,14 @@
         <item quantity="one">Texto acrescentado em %1$d página</item>
         <item quantity="other">Texto acrescentado em %1$d páginas</item>
     </plurals>
+    <string name="compare">Comparar com outro PDF…</string>
+    <string name="compare_title">Comparar</string>
+    <string name="compare_same">O texto dos dois documentos é igual.</string>
+    <plurals name="compare_pages">
+        <item quantity="one">%1$d página diferente</item>
+        <item quantity="other">%1$d páginas diferentes</item>
+    </plurals>
+    <string name="previous_difference">Diferença anterior</string>
+    <string name="next_difference">Próxima diferença</string>
+    <string name="show_page">Mostrar esta página</string>
 </resources>

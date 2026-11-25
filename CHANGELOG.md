@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.48.0 (2026-11-24)
+
+- Compare with another PDF (Tools…): the text of each page side by side (this document above, the other below), removed words struck through in red and added words in green, long unchanged stretches shortened. Step through the pages that differ and jump to one in the reader.
+
 ## 0.47.0 (2026-11-24)
 
 - Recognize text (Tools…): offline OCR with Tesseract and the Portuguese and English models packaged with the app (nothing is downloaded). Each page is read word by word and an invisible text layer is added, so scanned PDFs can be searched and their text selected and copied; the page images do not change. Progress is shown per page; pages that already have text can be skipped.

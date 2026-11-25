@@ -46,6 +46,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.watermark)) { onDismiss(); vm.watermarkOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
             PanelItem(stringResource(R.string.ocr)) { onDismiss(); vm.ocrOpen = true }
+            PanelItem(stringResource(R.string.compare)) { onDismiss(); vm.compareOpen = true }
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
             PanelItem(stringResource(R.string.edit_properties)) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
@@ -120,6 +121,9 @@ fun ToolEffects(vm: ViewerViewModel) {
             },
             dismissButton = { TextButton(onClick = { vm.pdfaResult = null }) { Text(stringResource(R.string.discard)) } },
         )
+    }
+    (vm.state as? DocState.Ready)?.let { r ->
+        if (vm.compareOpen) CompareScreen(r, onGoTo = { p -> vm.compareOpen = false; vm.jumpTo(p, 0f) }, onDismiss = { vm.compareOpen = false })
     }
     if (vm.ocrOpen) {
         var por by remember { mutableStateOf(true) }
