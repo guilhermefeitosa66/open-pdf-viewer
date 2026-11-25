@@ -381,4 +381,14 @@
     <string name="edit_properties">Editar propiedades…</string>
     <string name="remove_hidden_metadata">Quitar metadatos ocultos</string>
     <string name="remove_hidden_metadata_hint">Quita también la app que creó el archivo, el productor, las fechas, los metadatos XMP y las entradas personalizadas. Lo escrito en las páginas no cambia.</string>
+    <string name="repair_pdf">Reparar PDF…</string>
+    <plurals name="repair_recovered">
+        <item quantity="one">Se recuperó %1$d página (reconstruida con %2$s).</item>
+        <item quantity="many">Se recuperaron %1$d páginas (reconstruidas con %2$s).</item>
+        <item quantity="other">Se recuperaron %1$d páginas (reconstruidas con %2$s).</item>
+    </plurals>
+    <string name="repair_password">Este archivo está protegido. Ábrelo primero con su contraseña y usa Guardar una copia.</string>
+    <string name="repair_failed">No se pudo recuperar nada de este archivo.</string>
+    <string name="repair_note">El archivo original no cambia. Revisa la copia reparada: las páginas dañadas pueden quedar en blanco o incompletas.</string>
+    <string name="save_repaired">Guardar copia reparada</string>
 </resources>

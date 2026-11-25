@@ -379,4 +379,13 @@
     <string name="edit_properties">Edit properties…</string>
     <string name="remove_hidden_metadata">Remove hidden metadata</string>
     <string name="remove_hidden_metadata_hint">Also removes the app that created the file, the producer, the dates, XMP metadata and any custom entries. What is written in the pages is not changed.</string>
+    <string name="repair_pdf">Repair PDF…</string>
+    <plurals name="repair_recovered">
+        <item quantity="one">Recovered %1$d page (rebuilt with %2$s).</item>
+        <item quantity="other">Recovered %1$d pages (rebuilt with %2$s).</item>
+    </plurals>
+    <string name="repair_password">This file is protected. Open it with its password first, then use Save a copy.</string>
+    <string name="repair_failed">Nothing could be recovered from this file.</string>
+    <string name="repair_note">The original file is not changed. Check the repaired copy: damaged pages may be blank or incomplete.</string>
+    <string name="save_repaired">Save repaired copy</string>
 </resources>

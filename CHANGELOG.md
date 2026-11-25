@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.44.0 (2026-11-24)
+
+- Repair PDF (home screen › ⋮): rebuilds a damaged file into a new copy and says how many pages came back. It tries PDFium (which rebuilds a broken cross-reference table), then PdfBox's lenient reader, and, when the catalog itself is lost (a file cut short), rebuilds the page tree from the pages that survive. The original is never changed.
+
 ## 0.43.0 (2026-11-24)
 
 - Edit properties (Tools…): title, author, subject and keywords. Optionally remove hidden metadata: the creating app, producer, dates, XMP and custom entries.
