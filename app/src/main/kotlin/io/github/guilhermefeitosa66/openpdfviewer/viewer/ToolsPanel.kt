@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.guilhermefeitosa66.openpdfviewer.R
 import io.github.guilhermefeitosa66.openpdfviewer.tools.PdfTools
+import io.github.guilhermefeitosa66.openpdfviewer.tools.NumberPosition as P
 
 /** File tools for the open document. Each one writes a new version and asks before keeping it. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +41,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
             PanelItem(stringResource(R.string.compress)) { onDismiss(); vm.compressOpen = true }
+            PanelItem(stringResource(R.string.page_numbers)) { onDismiss(); vm.pageNumbersOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
@@ -53,6 +55,15 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
 fun ToolEffects(vm: ViewerViewModel) {
     val context = LocalContext.current
     if (vm.compressOpen) CompressDialog(onDismiss = { vm.compressOpen = false }, onCompress = vm::compress)
+    if (vm.pageNumbersOpen) {
+        PageNumbersDialog(onDismiss = { vm.pageNumbersOpen = false }) { o, asCopy ->
+            vm.pageNumbersOpen = false
+            val app = context.applicationContext
+            vm.runFileTool("numbered", asCopy) { input, output ->
+                io.github.guilhermefeitosa66.openpdfviewer.tools.Stamping.addPageNumbers(app, input, output, o, vm.documentPassword)
+            }
+        }
+    }
     if (vm.textExportOpen) {
         AlertDialog(
             onDismissRequest = { vm.textExportOpen = false },
@@ -102,7 +113,10 @@ fun ToolEffects(vm: ViewerViewModel) {
         AlertDialog(
             onDismissRequest = {},
             title = { Text(stringResource(R.string.working)) },
-            text = { LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth()) },
+            text = {
+                if (p > 0f) LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
+                else LinearProgressIndicator(Modifier.fillMaxWidth())
+            },
             confirmButton = {},
         )
     }
@@ -200,6 +214,71 @@ private fun ExportImagesDialog(pageCount: Int, onDismiss: () -> Unit, onExport: 
             Row {
                 TextButton(enabled = pages != null, onClick = { pages?.let { onExport(it, dpi, png, null) } }) { Text(stringResource(R.string.share_zip)) }
                 TextButton(enabled = pages != null, onClick = { folder.launch(null) }) { Text(stringResource(R.string.save_to_folder)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun PageNumbersDialog(onDismiss: () -> Unit, onApply: (io.github.guilhermefeitosa66.openpdfviewer.tools.PageNumberOptions, Boolean) -> Unit) {
+    var position by remember { mutableStateOf(P.BOTTOM_CENTER) }
+    val formats = listOf("{n}", "{n} / {total}", stringResource(R.string.page_n_of_total, "{n}", "{total}"))
+    var format by remember { mutableStateOf(0) }
+    var size by remember { mutableStateOf(11f) }
+    var fromPage by remember { mutableStateOf("1") }
+    var firstNumber by remember { mutableStateOf("1") }
+    val from = fromPage.toIntOrNull()?.takeIf { it >= 1 }
+    val first = firstNumber.toIntOrNull()?.takeIf { it >= 0 }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.page_numbers)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.position), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                for (row in listOf(listOf(P.TOP_LEFT, P.TOP_CENTER, P.TOP_RIGHT), listOf(P.BOTTOM_LEFT, P.BOTTOM_CENTER, P.BOTTOM_RIGHT))) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (p in row) {
+                            androidx.compose.material3.FilterChip(
+                                selected = position == p, onClick = { position = p },
+                                label = { Text(stringResource(when (p.align) { -1 -> R.string.align_left; 0 -> R.string.align_center; else -> R.string.align_right })) },
+                            )
+                        }
+                    }
+                }
+                Text(stringResource(R.string.format), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                formats.forEachIndexed { i, f ->
+                    Row(Modifier.fillMaxWidth().clickable { format = i }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = format == i, onClick = { format = i })
+                        Text(f.replace("{n}", "1").replace("{total}", "10"))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.text_size), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    for (sz in listOf(9f, 11f, 14f)) {
+                        androidx.compose.material3.FilterChip(selected = size == sz, onClick = { size = sz }, label = { Text("${sz.toInt()} pt") })
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = fromPage, onValueChange = { fromPage = it.filter(Char::isDigit).take(5) }, singleLine = true,
+                        label = { Text(stringResource(R.string.from_page)) }, isError = from == null, modifier = Modifier.weight(1f),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = firstNumber, onValueChange = { firstNumber = it.filter(Char::isDigit).take(5) }, singleLine = true,
+                        label = { Text(stringResource(R.string.first_number)) }, isError = first == null, modifier = Modifier.weight(1f),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            val ok = from != null && first != null
+            fun opts() = io.github.guilhermefeitosa66.openpdfviewer.tools.PageNumberOptions(position, formats[format], size, fromPage = from!! - 1, firstNumber = first!!)
+            Row {
+                TextButton(enabled = ok, onClick = { onApply(opts(), true) }) { Text(stringResource(R.string.save_as_copy)) }
+                TextButton(enabled = ok, onClick = { onApply(opts(), false) }) { Text(stringResource(R.string.save)) }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

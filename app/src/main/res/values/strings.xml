@@ -340,4 +340,14 @@
     <string name="export_text">Export as text…</string>
     <string name="export_text_hint">Plain text keeps the reading order. Markdown also marks headings (by font size) and paragraphs. Tables, columns and pictures are not kept; scanned pages have no text until OCR.</string>
     <string name="plain_text">Text</string>
+    <string name="page_numbers">Page numbers…</string>
+    <string name="page_n_of_total">Page %1$s of %2$s</string>
+    <string name="position">Position</string>
+    <string name="align_left">Left</string>
+    <string name="align_center">Center</string>
+    <string name="align_right">Right</string>
+    <string name="format">Format</string>
+    <string name="text_size">Size</string>
+    <string name="from_page">From page</string>
+    <string name="first_number">Starting number</string>
 </resources>

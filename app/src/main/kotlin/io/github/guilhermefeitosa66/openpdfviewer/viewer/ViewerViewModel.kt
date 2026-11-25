@@ -1332,6 +1332,31 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Runs a tool that writes a new version of the document ([block] reads the current file and
+     * writes the output), then keeps it like a save ([asCopy] asks where).
+     */
+    fun runFileTool(suffix: String, asCopy: Boolean, block: suspend (input: java.io.File, output: java.io.File) -> Unit) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        toolProgress = 0f
+        viewModelScope.launch {
+            val out = runCatching {
+                val input = fileForSigning(r) ?: error("input")
+                val o = java.io.File(input.parentFile, "$suffix.pdf")
+                block(input, o)
+                o
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "$suffix failed", it) }.getOrNull()
+            toolProgress = null
+            if (out == null) exportResult = false else commitFile(r, out, asCopy, suffix)
+        }
+    }
+
+    /** The password the document was opened with, for tools that reopen the file. */
+    val documentPassword: String? get() = password
+
+    var pageNumbersOpen by mutableStateOf(false)
+
     // ---- Export as text ----
 
     var textExportOpen by mutableStateOf(false)

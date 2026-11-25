@@ -339,4 +339,14 @@
     <string name="export_text">Exportar como texto…</string>
     <string name="export_text_hint">Texto simples mantém a ordem de leitura. Markdown também marca títulos (pelo tamanho da fonte) e parágrafos. Tabelas, colunas e figuras não são mantidas; páginas digitalizadas não têm texto até passar por OCR.</string>
     <string name="plain_text">Texto</string>
+    <string name="page_numbers">Números de página…</string>
+    <string name="page_n_of_total">Página %1$s de %2$s</string>
+    <string name="position">Posição</string>
+    <string name="align_left">Esquerda</string>
+    <string name="align_center">Centro</string>
+    <string name="align_right">Direita</string>
+    <string name="format">Formato</string>
+    <string name="text_size">Tamanho</string>
+    <string name="from_page">A partir da página</string>
+    <string name="first_number">Número inicial</string>
 </resources>

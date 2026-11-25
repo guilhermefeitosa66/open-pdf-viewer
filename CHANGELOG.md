@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.40.0 (2026-11-24)
+
+- Page numbers (Tools…): six positions, formats "1", "1 / 10" and "Page 1 of 10" (in the app's language), three sizes, from a chosen page and starting number. Works on rotated and cropped pages.
+
 ## 0.39.0 (2026-11-24)
 
 - Export as text (Tools…): plain text in reading order, or simple Markdown with headings (from font size and bold lines) and paragraphs, saved where you choose. Word, Excel and PowerPoint conversion is out of scope (it needs a layout engine; see the roadmap).
