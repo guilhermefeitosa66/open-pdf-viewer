@@ -41,7 +41,7 @@ import io.github.guilhermefeitosa66.openpdfviewer.tools.NumberPosition as P
 fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-            PanelItem(stringResource(R.string.compress)) { onDismiss(); vm.compressOpen = true }
+            PanelItem(stringResource(R.string.compress_item)) { onDismiss(); vm.compressOpen = true }
             PanelItem(stringResource(R.string.page_numbers)) { onDismiss(); vm.pageNumbersOpen = true }
             PanelItem(stringResource(R.string.watermark)) { onDismiss(); vm.watermarkOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }

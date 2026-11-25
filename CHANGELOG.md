@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.49.1 (2026-11-24)
+
+- README rewritten for everything the app does now, with new screenshots; the roadmap marks every stage as shipped and lists the known limits and why; the licenses screen names PdfBox-Android, Bouncy Castle, Tesseract and its libraries, the OCR models and the sRGB profile.
+- Tools… › Compress… now has the ellipsis like the other items that open a dialog.
+
 ## 0.49.0 (2026-11-24)
 
 - Redact (Tools…): find text (or a pattern: CPF, CNPJ, e-mail, phone) or draw boxes on the page, then apply. What is under the boxes is removed from the file, not just covered: each affected page becomes an image with the boxes in black, the rest of its text stays searchable as an invisible layer, and its annotations are drawn into the page. Afterwards the app checks that the hidden words are no longer in the file and says so.

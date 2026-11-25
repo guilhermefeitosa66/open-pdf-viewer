@@ -447,4 +447,5 @@
     <string name="redact_not_verified">Redaction applied to %1$d pages, but the check still found some of the hidden words in the file. Review it before sharing.</string>
     <string name="previous_page">Previous page</string>
     <string name="next_page">Next page</string>
+    <string name="compress_item">Compress…</string>
 </resources>

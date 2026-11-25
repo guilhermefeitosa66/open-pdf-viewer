@@ -446,4 +446,5 @@
     <string name="redact_not_verified">Ocultação aplicada em %1$d páginas, mas a conferência ainda achou palavras ocultadas no arquivo. Revise antes de compartilhar.</string>
     <string name="previous_page">Página anterior</string>
     <string name="next_page">Próxima página</string>
+    <string name="compress_item">Comprimir…</string>
 </resources>

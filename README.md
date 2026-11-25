@@ -1,8 +1,9 @@
 <h1 align="center">Open PDF Viewer</h1>
 
 <p align="center">
-  A PDF viewer for Android that only views. Free and open source, with no ads, no account and no
-  internet: open a PDF, read it, search it, copy from it.
+  A PDF reader and toolkit for Android. Free and open source, with no ads, no account and no
+  internet: read, annotate, fill and sign, organize pages, convert, compress, scan and OCR, all on
+  the phone.
 </p>
 
 <p align="center">
@@ -14,28 +15,56 @@
 <p align="center">
   <img src="docs/screenshots/recent.webp" width="180" alt="Recent files">
   <img src="docs/screenshots/reading.webp" width="180" alt="Reading">
-  <img src="docs/screenshots/search.webp" width="180" alt="Search">
-  <img src="docs/screenshots/pages.webp" width="180" alt="Page thumbnails">
+  <img src="docs/screenshots/annotate.webp" width="180" alt="Annotate, fill and sign">
+  <img src="docs/screenshots/organize.webp" width="180" alt="Organize pages">
+  <img src="docs/screenshots/tools.webp" width="180" alt="File tools">
+  <img src="docs/screenshots/scan.webp" width="180" alt="Scan to PDF">
 </p>
 
 Part of [libre-apps](https://libre-apps.org), alongside OpenEmux, OpenTuner and SLAP.
 
-## What it does (v0.1)
+## What it does
 
-- Continuous vertical scrolling, page indicator, fast-scroll handle, go to page.
-- Pinch and double-tap zoom, fit width / fit page. Zoomed pages are re-rendered sharp.
-- Search in the text with highlights, next/previous, match count and a match-case toggle.
-- Long-press to select text, drag the handles, copy or share.
-- Page thumbnails in a bottom sheet.
-- Recent files with the page where you stopped.
-- Opens from the file picker, "Open with" and Share. Password-protected PDFs are supported.
-- Themes: libre-apps (follows the system light/dark setting, the default), Pastel, Dracula, Kitty
-  and Neon (Tokyo Night), with an optional background image on the home screen and behind the bars.
-  The document always sits on a solid color.
-- English, Portuguese and Spanish.
+**Read**
+- Continuous scrolling or page by page (two pages side by side on tablets and in landscape,
+  right-to-left too), pinch and double-tap zoom, fit width or page, go to page, fast scroll.
+- Search with highlights, a results list and match case / whole word / accent options; select text
+  across pages and copy or share it.
+- Table of contents, internal and external links (with a "back" chip), your own bookmarks,
+  document info, read aloud with the system voice, print.
+- Night and sepia page modes, keep screen on, lock rotation, full screen, and the libre-apps themes.
+- Recent files with the page where you stopped, favorites and folders.
 
-What comes next is in [docs/roadmap.md](docs/roadmap.md): reading comfort, annotations, page
-organization, forms and signatures, compression. Everything local.
+**Annotate, fill and sign** (the file changes only when you save; undo and redo)
+- Highlight, underline, strike out; free-hand ink; notes; text boxes; shapes; a list of all
+  annotations.
+- Fill PDF forms (text, check boxes, radio buttons, lists); fill and sign any page with today's
+  date, ✓, ✗ and dots.
+- Visual signatures (drawn or from a photo, kept on the device) and stamps (ready-made or your own).
+- Digital signatures with your certificate (PAdES), and an offline check of the signatures in a file.
+
+**Organize pages**
+- Delete, rotate, reorder (drag), duplicate; insert blank pages or pages from another PDF.
+- Extract pages, split (every N pages, by ranges, one file per page, up to a file size), merge
+  several PDFs (protected ones too), crop margins with white-margin detection.
+
+**Convert and optimize** (Tools…)
+- Compress with a size preview; images to PDF; pages as PNG or JPEG; extract embedded images;
+  plain text or Markdown.
+- Page numbers; text or image watermarks; edit properties and remove hidden metadata.
+- Protect with a password (AES-256) or remove it; PDF/A-2b (best effort); flattened copy; repair
+  damaged files.
+
+**Scan, OCR, compare, redact**
+- Scan to PDF with the system camera app or the gallery: page detection, perspective correction,
+  black-and-white document filter.
+- Offline OCR (Portuguese and English) that adds an invisible text layer, so scans can be searched
+  and copied.
+- Compare the text of two PDFs page by page.
+- Real redaction: what is under the black boxes is removed from the file, and the app checks it.
+
+Everything runs on the device. What is not here, and why, is in [docs/roadmap.md](docs/roadmap.md).
+English, Portuguese and Spanish.
 
 ## Privacy
 
@@ -71,6 +100,13 @@ start-up on a device.
 Pages are rendered by [PDFium](https://pdfium.googlesource.com/pdfium/), the engine of Chrome,
 through a small JNI layer in the `pdfium` module. The reasons for this choice, and why not the
 platform `PdfRenderer` or `androidx.pdf`, are in [docs/plan.md](docs/plan.md).
+
+Annotations, forms, page changes, split and merge also go through PDFium. Tools PDFium does not
+cover (re-encoding images, AES-256 passwords, metadata, PDF/A, watermarks, text export, digital
+signatures) use [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), loaded only when
+one of them runs, so opening a file stays as fast as before. OCR uses Tesseract with the models
+packaged in the app. Every tool writes a new version of the file and only replaces the original
+when you choose Save.
 
 ## Size
 

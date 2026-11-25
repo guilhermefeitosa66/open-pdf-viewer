@@ -396,7 +396,10 @@ private fun LicensesDialog(onDismiss: () -> Unit) {
                     Text(
                         "Kotlin, kotlinx.coroutines, AndroidX, Jetpack Compose, Material 3: Apache License 2.0.\n" +
                             "PDFium: BSD-3-Clause / Apache License 2.0. Its bundled libraries are listed below.\n" +
-                            "Digital signatures: PdfBox-Android (Apache License 2.0) and Bouncy Castle (MIT).\n" +
+                            "File tools and digital signatures: PdfBox-Android (Apache License 2.0) and Bouncy Castle (MIT).\n" +
+                            "OCR: Tesseract4Android and Tesseract (Apache License 2.0) with Leptonica (BSD-2-Clause), " +
+                            "libjpeg-turbo and libpng; models from tessdata_fast (Apache License 2.0).\n" +
+                            "The sRGB color profile used for PDF/A is original work (Apache License 2.0).\n" +
                             "Themes: the Dracula and Tokyo Night color palettes are used under the MIT License; " +
                             "Pastel, Kitty and all background art are original libre-apps work.",
                         fontSize = 13.sp,

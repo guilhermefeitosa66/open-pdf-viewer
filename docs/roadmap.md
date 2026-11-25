@@ -5,6 +5,10 @@ filtered for an offline, account-free, ad-free app, and split into stages.
 
 Survey date: 2026-11-24. Everything listed here runs on the device. Nothing needs a network.
 
+**Status (2026-11-24, version 0.49):** every stage below has shipped, including the "Later" list.
+What each version added is in [CHANGELOG.md](../CHANGELOG.md); what is still missing is under
+[Known limits](#known-limits).
+
 ## What we drop, and why
 
 | Feature (where seen) | Why it is out |
@@ -14,7 +18,6 @@ Survey date: 2026-11-24. Everything listed here runs on the device. Nothing need
 | Liquid Mode / reflow (Acrobat) | Runs on Adobe's servers |
 | Premium paywall for edit, export, compress, combine, organize (Acrobat) | We do these locally and for free, in later stages |
 | Office conversions: PDF ↔ Word / Excel / PowerPoint, HTML → PDF (iLovePDF) | Needs a layout engine of its own. Belongs to the sibling `open-documents-viewer` apps, not here |
-| Compare two PDFs (iLovePDF, premium) | Low value for the effort. Revisit after 1.0 |
 | Ads, telemetry, sign-in | libre-apps rule |
 
 ## Stages
@@ -84,6 +87,21 @@ Each stage ships as a release. Measuring cold start and time to first page is pa
 - Digital signatures with a certificate (PAdES), signature validation.
 - PDF/A export, repair damaged files.
 - Read aloud with the system TTS.
+
+## Known limits
+
+What is not done, or done only in part, and why:
+
+| Area | Limit | Why |
+|---|---|---|
+| Forms | XFA forms and form JavaScript (calculations, validation) do not run; the fields are shown and can be filled | The PDFium build has no V8; a JavaScript engine would add size and attack surface for rare forms |
+| Digital signatures | PAdES-B only: no timestamp (PAdES-T), no long-term validation, no revocation check (CRL/OCSP) | All of these need the network |
+| PDF/A | Best effort PDF/A-2b with a basic check; fonts that are not embedded cannot be fixed | Embedding a substitute font would change the page; a full validator (veraPDF) is too large for the app |
+| OCR | Portuguese and English only; adds about 13 MB per device | More models mean more size; they can be added later as optional downloads only if the no-network rule allows a separate package |
+| Redaction | Affected pages become images (their text stays searchable as an invisible layer) | Removing only the covered parts of text, images and vector drawings safely is hard to get right; rasterizing is the safe default |
+| Compare | Text only, page against page | A visual (pixel) comparison and matching moved pages are later work |
+| Text export | Plain text and simple Markdown; tables and columns are not rebuilt | Needs a layout engine |
+| Office conversions | Not here | See "What we drop" |
 
 ## Where each item came from
 
