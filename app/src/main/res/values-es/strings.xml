@@ -432,4 +432,26 @@
     <string name="previous_difference">Diferencia anterior</string>
     <string name="next_difference">Siguiente diferencia</string>
     <string name="show_page">Ver esta página</string>
+    <string name="redact">Ocultar (tachar)…</string>
+    <string name="redact_title">Ocultar</string>
+    <string name="redact_apply">Aplicar</string>
+    <string name="redact_find">Texto a ocultar</string>
+    <string name="mark">Marcar</string>
+    <string name="phone">Teléfono</string>
+    <string name="redact_hint">Busca un texto o elige un patrón, o arrastra en la página para dibujar un cuadro. Toca un cuadro para quitarlo.</string>
+    <plurals name="redact_found">
+        <item quantity="one">%1$d coincidencia marcada</item>
+        <item quantity="many">%1$d coincidencias marcadas</item>
+        <item quantity="other">%1$d coincidencias marcadas</item>
+    </plurals>
+    <plurals name="redact_marks">
+        <item quantity="one">%1$d cuadro</item>
+        <item quantity="many">%1$d cuadros</item>
+        <item quantity="other">%1$d cuadros</item>
+    </plurals>
+    <string name="redact_confirm">Lo que esté bajo los cuadros se eliminará de verdad, no solo se cubrirá. Las %1$d páginas afectadas pasan a ser imágenes con los cuadros en negro; el resto de su texto sigue pudiéndose buscar, y sus anotaciones se dibujan en la página.</string>
+    <string name="redact_verified">Ocultación aplicada en %1$d páginas y comprobada: el texto ocultado ya no está en el archivo.</string>
+    <string name="redact_not_verified">Ocultación aplicada en %1$d páginas, pero la comprobación aún encontró palabras ocultadas en el archivo. Revísalo antes de compartirlo.</string>
+    <string name="previous_page">Página anterior</string>
+    <string name="next_page">Página siguiente</string>
 </resources>

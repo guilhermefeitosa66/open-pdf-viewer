@@ -130,4 +130,9 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
 - **OCR**: Tesseract4Android (JitPack, só esse grupo liberado no `settings.gradle.kts`) com os
   modelos `tessdata_fast` eng/por empacotados (copiados para `files/ocr` no primeiro uso). A camada
   de texto é invisível (modo de renderização 3) e esticada à largura de cada palavra na imagem.
+- **Ocultar (redação)**: a página afetada vira imagem com as tarjas pintadas (o conteúdo de baixo
+  deixa de existir), as palavras fora das tarjas voltam como texto invisível e as anotações são
+  desenhadas na imagem; depois o app reabre o resultado e confere que as palavras ocultadas sumiram.
+  Cuidado com `size` em composables com `Canvas`/`pointerInput`: uma variável local com esse nome
+  esconde o `size` do escopo (bug achado aqui).
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

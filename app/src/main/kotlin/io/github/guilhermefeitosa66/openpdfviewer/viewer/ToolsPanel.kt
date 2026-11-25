@@ -50,6 +50,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
             PanelItem(stringResource(R.string.edit_properties)) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
+            PanelItem(stringResource(R.string.redact)) { onDismiss(); vm.redactOpen = true }
             PanelItem(stringResource(R.string.protect)) { onDismiss(); vm.protectOpen = true }
             PanelItem(stringResource(R.string.unprotect)) { onDismiss(); vm.unprotectOpen = true }
             PanelItem(stringResource(R.string.convert_pdfa)) { onDismiss(); vm.convertPdfA() }
@@ -120,6 +121,15 @@ fun ToolEffects(vm: ViewerViewModel) {
                 }
             },
             dismissButton = { TextButton(onClick = { vm.pdfaResult = null }) { Text(stringResource(R.string.discard)) } },
+        )
+    }
+    (vm.state as? DocState.Ready)?.let { r -> if (vm.redactOpen) RedactScreen(vm, r) }
+    vm.redactResult?.let { res ->
+        AlertDialog(
+            onDismissRequest = { vm.redactResult = null },
+            title = { Text(stringResource(R.string.redact_title)) },
+            text = { Text(stringResource(if (res.verified) R.string.redact_verified else R.string.redact_not_verified, res.pages)) },
+            confirmButton = { TextButton(onClick = { vm.redactResult = null }) { Text(stringResource(R.string.ok)) } },
         )
     }
     (vm.state as? DocState.Ready)?.let { r ->

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.49.0 (2026-11-24)
+
+- Redact (Tools…): find text (or a pattern: CPF, CNPJ, e-mail, phone) or draw boxes on the page, then apply. What is under the boxes is removed from the file, not just covered: each affected page becomes an image with the boxes in black, the rest of its text stays searchable as an invisible layer, and its annotations are drawn into the page. Afterwards the app checks that the hidden words are no longer in the file and says so.
+
 ## 0.48.0 (2026-11-24)
 
 - Compare with another PDF (Tools…): the text of each page side by side (this document above, the other below), removed words struck through in red and added words in green, long unchanged stretches shortened. Step through the pages that differ and jump to one in the reader.

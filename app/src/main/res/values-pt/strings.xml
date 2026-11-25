@@ -426,4 +426,24 @@
     <string name="previous_difference">Diferença anterior</string>
     <string name="next_difference">Próxima diferença</string>
     <string name="show_page">Mostrar esta página</string>
+    <string name="redact">Ocultar (tarjar)…</string>
+    <string name="redact_title">Ocultar</string>
+    <string name="redact_apply">Aplicar</string>
+    <string name="redact_find">Texto a ocultar</string>
+    <string name="mark">Marcar</string>
+    <string name="phone">Telefone</string>
+    <string name="redact_hint">Busque um texto ou escolha um padrão, ou arraste na página para desenhar uma caixa. Toque numa caixa para tirá-la.</string>
+    <plurals name="redact_found">
+        <item quantity="one">%1$d ocorrência marcada</item>
+        <item quantity="other">%1$d ocorrências marcadas</item>
+    </plurals>
+    <plurals name="redact_marks">
+        <item quantity="one">%1$d caixa</item>
+        <item quantity="other">%1$d caixas</item>
+    </plurals>
+    <string name="redact_confirm">O que estiver sob as caixas será removido de vez, não só coberto. As %1$d páginas afetadas viram imagens com as caixas em preto; o resto do texto delas continua pesquisável, e as anotações são desenhadas na página.</string>
+    <string name="redact_verified">Ocultação aplicada em %1$d páginas e conferida: o texto ocultado não está mais no arquivo.</string>
+    <string name="redact_not_verified">Ocultação aplicada em %1$d páginas, mas a conferência ainda achou palavras ocultadas no arquivo. Revise antes de compartilhar.</string>
+    <string name="previous_page">Página anterior</string>
+    <string name="next_page">Próxima página</string>
 </resources>

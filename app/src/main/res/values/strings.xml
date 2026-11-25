@@ -427,4 +427,24 @@
     <string name="previous_difference">Previous difference</string>
     <string name="next_difference">Next difference</string>
     <string name="show_page">Show this page</string>
+    <string name="redact">Redact…</string>
+    <string name="redact_title">Redact</string>
+    <string name="redact_apply">Apply</string>
+    <string name="redact_find">Find text to hide</string>
+    <string name="mark">Mark</string>
+    <string name="phone">Phone</string>
+    <string name="redact_hint">Find text or pick a pattern, or drag on the page to draw a box. Tap a box to remove it.</string>
+    <plurals name="redact_found">
+        <item quantity="one">%1$d match marked</item>
+        <item quantity="other">%1$d matches marked</item>
+    </plurals>
+    <plurals name="redact_marks">
+        <item quantity="one">%1$d box</item>
+        <item quantity="other">%1$d boxes</item>
+    </plurals>
+    <string name="redact_confirm">What is under the boxes will be removed for good, not just covered. The %1$d affected pages become images with the boxes in black; the rest of their text stays searchable, and their annotations are drawn into the page.</string>
+    <string name="redact_verified">Redaction applied to %1$d pages and checked: the hidden text is no longer in the file.</string>
+    <string name="redact_not_verified">Redaction applied to %1$d pages, but the check still found some of the hidden words in the file. Review it before sharing.</string>
+    <string name="previous_page">Previous page</string>
+    <string name="next_page">Next page</string>
 </resources>

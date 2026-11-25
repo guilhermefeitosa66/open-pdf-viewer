@@ -1361,6 +1361,32 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var metadataOpen by mutableStateOf(false)
     var ocrOpen by mutableStateOf(false)
     var compareOpen by mutableStateOf(false)
+    var redactOpen by mutableStateOf(false)
+    /** Outcome of the last redaction, for a message: pages done and whether the check passed. */
+    var redactResult by mutableStateOf<io.github.guilhermefeitosa66.openpdfviewer.tools.Redaction.Result?>(null)
+
+    fun applyRedaction(marks: Map<Int, List<android.graphics.RectF>>, asCopy: Boolean) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        redactOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            var result: io.github.guilhermefeitosa66.openpdfviewer.tools.Redaction.Result? = null
+            val out = runCatching {
+                val input = fileForSigning(r) ?: error("input")
+                val o = java.io.File(input.parentFile, "redacted.pdf")
+                result = io.github.guilhermefeitosa66.openpdfviewer.tools.Redaction.apply(app, r.doc, input, o, marks.filterValues { it.isNotEmpty() }, password) { p ->
+                    viewModelScope.launch { toolProgress = p }
+                }
+                o
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "redaction failed", it) }.getOrNull()
+            toolProgress = null
+            if (out == null) { exportResult = false; return@launch }
+            redactResult = result
+            commitFile(r, out, asCopy, "redacted")
+        }
+    }
     /** After OCR: how many pages got text (null when nothing to say). */
     var ocrPages by mutableStateOf<Int?>(null)
 
@@ -1728,6 +1754,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         signatureSheetOpen = false
         organizeOpen = false
         cropPage = null
+        redactOpen = false
         openedAnnot = null
     }
 
