@@ -50,6 +50,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.edit_properties)) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
             PanelItem(stringResource(R.string.protect)) { onDismiss(); vm.protectOpen = true }
             PanelItem(stringResource(R.string.unprotect)) { onDismiss(); vm.unprotectOpen = true }
+            PanelItem(stringResource(R.string.convert_pdfa)) { onDismiss(); vm.convertPdfA() }
             PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
         }
     }
@@ -90,6 +91,34 @@ fun ToolEffects(vm: ViewerViewModel) {
                 }
             }
         }
+    }
+    vm.pdfaResult?.let { (_, report) ->
+        AlertDialog(
+            onDismissRequest = { vm.pdfaResult = null },
+            title = { Text("PDF/A-2b") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (report.conformant) Text(stringResource(R.string.pdfa_ok))
+                    else {
+                        Text(stringResource(R.string.pdfa_problems))
+                        report.problems[io.github.guilhermefeitosa66.openpdfviewer.tools.PdfA.Problem.FONTS_NOT_EMBEDDED]?.let {
+                            Text(stringResource(R.string.pdfa_fonts, it.joinToString(", ")), fontSize = 14.sp)
+                        }
+                        if (io.github.guilhermefeitosa66.openpdfviewer.tools.PdfA.Problem.ATTACHMENTS in report.problems) {
+                            Text(stringResource(R.string.pdfa_attachments), fontSize = 14.sp)
+                        }
+                    }
+                    Text(stringResource(R.string.pdfa_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            confirmButton = {
+                Row {
+                    TextButton(onClick = { vm.keepPdfA(asCopy = true) }) { Text(stringResource(R.string.save_as_copy)) }
+                    TextButton(onClick = { vm.keepPdfA(asCopy = false) }) { Text(stringResource(R.string.save)) }
+                }
+            },
+            dismissButton = { TextButton(onClick = { vm.pdfaResult = null }) { Text(stringResource(R.string.discard)) } },
+        )
     }
     if (vm.protectOpen) {
         ProtectDialog(onDismiss = { vm.protectOpen = false }) { open, owner, restr, asCopy ->

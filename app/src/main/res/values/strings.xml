@@ -388,4 +388,10 @@
     <string name="repair_failed">Nothing could be recovered from this file.</string>
     <string name="repair_note">The original file is not changed. Check the repaired copy: damaged pages may be blank or incomplete.</string>
     <string name="save_repaired">Save repaired copy</string>
+    <string name="convert_pdfa">Convert to PDF/A…</string>
+    <string name="pdfa_ok">Converted to PDF/A-2b: fonts embedded, sRGB color profile, archival metadata, no encryption or scripts.</string>
+    <string name="pdfa_problems">Converted, but some things could not be fixed here, so the file may not pass a PDF/A check:</string>
+    <string name="pdfa_fonts">Fonts not embedded: %1$s. Text added with the standard fonts (stamps, page numbers) is one common cause.</string>
+    <string name="pdfa_attachments">The document has attachments, which PDF/A-2 only allows if they are PDF/A themselves.</string>
+    <string name="pdfa_note">This is a best-effort conversion with a basic check. For legal archiving, verify the file with a PDF/A validator such as veraPDF.</string>
 </resources>

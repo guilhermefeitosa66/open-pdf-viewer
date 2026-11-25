@@ -1359,6 +1359,31 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var watermarkOpen by mutableStateOf(false)
     var protectOpen by mutableStateOf(false)
     var metadataOpen by mutableStateOf(false)
+    /** A PDF/A conversion waiting for the user to keep it, with what could not be fixed. */
+    var pdfaResult by mutableStateOf<Pair<java.io.File, io.github.guilhermefeitosa66.openpdfviewer.tools.PdfA.Report>?>(null)
+
+    fun convertPdfA() {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val res = runCatching {
+                val input = fileForSigning(r) ?: error("input")
+                val out = java.io.File(input.parentFile, "pdfa.pdf")
+                out to io.github.guilhermefeitosa66.openpdfviewer.tools.PdfA.convert(app, input, out, password)
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "pdf/a failed", it) }.getOrNull()
+            toolProgress = null
+            if (res == null) exportResult = false else pdfaResult = res
+        }
+    }
+
+    fun keepPdfA(asCopy: Boolean) {
+        val r = ready ?: return
+        val (file, _) = pdfaResult ?: return
+        pdfaResult = null
+        viewModelScope.launch { commitFile(r, file, asCopy, "PDF-A") }
+    }
     var unprotectOpen by mutableStateOf(false)
     /** Result of "Remove password" when it could not run: not protected or wrong password. */
     var unprotectProblem by mutableStateOf<Int?>(null)

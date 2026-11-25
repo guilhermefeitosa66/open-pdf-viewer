@@ -387,4 +387,10 @@
     <string name="repair_failed">Não foi possível recuperar nada deste arquivo.</string>
     <string name="repair_note">O arquivo original não muda. Confira a cópia reparada: páginas danificadas podem ficar em branco ou incompletas.</string>
     <string name="save_repaired">Salvar cópia reparada</string>
+    <string name="convert_pdfa">Converter para PDF/A…</string>
+    <string name="pdfa_ok">Convertido para PDF/A-2b: fontes embutidas, perfil de cor sRGB, metadados de arquivamento, sem criptografia nem scripts.</string>
+    <string name="pdfa_problems">Convertido, mas algumas coisas não puderam ser corrigidas aqui, então o arquivo pode não passar numa verificação de PDF/A:</string>
+    <string name="pdfa_fonts">Fontes não embutidas: %1$s. Texto adicionado com as fontes padrão (carimbos, números de página) é uma causa comum.</string>
+    <string name="pdfa_attachments">O documento tem anexos, que o PDF/A-2 só permite se também forem PDF/A.</string>
+    <string name="pdfa_note">É uma conversão de melhor esforço com verificação básica. Para arquivamento legal, confira o arquivo num validador de PDF/A como o veraPDF.</string>
 </resources>

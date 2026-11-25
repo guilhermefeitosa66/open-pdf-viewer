@@ -391,4 +391,10 @@
     <string name="repair_failed">No se pudo recuperar nada de este archivo.</string>
     <string name="repair_note">El archivo original no cambia. Revisa la copia reparada: las páginas dañadas pueden quedar en blanco o incompletas.</string>
     <string name="save_repaired">Guardar copia reparada</string>
+    <string name="convert_pdfa">Convertir a PDF/A…</string>
+    <string name="pdfa_ok">Convertido a PDF/A-2b: fuentes incrustadas, perfil de color sRGB, metadatos de archivo, sin cifrado ni scripts.</string>
+    <string name="pdfa_problems">Convertido, pero algunas cosas no se pudieron corregir aquí, así que el archivo puede no pasar una verificación de PDF/A:</string>
+    <string name="pdfa_fonts">Fuentes no incrustadas: %1$s. El texto añadido con las fuentes estándar (sellos, números de página) es una causa habitual.</string>
+    <string name="pdfa_attachments">El documento tiene adjuntos, que PDF/A-2 solo permite si también son PDF/A.</string>
+    <string name="pdfa_note">Es una conversión de mejor esfuerzo con una verificación básica. Para archivo legal, comprueba el archivo con un validador de PDF/A como veraPDF.</string>
 </resources>

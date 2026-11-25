@@ -83,6 +83,7 @@ The app is licensed under the [Apache License 2.0](LICENSE).
 | Dracula and Tokyo Night color palettes (in the Dracula and Neon themes) | MIT |
 | Pastel and Kitty palettes, all background art ([libre-apps themes](https://libre-apps.org)) | libre-apps, original work |
 | Kotlin, kotlinx.coroutines | Apache-2.0 |
+| sRGB ICC profile for PDF/A (`assets/icc/sRGB.icc`, made by `tools/make-srgb-icc.py`) | Apache-2.0, original work |
 | [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) 2.0.27.0 (digital signatures only) | Apache-2.0 |
 | [Bouncy Castle](https://www.bouncycastle.org) `bcprov`/`bcpkix-jdk15to18` 1.87 (digital signatures only) | MIT |
 | AndroidX (core, activity, lifecycle), Jetpack Compose, Material 3 | Apache-2.0 |
