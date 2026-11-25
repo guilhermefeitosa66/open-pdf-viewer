@@ -83,12 +83,23 @@ class PageRenderer(
                     if (!firstPageLogged) {
                         firstPageLogged = true
                         Log.i(TAG, "open to first page: ${SystemClock.elapsedRealtime() - openedAt} ms")
+                        onFirstPage?.invoke()
                     }
                 }
                 baseJobs.remove(i)
             }
         }
     }
+
+    /**
+     * Runs once the first page is on screen (the screen reports the activity as fully drawn, which
+     * start-up benchmarks measure). Set after that moment, it runs right away.
+     */
+    var onFirstPage: (() -> Unit)? = null
+        set(value) {
+            field = value
+            if (firstPageLogged) value?.invoke()
+        }
 
     /** Called when the view is idle: renders sharp tiles if zoomed past the base resolution. */
     fun refreshDetail(vp: Viewport) {

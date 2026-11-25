@@ -218,6 +218,11 @@ private fun Loading() {
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun androidx.compose.foundation.layout.BoxScope.Reader(vm: ViewerViewModel, ready: DocState.Ready, onBack: () -> Unit) {
+    val activity = LocalContext.current as? android.app.Activity
+    androidx.compose.runtime.DisposableEffect(ready.renderer) {
+        ready.renderer.onFirstPage = { activity?.reportFullyDrawn() }
+        onDispose { ready.renderer.onFirstPage = null }
+    }
     val context = LocalContext.current
     val density = LocalDensity.current
     val vp = ready.viewport

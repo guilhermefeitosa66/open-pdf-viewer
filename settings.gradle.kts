@@ -17,4 +17,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "open-pdf-viewer"
-include(":app", ":pdfium")
+include(":app", ":pdfium", ":baselineprofile")

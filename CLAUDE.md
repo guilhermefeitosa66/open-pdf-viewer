@@ -37,6 +37,14 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
 - Abrir até a primeira página: o app loga `OpenPdfViewer: open to first page: N ms`.
 - Referência (2026-11-24, emulador x86_64 API 35 sem GPU, build benchmark): cold start
   500 a 650 ms; primeira página 146 ms na primeira abertura, ~25 ms ao reabrir.
+- Macrobenchmark (`:baselineprofile`, G2, 0.49): `./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`
+  (com `ANDROID_SERIAL` do emulador). Referência 2026-11-24, mesmo emulador: cold start TTID
+  mediana 574 ms sem perfil / 566 ms com Baseline Profile; "Open with" a frio até a primeira página
+  (TTFD, o app chama `reportFullyDrawn()` na primeira página) 910 / 899 ms. Com o app já aberto,
+  abrir até a primeira página segue em ~150 ms. O PDF de teste vem de um provider do APK de teste
+  e é aberto pelo processo de teste (o `am start` do shell não concede a URI).
+- Baseline Profile: `./gradlew :app:generateBaselineProfile`; o resultado fica versionado em
+  `app/src/release/generated/baselineProfiles/`. Regerar quando o caminho de abertura mudar.
 
 ## Temas
 

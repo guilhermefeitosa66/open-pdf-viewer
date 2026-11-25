@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.49.2 (2026-11-24)
+
+- Start-up: a Baseline Profile for starting the app and opening a PDF is now shipped (installed by profileinstaller), and the app reports when the first page is drawn so start-up tools can measure it.
+- New :baselineprofile module with the profile generator and Macrobenchmarks for cold start and cold "Open with" to the first page.
+
 ## 0.49.1 (2026-11-24)
 
 - README rewritten for everything the app does now, with new screenshots; the roadmap marks every stage as shipped and lists the known limits and why; the licenses screen names PdfBox-Android, Bouncy Castle, Tesseract and its libraries, the OCR models and the sRGB profile.
