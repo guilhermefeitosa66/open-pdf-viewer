@@ -79,3 +79,31 @@ object Security {
         }
     }
 }
+
+/** Document properties (title, author, subject, keywords) and hidden metadata. */
+object Metadata {
+    data class Fields(val title: String, val author: String, val subject: String, val keywords: String)
+
+    /**
+     * Writes [fields] (empty ones are removed). [stripHidden] also removes the XMP metadata,
+     * the creating app, the producer, the dates and any custom entries.
+     */
+    suspend fun write(context: Context, input: File, output: File, fields: Fields, stripHidden: Boolean, password: String?) =
+        withContext(Dispatchers.IO) {
+            PDFBoxResourceLoader.init(context.applicationContext)
+            PDDocument.load(input, password ?: "", MemoryUsageSetting.setupTempFileOnly()).use { doc ->
+                val info = if (stripHidden) com.tom_roush.pdfbox.pdmodel.PDDocumentInformation() else doc.documentInformation
+                info.title = fields.title.trim().ifEmpty { null }
+                info.author = fields.author.trim().ifEmpty { null }
+                info.subject = fields.subject.trim().ifEmpty { null }
+                info.keywords = fields.keywords.trim().ifEmpty { null }
+                if (!stripHidden) info.modificationDate = java.util.Calendar.getInstance()
+                doc.documentInformation = info
+                if (stripHidden) {
+                    doc.documentCatalog.metadata = null
+                    for (page in doc.pages) page.metadata = null
+                }
+                doc.save(output)
+            }
+        }
+}

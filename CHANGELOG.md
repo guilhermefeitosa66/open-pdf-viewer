@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.43.0 (2026-11-24)
+
+- Edit properties (Tools…): title, author, subject and keywords. Optionally remove hidden metadata: the creating app, producer, dates, XMP and custom entries.
+
 ## 0.42.0 (2026-11-24)
 
 - Protect with password (Tools…): AES-256 with a password to open, and optionally a separate permissions password that restricts printing, copying or editing. The dialog says plainly what this protects and what it does not.

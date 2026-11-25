@@ -378,4 +378,7 @@
     <string name="allow_copy">Permitir copiar texto e imágenes</string>
     <string name="allow_edit">Permitir cambios (anotaciones, formularios, páginas)</string>
     <string name="protect_note">El archivo se cifra con AES-256: sin la contraseña para abrirlo, su contenido no se puede leer. Las restricciones de impresión, copia y edición son solo una petición que las apps respetuosas siguen; quien puede abrir el archivo puede saltárselas. Una contraseña olvidada no se puede recuperar.</string>
+    <string name="edit_properties">Editar propiedades…</string>
+    <string name="remove_hidden_metadata">Quitar metadatos ocultos</string>
+    <string name="remove_hidden_metadata_hint">Quita también la app que creó el archivo, el productor, las fechas, los metadatos XMP y las entradas personalizadas. Lo escrito en las páginas no cambia.</string>
 </resources>

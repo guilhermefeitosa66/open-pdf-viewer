@@ -47,6 +47,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
+            PanelItem(stringResource(R.string.edit_properties)) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
             PanelItem(stringResource(R.string.protect)) { onDismiss(); vm.protectOpen = true }
             PanelItem(stringResource(R.string.unprotect)) { onDismiss(); vm.unprotectOpen = true }
             PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
@@ -75,6 +76,17 @@ fun ToolEffects(vm: ViewerViewModel) {
                 val app = context.applicationContext
                 vm.runFileTool("watermarked", asCopy) { input, output ->
                     io.github.guilhermefeitosa66.openpdfviewer.tools.Stamping.addWatermark(app, input, output, o, vm.documentPassword)
+                }
+            }
+        }
+    }
+    if (vm.metadataOpen) {
+        vm.info?.let { info ->
+            MetadataDialog(info, onDismiss = { vm.metadataOpen = false }) { fields, strip, asCopy ->
+                vm.metadataOpen = false
+                val app = context.applicationContext
+                vm.runFileTool("properties", asCopy) { input, output ->
+                    io.github.guilhermefeitosa66.openpdfviewer.tools.Metadata.write(app, input, output, fields, strip, vm.documentPassword)
                 }
             }
         }
@@ -465,6 +477,48 @@ private fun ProtectDialog(onDismiss: () -> Unit, onApply: (String, String, io.gi
             Row {
                 TextButton(enabled = ok, onClick = { onApply(open, if (restrict) owner else "", restr, true) }) { Text(stringResource(R.string.save_as_copy)) }
                 TextButton(enabled = ok, onClick = { onApply(open, if (restrict) owner else "", restr, false) }) { Text(stringResource(R.string.save)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun MetadataDialog(
+    info: io.github.guilhermefeitosa66.openpdfviewer.pdfium.DocumentInfo,
+    onDismiss: () -> Unit,
+    onApply: (io.github.guilhermefeitosa66.openpdfviewer.tools.Metadata.Fields, Boolean, Boolean) -> Unit,
+) {
+    var title by remember { mutableStateOf(info.title) }
+    var author by remember { mutableStateOf(info.author) }
+    var subject by remember { mutableStateOf(info.subject) }
+    var keywords by remember { mutableStateOf(info.keywords) }
+    var strip by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.edit_properties)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                for ((label, value, set) in listOf(
+                    Triple(R.string.info_title, title) { v: String -> title = v },
+                    Triple(R.string.info_author, author) { v: String -> author = v },
+                    Triple(R.string.info_subject, subject) { v: String -> subject = v },
+                    Triple(R.string.info_keywords, keywords) { v: String -> keywords = v },
+                )) {
+                    androidx.compose.material3.OutlinedTextField(value = value, onValueChange = { set(it.take(300)) }, singleLine = true, label = { Text(stringResource(label)) })
+                }
+                Row(Modifier.fillMaxWidth().clickable { strip = !strip }, verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = strip, onCheckedChange = { strip = it })
+                    Text(stringResource(R.string.remove_hidden_metadata))
+                }
+                if (strip) Text(stringResource(R.string.remove_hidden_metadata_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            val f = io.github.guilhermefeitosa66.openpdfviewer.tools.Metadata.Fields(title, author, subject, keywords)
+            Row {
+                TextButton(onClick = { onApply(f, strip, true) }) { Text(stringResource(R.string.save_as_copy)) }
+                TextButton(onClick = { onApply(f, strip, false) }) { Text(stringResource(R.string.save)) }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

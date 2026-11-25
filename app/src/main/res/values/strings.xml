@@ -376,4 +376,7 @@
     <string name="allow_copy">Allow copying text and images</string>
     <string name="allow_edit">Allow changes (annotations, forms, pages)</string>
     <string name="protect_note">The file is encrypted with AES-256: without the password to open it, its content cannot be read. Restrictions on printing, copying and editing are only a request that well-behaved apps follow; anyone who can open the file can get around them. A forgotten password cannot be recovered.</string>
+    <string name="edit_properties">Edit properties…</string>
+    <string name="remove_hidden_metadata">Remove hidden metadata</string>
+    <string name="remove_hidden_metadata_hint">Also removes the app that created the file, the producer, the dates, XMP metadata and any custom entries. What is written in the pages is not changed.</string>
 </resources>

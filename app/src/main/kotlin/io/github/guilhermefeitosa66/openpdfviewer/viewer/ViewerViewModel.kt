@@ -1358,6 +1358,7 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var pageNumbersOpen by mutableStateOf(false)
     var watermarkOpen by mutableStateOf(false)
     var protectOpen by mutableStateOf(false)
+    var metadataOpen by mutableStateOf(false)
     var unprotectOpen by mutableStateOf(false)
     /** Result of "Remove password" when it could not run: not protected or wrong password. */
     var unprotectProblem by mutableStateOf<Int?>(null)
