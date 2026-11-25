@@ -394,4 +394,17 @@
     <string name="pdfa_fonts">Fonts not embedded: %1$s. Text added with the standard fonts (stamps, page numbers) is one common cause.</string>
     <string name="pdfa_attachments">The document has attachments, which PDF/A-2 only allows if they are PDF/A themselves.</string>
     <string name="pdfa_note">This is a best-effort conversion with a basic check. For legal archiving, verify the file with a PDF/A validator such as veraPDF.</string>
+    <string name="scan_to_pdf">Scan to PDF</string>
+    <string name="scan_hint">Take a photo of each page with your camera app, or pick photos you already have. The page is found and straightened; you can adjust the corners.</string>
+    <string name="scan_pages">%1$d pages scanned. Add more or create the PDF.</string>
+    <string name="scan_adjust_hint">Drag the corners to the edges of the page.</string>
+    <string name="filter_original">Original</string>
+    <string name="filter_gray">Gray</string>
+    <string name="filter_document">Document (B&amp;W)</string>
+    <string name="whole_photo">Whole photo</string>
+    <string name="add_page">Add page</string>
+    <string name="from_gallery">From gallery</string>
+    <string name="take_photo">Take photo</string>
+    <string name="no_camera_app">No camera app found</string>
+    <string name="scan_name">Scan</string>
 </resources>

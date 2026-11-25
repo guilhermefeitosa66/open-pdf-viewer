@@ -393,4 +393,17 @@
     <string name="pdfa_fonts">Fontes não embutidas: %1$s. Texto adicionado com as fontes padrão (carimbos, números de página) é uma causa comum.</string>
     <string name="pdfa_attachments">O documento tem anexos, que o PDF/A-2 só permite se também forem PDF/A.</string>
     <string name="pdfa_note">É uma conversão de melhor esforço com verificação básica. Para arquivamento legal, confira o arquivo num validador de PDF/A como o veraPDF.</string>
+    <string name="scan_to_pdf">Digitalizar para PDF</string>
+    <string name="scan_hint">Tire uma foto de cada página com o app de câmera ou escolha fotos que você já tem. A página é encontrada e endireitada; dá para ajustar os cantos.</string>
+    <string name="scan_pages">%1$d páginas digitalizadas. Adicione mais ou crie o PDF.</string>
+    <string name="scan_adjust_hint">Arraste os cantos até as bordas da página.</string>
+    <string name="filter_original">Original</string>
+    <string name="filter_gray">Cinza</string>
+    <string name="filter_document">Documento (P&amp;B)</string>
+    <string name="whole_photo">Foto inteira</string>
+    <string name="add_page">Adicionar página</string>
+    <string name="from_gallery">Da galeria</string>
+    <string name="take_photo">Tirar foto</string>
+    <string name="no_camera_app">Nenhum app de câmera encontrado</string>
+    <string name="scan_name">Digitalização</string>
 </resources>

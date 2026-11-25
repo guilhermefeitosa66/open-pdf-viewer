@@ -2,4 +2,6 @@
 <paths>
     <!-- Copies made only to hand a PDF to another app with its own name. -->
     <cache-path name="share" path="share/" />
+    <!-- Photos taken by the system camera app for "Scan to PDF". -->
+    <cache-path name="scan" path="scan/" />
 </paths>

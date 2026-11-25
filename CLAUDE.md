@@ -122,4 +122,8 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   não alcança (recomprimir imagem, senha AES-256, metadados). Cada uma grava um arquivo novo e só
   substitui o aberto quando o usuário confirma (`commitFile`). A decodificação com subamostragem do
   PdfBox-Android quebra: JPEG vai direto ao `BitmapFactory` com `inSampleSize`.
+- **Escanear** (`scan/`): sem ML Kit nem OpenCV. Foto pelo app de câmera do sistema
+  (`TakePicture`, o app não pede permissão de câmera) ou galeria; página = maior região clara
+  (Otsu) com cantos nos extremos das diagonais; perspectiva com `Matrix.setPolyToPoly`; P&B por
+  limiar adaptativo (imagem integral) mais um corte absoluto para áreas escuras grandes.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

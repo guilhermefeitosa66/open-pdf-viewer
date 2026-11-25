@@ -397,4 +397,17 @@
     <string name="pdfa_fonts">Fuentes no incrustadas: %1$s. El texto añadido con las fuentes estándar (sellos, números de página) es una causa habitual.</string>
     <string name="pdfa_attachments">El documento tiene adjuntos, que PDF/A-2 solo permite si también son PDF/A.</string>
     <string name="pdfa_note">Es una conversión de mejor esfuerzo con una verificación básica. Para archivo legal, comprueba el archivo con un validador de PDF/A como veraPDF.</string>
+    <string name="scan_to_pdf">Escanear a PDF</string>
+    <string name="scan_hint">Toma una foto de cada página con tu app de cámara o elige fotos que ya tengas. La página se detecta y se endereza; puedes ajustar las esquinas.</string>
+    <string name="scan_pages">%1$d páginas escaneadas. Añade más o crea el PDF.</string>
+    <string name="scan_adjust_hint">Arrastra las esquinas hasta los bordes de la página.</string>
+    <string name="filter_original">Original</string>
+    <string name="filter_gray">Gris</string>
+    <string name="filter_document">Documento (B/N)</string>
+    <string name="whole_photo">Foto completa</string>
+    <string name="add_page">Añadir página</string>
+    <string name="from_gallery">De la galería</string>
+    <string name="take_photo">Tomar foto</string>
+    <string name="no_camera_app">No se encontró una app de cámara</string>
+    <string name="scan_name">Escaneo</string>
 </resources>
