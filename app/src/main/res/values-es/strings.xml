@@ -410,4 +410,15 @@
     <string name="take_photo">Tomar foto</string>
     <string name="no_camera_app">No se encontró una app de cámara</string>
     <string name="scan_name">Escaneo</string>
+    <string name="ocr">Reconocer texto (OCR)…</string>
+    <string name="ocr_hint">Lee el texto de las páginas escaneadas, en este dispositivo, y lo añade como una capa invisible: las páginas se ven igual, pero puedes buscar, seleccionar y copiar el texto. Tarda unos segundos por página.</string>
+    <string name="lang_portuguese">Portugués</string>
+    <string name="lang_english">Inglés</string>
+    <string name="ocr_only_empty">Solo páginas sin texto</string>
+    <string name="ocr_nothing">No se encontró texto para añadir.</string>
+    <plurals name="ocr_done">
+        <item quantity="one">Texto añadido en %1$d página</item>
+        <item quantity="many">Texto añadido en %1$d páginas</item>
+        <item quantity="other">Texto añadido en %1$d páginas</item>
+    </plurals>
 </resources>

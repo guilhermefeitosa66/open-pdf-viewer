@@ -2,6 +2,11 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.47.0 (2026-11-24)
+
+- Recognize text (Tools…): offline OCR with Tesseract and the Portuguese and English models packaged with the app (nothing is downloaded). Each page is read word by word and an invisible text layer is added, so scanned PDFs can be searched and their text selected and copied; the page images do not change. Progress is shown per page; pages that already have text can be skipped.
+- New dependency: Tesseract4Android (Apache-2.0, with Leptonica, libjpeg-turbo and libpng); models from tessdata_fast (Apache-2.0), fetched by tools/fetch-tessdata.sh. The universal APK grows from about 26 MB to 50 MB (see README › Size).
+
 ## 0.46.0 (2026-11-24)
 
 - Scan to PDF (home screen › ⋮): take photos with the system camera app (the app asks for no camera permission) or pick them from the gallery. The page is found and straightened automatically, the corners can be adjusted, and a filter cleans it up (original, gray, or black-and-white document that ignores shadows). Several pages make one A4 PDF. No ML Kit and no network.

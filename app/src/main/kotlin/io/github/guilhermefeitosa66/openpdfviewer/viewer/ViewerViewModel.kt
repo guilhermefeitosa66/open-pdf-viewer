@@ -1359,6 +1359,39 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
     var watermarkOpen by mutableStateOf(false)
     var protectOpen by mutableStateOf(false)
     var metadataOpen by mutableStateOf(false)
+    var ocrOpen by mutableStateOf(false)
+    /** After OCR: how many pages got text (null when nothing to say). */
+    var ocrPages by mutableStateOf<Int?>(null)
+
+    /**
+     * Makes pages searchable with offline OCR. [onlyWithoutText] skips pages that already have
+     * text. The result is kept like a save ([asCopy] asks where).
+     */
+    fun runOcr(languages: String, onlyWithoutText: Boolean, asCopy: Boolean) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        ocrOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            var count = 0
+            val out = runCatching {
+                val pages = (0 until r.doc.pageCount).filter { !onlyWithoutText || r.doc.text(it).isBlank() }
+                if (pages.isEmpty()) return@runCatching null
+                val input = fileForSigning(r) ?: error("input")
+                val o = java.io.File(input.parentFile, "ocr.pdf")
+                count = io.github.guilhermefeitosa66.openpdfviewer.tools.Ocr.makeSearchable(app, r.doc, input, o, pages, languages, password) { p ->
+                    viewModelScope.launch { toolProgress = p }
+                }
+                if (count > 0) o else null
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "ocr failed", it) }.getOrNull()
+            toolProgress = null
+            if (out == null) ocrPages = 0 else {
+                ocrPages = count
+                commitFile(r, out, asCopy, "searchable")
+            }
+        }
+    }
     /** A PDF/A conversion waiting for the user to keep it, with what could not be fixed. */
     var pdfaResult by mutableStateOf<Pair<java.io.File, io.github.guilhermefeitosa66.openpdfviewer.tools.PdfA.Report>?>(null)
 

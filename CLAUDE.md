@@ -22,6 +22,7 @@ Visualizador de PDF para Android (Kotlin, Jetpack Compose), 100% offline. Parte 
 
 ```bash
 tools/fetch-pdfium.sh                 # uma vez: baixa o PDFium fixado (SHA-256) para pdfium/prebuilt/
+tools/fetch-tessdata.sh               # uma vez: baixa os modelos de OCR (eng, por) para ocr/prebuilt/
 ./gradlew :app:testDebugUnitTest
 ./gradlew :app:assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleBenchmark      # release assinado com a chave de debug, para medir
@@ -126,4 +127,7 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   (`TakePicture`, o app não pede permissão de câmera) ou galeria; página = maior região clara
   (Otsu) com cantos nos extremos das diagonais; perspectiva com `Matrix.setPolyToPoly`; P&B por
   limiar adaptativo (imagem integral) mais um corte absoluto para áreas escuras grandes.
+- **OCR**: Tesseract4Android (JitPack, só esse grupo liberado no `settings.gradle.kts`) com os
+  modelos `tessdata_fast` eng/por empacotados (copiados para `files/ocr` no primeiro uso). A camada
+  de texto é invisível (modo de renderização 3) e esticada à largura de cada palavra na imagem.
 - **Tema** segue o sistema; a página do PDF não é invertida no escuro (modo noite da página é v0.2).

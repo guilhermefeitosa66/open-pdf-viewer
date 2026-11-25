@@ -1,0 +1,13 @@
+Tesseract4Android (https://github.com/adaptech-cz/Tesseract4Android) — offline OCR.
+Apache License 2.0. Copyright Robert Pösel, Google Inc. and contributors.
+
+It bundles:
+- Tesseract OCR (https://github.com/tesseract-ocr/tesseract): Apache License 2.0.
+- Leptonica (http://www.leptonica.org): BSD 2-clause license, Copyright Dan Bloomberg and others.
+- libjpeg-turbo (https://libjpeg-turbo.org): IJG license and BSD 3-clause license.
+- libpng (http://www.libpng.org): PNG Reference Library License version 2.
+
+Recognition models: tesseract-ocr/tessdata_fast (eng, por), Apache License 2.0
+(full text in tessdata_fast.txt).
+
+Apache License 2.0: http://www.apache.org/licenses/LICENSE-2.0

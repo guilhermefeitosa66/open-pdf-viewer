@@ -55,6 +55,7 @@ Manager).
 
 ```bash
 tools/fetch-pdfium.sh          # downloads the pinned PDFium binaries (checked by SHA-256)
+tools/fetch-tessdata.sh        # downloads the pinned OCR models (eng, por; checked by SHA-256)
 ./gradlew :app:assembleDebug   # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:testDebugUnitTest
 ```
@@ -71,6 +72,13 @@ Pages are rendered by [PDFium](https://pdfium.googlesource.com/pdfium/), the eng
 through a small JNI layer in the `pdfium` module. The reasons for this choice, and why not the
 platform `PdfRenderer` or `androidx.pdf`, are in [docs/plan.md](docs/plan.md).
 
+## Size
+
+Offline OCR is the largest part of the app. Measured on 0.47.0 (release build, all three ABIs):
+the universal APK is about 50 MB, of which about 22 MB are Tesseract's native libraries (about
+7 MB per ABI) and 6 MB the `eng` and `por` models; without OCR it was about 26 MB. Store
+installs from the app bundle only download one ABI, so OCR adds about 13 MB on a phone.
+
 ## Dependencies and licenses
 
 The app is licensed under the [Apache License 2.0](LICENSE).
@@ -83,6 +91,8 @@ The app is licensed under the [Apache License 2.0](LICENSE).
 | Dracula and Tokyo Night color palettes (in the Dracula and Neon themes) | MIT |
 | Pastel and Kitty palettes, all background art ([libre-apps themes](https://libre-apps.org)) | libre-apps, original work |
 | Kotlin, kotlinx.coroutines | Apache-2.0 |
+| [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android) 4.8.0 (OCR; bundles Tesseract, Leptonica, libjpeg-turbo, libpng) | Apache-2.0 (Leptonica BSD-2-Clause, libjpeg-turbo IJG/BSD-3-Clause, libpng PNG license) |
+| Tesseract models `eng` and `por` from [tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast) (fetched by `tools/fetch-tessdata.sh`) | Apache-2.0 |
 | sRGB ICC profile for PDF/A (`assets/icc/sRGB.icc`, made by `tools/make-srgb-icc.py`) | Apache-2.0, original work |
 | [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) 2.0.27.0 (digital signatures only) | Apache-2.0 |
 | [Bouncy Castle](https://www.bouncycastle.org) `bcprov`/`bcpkix-jdk15to18` 1.87 (digital signatures only) | MIT |

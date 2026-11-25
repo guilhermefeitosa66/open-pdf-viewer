@@ -45,6 +45,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.page_numbers)) { onDismiss(); vm.pageNumbersOpen = true }
             PanelItem(stringResource(R.string.watermark)) { onDismiss(); vm.watermarkOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
+            PanelItem(stringResource(R.string.ocr)) { onDismiss(); vm.ocrOpen = true }
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
             PanelItem(stringResource(R.string.edit_properties)) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
@@ -119,6 +120,44 @@ fun ToolEffects(vm: ViewerViewModel) {
             },
             dismissButton = { TextButton(onClick = { vm.pdfaResult = null }) { Text(stringResource(R.string.discard)) } },
         )
+    }
+    if (vm.ocrOpen) {
+        var por by remember { mutableStateOf(true) }
+        var eng by remember { mutableStateOf(true) }
+        var onlyEmpty by remember { mutableStateOf(true) }
+        AlertDialog(
+            onDismissRequest = { vm.ocrOpen = false },
+            title = { Text(stringResource(R.string.ocr)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.ocr_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(Modifier.fillMaxWidth().clickable { por = !por }, verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = por, onCheckedChange = { por = it }); Text(stringResource(R.string.lang_portuguese))
+                    }
+                    Row(Modifier.fillMaxWidth().clickable { eng = !eng }, verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = eng, onCheckedChange = { eng = it }); Text(stringResource(R.string.lang_english))
+                    }
+                    Row(Modifier.fillMaxWidth().clickable { onlyEmpty = !onlyEmpty }, verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = onlyEmpty, onCheckedChange = { onlyEmpty = it }); Text(stringResource(R.string.ocr_only_empty))
+                    }
+                }
+            },
+            confirmButton = {
+                val langs = listOfNotNull("por".takeIf { por }, "eng".takeIf { eng }).joinToString("+")
+                Row {
+                    TextButton(enabled = langs.isNotEmpty(), onClick = { vm.runOcr(langs, onlyEmpty, asCopy = true) }) { Text(stringResource(R.string.save_as_copy)) }
+                    TextButton(enabled = langs.isNotEmpty(), onClick = { vm.runOcr(langs, onlyEmpty, asCopy = false) }) { Text(stringResource(R.string.save)) }
+                }
+            },
+            dismissButton = { TextButton(onClick = { vm.ocrOpen = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    vm.ocrPages?.let { n ->
+        val msg = if (n == 0) stringResource(R.string.ocr_nothing) else androidx.compose.ui.res.pluralStringResource(R.plurals.ocr_done, n, n)
+        androidx.compose.runtime.LaunchedEffect(n) {
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+            vm.ocrPages = null
+        }
     }
     if (vm.protectOpen) {
         ProtectDialog(onDismiss = { vm.protectOpen = false }) { open, owner, restr, asCopy ->

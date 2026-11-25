@@ -406,4 +406,14 @@
     <string name="take_photo">Tirar foto</string>
     <string name="no_camera_app">Nenhum app de câmera encontrado</string>
     <string name="scan_name">Digitalização</string>
+    <string name="ocr">Reconhecer texto (OCR)…</string>
+    <string name="ocr_hint">Lê o texto das páginas digitalizadas, neste aparelho, e o acrescenta como uma camada invisível: as páginas ficam iguais, mas dá para buscar, selecionar e copiar o texto. Leva alguns segundos por página.</string>
+    <string name="lang_portuguese">Português</string>
+    <string name="lang_english">Inglês</string>
+    <string name="ocr_only_empty">Só páginas sem texto</string>
+    <string name="ocr_nothing">Nenhum texto encontrado para acrescentar.</string>
+    <plurals name="ocr_done">
+        <item quantity="one">Texto acrescentado em %1$d página</item>
+        <item quantity="other">Texto acrescentado em %1$d páginas</item>
+    </plurals>
 </resources>

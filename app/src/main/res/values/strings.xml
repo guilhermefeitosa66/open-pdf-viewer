@@ -407,4 +407,14 @@
     <string name="take_photo">Take photo</string>
     <string name="no_camera_app">No camera app found</string>
     <string name="scan_name">Scan</string>
+    <string name="ocr">Recognize text (OCR)…</string>
+    <string name="ocr_hint">Reads the text in scanned pages, on this device, and adds it as an invisible layer: the pages look the same, but you can search, select and copy the text. It takes a few seconds per page.</string>
+    <string name="lang_portuguese">Portuguese</string>
+    <string name="lang_english">English</string>
+    <string name="ocr_only_empty">Only pages without text</string>
+    <string name="ocr_nothing">No text was found to add.</string>
+    <plurals name="ocr_done">
+        <item quantity="one">Text added to %1$d page</item>
+        <item quantity="other">Text added to %1$d pages</item>
+    </plurals>
 </resources>

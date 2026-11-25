@@ -12,14 +12,14 @@ android {
         applicationId = "io.github.guilhermefeitosa66.openpdfviewer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 47
-        versionName = "0.46.0"
+        versionCode = 48
+        versionName = "0.47.0"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
     }
 
-    sourceSets["main"].assets.srcDirs("src/main/assets", "../pdfium/prebuilt/assets")
+    sourceSets["main"].assets.srcDirs("src/main/assets", "../pdfium/prebuilt/assets", "../ocr/prebuilt/assets")
 
     buildTypes {
         debug {
@@ -73,6 +73,8 @@ dependencies {
     implementation(libs.pdfbox.android) // Apache-2.0
     implementation(libs.bouncycastle.pkix) // MIT
     implementation(libs.bouncycastle.prov) // MIT
+    // OCR, loaded only when the user runs it.
+    implementation(libs.tesseract4android) // Apache-2.0
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.org.json) // real org.json for JVM tests (the Android one is a stub); public domain
