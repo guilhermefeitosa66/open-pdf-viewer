@@ -363,4 +363,17 @@
     <string name="over_content">Over</string>
     <string name="under_content">Under</string>
     <string name="under_note">Under the content, the mark may be hidden by pages with a solid background (scans, photos).</string>
+    <string name="protect">Protect with password…</string>
+    <string name="unprotect">Remove password…</string>
+    <string name="unprotect_hint">Enter the password that opens the file. For a file anyone can open but with restrictions, enter the permissions password.</string>
+    <string name="not_protected">This file has no password.</string>
+    <string name="wrong_password">Wrong password</string>
+    <string name="open_password">Password to open</string>
+    <string name="confirm_password">Repeat the password</string>
+    <string name="restrict_permissions">Also restrict printing, copying or editing</string>
+    <string name="permissions_password">Permissions password (different)</string>
+    <string name="allow_print">Allow printing</string>
+    <string name="allow_copy">Allow copying text and images</string>
+    <string name="allow_edit">Allow changes (annotations, forms, pages)</string>
+    <string name="protect_note">The file is encrypted with AES-256: without the password to open it, its content cannot be read. Restrictions on printing, copying and editing are only a request that well-behaved apps follow; anyone who can open the file can get around them. A forgotten password cannot be recovered.</string>
 </resources>

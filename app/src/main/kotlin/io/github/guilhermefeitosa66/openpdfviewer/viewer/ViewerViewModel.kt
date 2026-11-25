@@ -1357,6 +1357,41 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
 
     var pageNumbersOpen by mutableStateOf(false)
     var watermarkOpen by mutableStateOf(false)
+    var protectOpen by mutableStateOf(false)
+    var unprotectOpen by mutableStateOf(false)
+    /** Result of "Remove password" when it could not run: not protected or wrong password. */
+    var unprotectProblem by mutableStateOf<Int?>(null)
+
+    fun removePassword(pw: String, asCopy: Boolean) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        unprotectOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            var problem: Int? = null
+            val out = try {
+                val input = fileForSigning(r) ?: error("input")
+                val o = java.io.File(input.parentFile, "unprotected.pdf")
+                io.github.guilhermefeitosa66.openpdfviewer.tools.Security.removePassword(app, input, o, pw)
+                o
+            } catch (e: io.github.guilhermefeitosa66.openpdfviewer.tools.Security.NotProtected) {
+                problem = io.github.guilhermefeitosa66.openpdfviewer.R.string.not_protected; null
+            } catch (e: io.github.guilhermefeitosa66.openpdfviewer.tools.Security.WrongPassword) {
+                problem = io.github.guilhermefeitosa66.openpdfviewer.R.string.wrong_password; null
+            } catch (e: Exception) {
+                android.util.Log.w("OpenPdfViewer", "remove password failed", e); null
+            }
+            toolProgress = null
+            when {
+                out != null -> {
+                    commitFile(r, out, asCopy, "unprotected")
+                }
+                problem != null -> unprotectProblem = problem
+                else -> exportResult = false
+            }
+        }
+    }
 
     // ---- Export as text ----
 

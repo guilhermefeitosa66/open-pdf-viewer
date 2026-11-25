@@ -47,6 +47,8 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
             PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
+            PanelItem(stringResource(R.string.protect)) { onDismiss(); vm.protectOpen = true }
+            PanelItem(stringResource(R.string.unprotect)) { onDismiss(); vm.unprotectOpen = true }
             PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
         }
     }
@@ -76,6 +78,42 @@ fun ToolEffects(vm: ViewerViewModel) {
                 }
             }
         }
+    }
+    if (vm.protectOpen) {
+        ProtectDialog(onDismiss = { vm.protectOpen = false }) { open, owner, restr, asCopy ->
+            vm.protectOpen = false
+            val app = context.applicationContext
+            vm.runFileTool("protected", asCopy) { input, output ->
+                io.github.guilhermefeitosa66.openpdfviewer.tools.Security.protect(app, input, output, open, owner, restr, vm.documentPassword)
+            }
+        }
+    }
+    if (vm.unprotectOpen) {
+        var pw by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { vm.unprotectOpen = false },
+            title = { Text(stringResource(R.string.unprotect)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.unprotect_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    PasswordField(pw, { pw = it }, stringResource(R.string.password))
+                }
+            },
+            confirmButton = {
+                Row {
+                    TextButton(enabled = pw.isNotEmpty(), onClick = { vm.removePassword(pw, asCopy = true) }) { Text(stringResource(R.string.save_as_copy)) }
+                    TextButton(enabled = pw.isNotEmpty(), onClick = { vm.removePassword(pw, asCopy = false) }) { Text(stringResource(R.string.save)) }
+                }
+            },
+            dismissButton = { TextButton(onClick = { vm.unprotectOpen = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    vm.unprotectProblem?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { vm.unprotectProblem = null },
+            text = { Text(stringResource(msg)) },
+            confirmButton = { TextButton(onClick = { vm.unprotectProblem = null }) { Text(stringResource(R.string.ok)) } },
+        )
     }
     if (vm.textExportOpen) {
         AlertDialog(
@@ -367,6 +405,66 @@ private fun WatermarkDialog(pageCount: Int, onDismiss: () -> Unit, onApply: (io.
             Row {
                 TextButton(enabled = ok, onClick = { onApply(opts(), true) }) { Text(stringResource(R.string.save_as_copy)) }
                 TextButton(enabled = ok, onClick = { onApply(opts(), false) }) { Text(stringResource(R.string.save)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun PasswordField(value: String, onChange: (String) -> Unit, label: String, isError: Boolean = false) {
+    androidx.compose.material3.OutlinedTextField(
+        value = value, onValueChange = onChange, singleLine = true, isError = isError,
+        label = { Text(label) },
+        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
+    )
+}
+
+@Composable
+private fun ProtectDialog(onDismiss: () -> Unit, onApply: (String, String, io.github.guilhermefeitosa66.openpdfviewer.tools.Security.Restrictions, Boolean) -> Unit) {
+    var open by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    var restrict by remember { mutableStateOf(false) }
+    var owner by remember { mutableStateOf("") }
+    var print by remember { mutableStateOf(true) }
+    var copy by remember { mutableStateOf(false) }
+    var edit by remember { mutableStateOf(false) }
+    val mismatch = confirm.isNotEmpty() && confirm != open
+    val ok = (open.isNotEmpty() && open == confirm || open.isEmpty() && restrict) && (!restrict || owner.isNotEmpty()) && owner != open.ifEmpty { "\u0000" }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.protect)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                PasswordField(open, { open = it }, stringResource(R.string.open_password))
+                PasswordField(confirm, { confirm = it }, stringResource(R.string.confirm_password), isError = mismatch)
+                Row(Modifier.fillMaxWidth().clickable { restrict = !restrict }, verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = restrict, onCheckedChange = { restrict = it })
+                    Text(stringResource(R.string.restrict_permissions))
+                }
+                if (restrict) {
+                    PasswordField(owner, { owner = it }, stringResource(R.string.permissions_password), isError = owner.isNotEmpty() && owner == open)
+                    for ((label, value, set) in listOf(
+                        Triple(R.string.allow_print, print) { v: Boolean -> print = v },
+                        Triple(R.string.allow_copy, copy) { v: Boolean -> copy = v },
+                        Triple(R.string.allow_edit, edit) { v: Boolean -> edit = v },
+                    )) {
+                        Row(Modifier.fillMaxWidth().clickable { set(!value) }, verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = value, onCheckedChange = set)
+                            Text(stringResource(label))
+                        }
+                    }
+                }
+                Text(stringResource(R.string.protect_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            val restr = if (restrict) io.github.guilhermefeitosa66.openpdfviewer.tools.Security.Restrictions(print, copy, edit)
+            else io.github.guilhermefeitosa66.openpdfviewer.tools.Security.Restrictions()
+            Row {
+                TextButton(enabled = ok, onClick = { onApply(open, if (restrict) owner else "", restr, true) }) { Text(stringResource(R.string.save_as_copy)) }
+                TextButton(enabled = ok, onClick = { onApply(open, if (restrict) owner else "", restr, false) }) { Text(stringResource(R.string.save)) }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

@@ -362,4 +362,17 @@
     <string name="over_content">Por cima</string>
     <string name="under_content">Por baixo</string>
     <string name="under_note">Por baixo do conteúdo, a marca pode ficar escondida em páginas com fundo sólido (digitalizações, fotos).</string>
+    <string name="protect">Proteger com senha…</string>
+    <string name="unprotect">Remover senha…</string>
+    <string name="unprotect_hint">Digite a senha que abre o arquivo. Para um arquivo que qualquer um abre mas com restrições, digite a senha de permissões.</string>
+    <string name="not_protected">Este arquivo não tem senha.</string>
+    <string name="wrong_password">Senha errada</string>
+    <string name="open_password">Senha para abrir</string>
+    <string name="confirm_password">Repita a senha</string>
+    <string name="restrict_permissions">Também restringir impressão, cópia ou edição</string>
+    <string name="permissions_password">Senha de permissões (diferente)</string>
+    <string name="allow_print">Permitir imprimir</string>
+    <string name="allow_copy">Permitir copiar texto e imagens</string>
+    <string name="allow_edit">Permitir alterações (anotações, formulários, páginas)</string>
+    <string name="protect_note">O arquivo é criptografado com AES-256: sem a senha de abertura, o conteúdo não pode ser lido. Restrições de impressão, cópia e edição são só um pedido que apps bem-comportados seguem; quem consegue abrir o arquivo consegue contorná-las. Senha esquecida não tem como ser recuperada.</string>
 </resources>
