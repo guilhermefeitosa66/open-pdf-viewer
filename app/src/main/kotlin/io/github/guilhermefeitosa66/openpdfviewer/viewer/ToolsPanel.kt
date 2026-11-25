@@ -41,6 +41,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
             PanelItem(stringResource(R.string.compress)) { onDismiss(); vm.compressOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
+            PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
             PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
         }
     }
@@ -51,6 +52,30 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
 fun ToolEffects(vm: ViewerViewModel) {
     val context = LocalContext.current
     if (vm.compressOpen) CompressDialog(onDismiss = { vm.compressOpen = false }, onCompress = vm::compress)
+    if (vm.extractImagesOpen) {
+        val folder = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()) { tree ->
+            if (tree != null) vm.extractImages(tree)
+        }
+        AlertDialog(
+            onDismissRequest = { vm.extractImagesOpen = false },
+            title = { Text(stringResource(R.string.extract_images)) },
+            text = { Text(stringResource(R.string.extract_images_hint)) },
+            confirmButton = {
+                Row {
+                    TextButton(onClick = { vm.extractImages(null) }) { Text(stringResource(R.string.share_zip)) }
+                    TextButton(onClick = { folder.launch(null) }) { Text(stringResource(R.string.save_to_folder)) }
+                }
+            },
+            dismissButton = { TextButton(onClick = { vm.extractImagesOpen = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    if (vm.noImagesFound) {
+        AlertDialog(
+            onDismissRequest = { vm.noImagesFound = false },
+            text = { Text(stringResource(R.string.no_images_found)) },
+            confirmButton = { TextButton(onClick = { vm.noImagesFound = false }) { Text(stringResource(R.string.ok)) } },
+        )
+    }
     (vm.state as? DocState.Ready)?.let { r ->
         if (vm.imagesExportOpen) ExportImagesDialog(r.doc.pageCount, onDismiss = { vm.imagesExportOpen = false }, onExport = vm::exportImages)
     }

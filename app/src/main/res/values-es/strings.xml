@@ -336,4 +336,7 @@
     <string name="orientation_portrait">Vertical</string>
     <string name="orientation_landscape">Horizontal</string>
     <string name="export_images">Exportar como imágenes…</string>
+    <string name="extract_images">Extraer imágenes…</string>
+    <string name="extract_images_hint">Guarda las imágenes del documento tal como están: las fotos JPEG conservan su calidad original, las demás pasan a PNG. Los iconos pequeños se omiten.</string>
+    <string name="no_images_found">Este documento no tiene imágenes para extraer.</string>
 </resources>

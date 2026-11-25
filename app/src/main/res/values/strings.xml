@@ -334,4 +334,7 @@
     <string name="orientation_portrait">Portrait</string>
     <string name="orientation_landscape">Landscape</string>
     <string name="export_images">Export as images…</string>
+    <string name="extract_images">Extract images…</string>
+    <string name="extract_images_hint">Saves the pictures inside the document as they are: JPEG photos keep their original quality, the others become PNG. Small icons are left out.</string>
+    <string name="no_images_found">This document has no images to extract.</string>
 </resources>

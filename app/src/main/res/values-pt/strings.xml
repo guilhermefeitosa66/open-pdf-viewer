@@ -333,4 +333,7 @@
     <string name="orientation_portrait">Retrato</string>
     <string name="orientation_landscape">Paisagem</string>
     <string name="export_images">Exportar como imagens…</string>
+    <string name="extract_images">Extrair imagens…</string>
+    <string name="extract_images_hint">Salva as figuras do documento como estão: fotos JPEG mantêm a qualidade original, as outras viram PNG. Ícones pequenos ficam de fora.</string>
+    <string name="no_images_found">Este documento não tem imagens para extrair.</string>
 </resources>

@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.38.0 (2026-11-24)
+
+- Extract images (Tools…): every picture in the document, once each, into a folder or a ZIP. JPEG photos are copied as they are (no quality loss); other images are saved as PNG; tiny icons are skipped.
+
 ## 0.37.0 (2026-11-24)
 
 - Export as images (Tools…): PNG or JPEG at 72, 150 or 300 dpi, for all pages or a range, into a folder you choose or a ZIP to share.

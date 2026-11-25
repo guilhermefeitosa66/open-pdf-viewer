@@ -67,6 +67,51 @@ object PdfTools {
         }
     }
 
+    /**
+     * Saves every distinct image of the document into [dir]: JPEG streams as they are (no
+     * re-encoding), the rest as PNG. Tiny images (icons, under 32 px) are skipped. Returns the
+     * files in page order.
+     */
+    suspend fun extractImages(context: Context, input: File, dir: File, baseName: String, password: String?, onProgress: (Float) -> Unit = {}): List<File> =
+        withContext(Dispatchers.IO) {
+            val out = ArrayList<File>()
+            load(context, input, password).use { doc ->
+                val seen = HashSet<COSBase>()
+                val count = doc.numberOfPages
+                fun walk(res: PDResources, page: Int) {
+                    for (name in res.xObjectNames) {
+                        val xo = runCatching { res.getXObject(name) }.getOrNull() ?: continue
+                        if (!seen.add(xo.cosObject)) continue
+                        when (xo) {
+                            is PDFormXObject -> xo.resources?.let { walk(it, page) }
+                            is PDImageXObject -> runCatching {
+                                if (xo.width < 32 || xo.height < 32) return@runCatching
+                                val n = out.size + 1
+                                val filters = xo.cosObject.filters
+                                val jpeg = filters == com.tom_roush.pdfbox.cos.COSName.DCT_DECODE &&
+                                    xo.colorSpace.numberOfComponents in setOf(1, 3)
+                                val f = File(dir, "$baseName p${page + 1} ${n}." + if (jpeg) "jpg" else "png")
+                                if (jpeg) {
+                                    xo.cosObject.createRawInputStream().use { i -> f.outputStream().use { i.copyTo(it) } }
+                                } else {
+                                    val bmp = xo.image ?: return@runCatching
+                                    f.outputStream().buffered().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                                    bmp.recycle()
+                                }
+                                out += f
+                            }.onFailure { android.util.Log.w("OpenPdfViewer", "image not extracted", it) }
+                        }
+                    }
+                }
+                for ((i, page) in doc.pages.withIndex()) {
+                    coroutineContext.ensureActive()
+                    page.resources?.let { walk(it, i) }
+                    onProgress((i + 1).toFloat() / count)
+                }
+            }
+            out
+        }
+
     private fun recompress(
         doc: PDDocument,
         res: PDResources,

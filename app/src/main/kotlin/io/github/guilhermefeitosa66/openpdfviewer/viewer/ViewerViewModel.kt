@@ -1306,7 +1306,10 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 files.count { f ->
                     runCatching {
                         // The provider adds the extension for the MIME type.
-                        val doc = android.provider.DocumentsContract.createDocument(cr, parent, mime, f.nameWithoutExtension)
+                        val type = if (mime.endsWith("/*")) {
+                            android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(f.extension) ?: mime
+                        } else mime
+                        val doc = android.provider.DocumentsContract.createDocument(cr, parent, type, f.nameWithoutExtension)
                             ?: return@runCatching false
                         cr.openOutputStream(doc, "w")?.use { o -> f.inputStream().use { it.copyTo(o) } } != null
                     }.getOrDefault(false)
@@ -1326,6 +1329,36 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 z
             }
+        }
+    }
+
+    // ---- Extract embedded images ----
+
+    var extractImagesOpen by mutableStateOf(false)
+    /** Set when the document has no images to extract, for a short message. */
+    var noImagesFound by mutableStateOf(false)
+
+    fun extractImages(folder: Uri?) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        extractImagesOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val base = r.name.removeSuffix(".pdf").removeSuffix(".PDF")
+            val files = runCatching {
+                val input = fileForSigning(r) ?: error("input")
+                val dir = java.io.File(app.cacheDir, "split").apply { deleteRecursively(); mkdirs() }
+                io.github.guilhermefeitosa66.openpdfviewer.tools.PdfTools.extractImages(
+                    app, input, dir, io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName(base).removeSuffix(".pdf"), password,
+                ) { p -> viewModelScope.launch { toolProgress = p } }
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "extract images failed", it) }.getOrNull()
+            when {
+                files == null -> exportResult = false
+                files.isEmpty() -> noImagesFound = true
+                else -> deliverFiles(files, folder, "$base (images)", "image/*")
+            }
+            toolProgress = null
         }
     }
 
