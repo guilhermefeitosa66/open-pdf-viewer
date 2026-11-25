@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.39.0 (2026-11-24)
+
+- Export as text (Tools…): plain text in reading order, or simple Markdown with headings (from font size and bold lines) and paragraphs, saved where you choose. Word, Excel and PowerPoint conversion is out of scope (it needs a layout engine; see the roadmap).
+
 ## 0.38.0 (2026-11-24)
 
 - Extract images (Tools…): every picture in the document, once each, into a folder or a ZIP. JPEG photos are copied as they are (no quality loss); other images are saved as PNG; tiny icons are skipped.

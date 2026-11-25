@@ -337,4 +337,7 @@
     <string name="extract_images">Extract images…</string>
     <string name="extract_images_hint">Saves the pictures inside the document as they are: JPEG photos keep their original quality, the others become PNG. Small icons are left out.</string>
     <string name="no_images_found">This document has no images to extract.</string>
+    <string name="export_text">Export as text…</string>
+    <string name="export_text_hint">Plain text keeps the reading order. Markdown also marks headings (by font size) and paragraphs. Tables, columns and pictures are not kept; scanned pages have no text until OCR.</string>
+    <string name="plain_text">Text</string>
 </resources>

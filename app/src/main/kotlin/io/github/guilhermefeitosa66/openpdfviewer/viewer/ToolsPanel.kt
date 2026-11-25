@@ -41,6 +41,7 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
             PanelItem(stringResource(R.string.compress)) { onDismiss(); vm.compressOpen = true }
             PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
+            PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
             PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
             PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
         }
@@ -52,6 +53,24 @@ fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
 fun ToolEffects(vm: ViewerViewModel) {
     val context = LocalContext.current
     if (vm.compressOpen) CompressDialog(onDismiss = { vm.compressOpen = false }, onCompress = vm::compress)
+    if (vm.textExportOpen) {
+        AlertDialog(
+            onDismissRequest = { vm.textExportOpen = false },
+            title = { Text(stringResource(R.string.export_text)) },
+            text = { Text(stringResource(R.string.export_text_hint)) },
+            confirmButton = {
+                Row {
+                    TextButton(onClick = { vm.exportText(markdown = false) }) { Text(stringResource(R.string.plain_text)) }
+                    TextButton(onClick = { vm.exportText(markdown = true) }) { Text("Markdown") }
+                }
+            },
+            dismissButton = { TextButton(onClick = { vm.textExportOpen = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    val plainSaver = androidx.activity.compose.rememberLauncherForActivityResult(io.github.guilhermefeitosa66.openpdfviewer.ui.CreateTypedDocument()) { vm.savePlainFile(it) }
+    vm.plainFileToSave?.let { pending ->
+        androidx.compose.runtime.LaunchedEffect(pending) { plainSaver.launch(pending.second to pending.third) }
+    }
     if (vm.extractImagesOpen) {
         val folder = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()) { tree ->
             if (tree != null) vm.extractImages(tree)

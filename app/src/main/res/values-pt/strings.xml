@@ -336,4 +336,7 @@
     <string name="extract_images">Extrair imagens…</string>
     <string name="extract_images_hint">Salva as figuras do documento como estão: fotos JPEG mantêm a qualidade original, as outras viram PNG. Ícones pequenos ficam de fora.</string>
     <string name="no_images_found">Este documento não tem imagens para extrair.</string>
+    <string name="export_text">Exportar como texto…</string>
+    <string name="export_text_hint">Texto simples mantém a ordem de leitura. Markdown também marca títulos (pelo tamanho da fonte) e parágrafos. Tabelas, colunas e figuras não são mantidas; páginas digitalizadas não têm texto até passar por OCR.</string>
+    <string name="plain_text">Texto</string>
 </resources>

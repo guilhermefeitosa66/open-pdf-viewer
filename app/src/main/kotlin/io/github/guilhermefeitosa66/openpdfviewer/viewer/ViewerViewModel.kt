@@ -1332,6 +1332,41 @@ class ViewerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- Export as text ----
+
+    var textExportOpen by mutableStateOf(false)
+    /** A generated non-PDF file waiting for "Save as": file, suggested name, MIME type. */
+    var plainFileToSave by mutableStateOf<Triple<java.io.File, String, String>?>(null)
+
+    fun exportText(markdown: Boolean) {
+        val r = ready ?: return
+        if (toolProgress != null) return
+        textExportOpen = false
+        toolProgress = 0f
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val file = runCatching {
+                val input = fileForSigning(r) ?: error("input")
+                val text = if (markdown) io.github.guilhermefeitosa66.openpdfviewer.tools.TextExport.markdown(app, input, password)
+                else io.github.guilhermefeitosa66.openpdfviewer.tools.TextExport.plainText(app, input, password)
+                val f = java.io.File(input.parentFile, if (markdown) "document.md" else "document.txt")
+                withContext(Dispatchers.IO) { f.writeText(text) }
+                f
+            }.onFailure { android.util.Log.w("OpenPdfViewer", "text export failed", it) }.getOrNull()
+            toolProgress = null
+            if (file == null) { exportResult = false; return@launch }
+            val base = io.github.guilhermefeitosa66.openpdfviewer.ui.FileActions.safeName(r.name).removeSuffix(".pdf").removeSuffix(".PDF")
+            plainFileToSave = Triple(file, base + if (markdown) ".md" else ".txt", if (markdown) "text/markdown" else "text/plain")
+        }
+    }
+
+    fun savePlainFile(target: Uri?) {
+        val (file, _, _) = plainFileToSave ?: return
+        plainFileToSave = null
+        if (target == null) return
+        viewModelScope.launch { exportResult = DocumentSource.overwrite(getApplication(), target, file) }
+    }
+
     // ---- Extract embedded images ----
 
     var extractImagesOpen by mutableStateOf(false)
