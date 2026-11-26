@@ -449,4 +449,10 @@
     <string name="next_page">Next page</string>
     <string name="compress_item">Compress…</string>
     <string name="about_site">Website: libre-apps.org</string>
+    <string name="updates">Updates</string>
+    <string name="update_check">Tell me when there is a new version</string>
+    <string name="update_check_desc">Asks GitHub for the latest release when the app opens. This is the only time the app uses the network.</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_view">View</string>
+    <string name="update_not_now">Not now</string>
 </resources>

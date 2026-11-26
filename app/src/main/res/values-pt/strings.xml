@@ -448,4 +448,10 @@
     <string name="next_page">Próxima página</string>
     <string name="compress_item">Comprimir…</string>
     <string name="about_site">Página no libre-apps.org</string>
+    <string name="updates">Atualizações</string>
+    <string name="update_check">Avisar quando houver versão nova</string>
+    <string name="update_check_desc">Consulta a última versão no GitHub ao abrir o app. É o único momento em que o app usa a rede.</string>
+    <string name="update_available">A versão %1$s está disponível</string>
+    <string name="update_view">Ver</string>
+    <string name="update_not_now">Agora não</string>
 </resources>

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No INTERNET and no storage permission: files come through the Storage Access Framework. -->
+    <!-- INTERNET only for the update check (one request to the GitHub API at start-up, can be
+         turned off in Settings). No storage permission: files come through the Storage Access Framework. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Lets the app find the system text-to-speech engine (read aloud). -->
     <queries>

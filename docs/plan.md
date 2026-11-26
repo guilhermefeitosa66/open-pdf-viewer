@@ -64,7 +64,7 @@ one dedicated thread.
   plus a thumbnail cache in `cacheDir`. `takePersistableUriPermission` on picker results; a file
   received through "Open with" or Share without a persistable grant still goes to the list, and
   reopening it later tells the user when the grant has expired.
-- Manifest: no `INTERNET`, no storage permission. Intent filters for `application/pdf` on `VIEW`
+- Manifest: no storage permission; `INTERNET` only for the update check (0.52, can be turned off). Intent filters for `application/pdf` on `VIEW`
   and `SEND`.
 
 ## Performance budget

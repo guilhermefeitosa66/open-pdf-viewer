@@ -51,7 +51,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 import io.github.guilhermefeitosa66.openpdfviewer.R
+import io.github.guilhermefeitosa66.openpdfviewer.data.UpdateStore
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppTheme
 import io.github.guilhermefeitosa66.openpdfviewer.ui.AppThemes
 import io.github.guilhermefeitosa66.openpdfviewer.ui.BackgroundCache
@@ -140,6 +142,30 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
             Switch(checked = settings.backgroundEnabled && hasBackground, onCheckedChange = null, enabled = hasBackground)
         }
+
+        SectionLabel(stringResource(R.string.updates))
+        val updates = remember { UpdateStore.get(context) }
+        val updatesOn by updates.enabled.collectAsState()
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .toggleable(value = updatesOn, role = Role.Switch, onValueChange = updates::setEnabled)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.update_check), fontSize = 16.sp)
+                Text(
+                    stringResource(R.string.update_check_desc),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = updatesOn, onCheckedChange = null)
+        }
+        Spacer(Modifier.height(16.dp))
     }
 }
 

@@ -1,14 +1,19 @@
 # CLAUDE.md
 
-Visualizador de PDF para Android (Kotlin, Jetpack Compose), 100% offline. Parte da libre-apps.
+Visualizador de PDF para Android (Kotlin, Jetpack Compose), 100% offline (a única rede é o aviso opcional de versão nova). Parte da libre-apps.
 
 ## Regras
 
 - **Idioma.** Código, comentários, commits, README e issues em **inglês**. Conversa com o
   Guilherme em português. Textos do app em `res/values*/strings.xml`: inglês (padrão), `values-pt`
   e `values-es`. Texto novo entra nos três.
-- **Nada de rede.** O manifest não declara `INTERNET` nem permissão de armazenamento. Arquivo
-  chega só pelo SAF (picker, "Abrir com", Compartilhar). Dependência que traga `INTERNET` para o
+- **Rede só para o aviso de versão nova.** O manifest declara `INTERNET` só para isso: ao abrir
+  (tela inicial, depois do primeiro quadro, uma vez por processo) o app consulta
+  `api.github.com/repos/guilhermefeitosa66/open-pdf-viewer/releases/latest` (`data/Updates.kt`,
+  timeout 8 s, falha silenciosa). Vem **ligado por padrão** e se desliga em Configurações ›
+  Atualizações; desligado, nenhuma conexão. Nenhuma outra conexão é permitida, nada no caminho de
+  abertura do documento. Sem permissão de armazenamento: arquivo
+  chega só pelo SAF (picker, "Abrir com", Compartilhar). Outra dependência que use rede ou traga `INTERNET` para o
   manifest mesclado é recusada. Sem anúncio, sem analytics, sem conta.
 - **Licença Apache-2.0.** Nada AGPL (MuPDF está fora). Toda dependência nova tem a licença
   conferida e listada no README.
@@ -92,7 +97,7 @@ daemon) e `--precisa 5` antes de subir emulador; derrube o que subir.
   desenho (rampa de luminância tinta→papel): troca na hora, sem re-renderizar. Fotos ficam
   monocromáticas nos modos noturno/sépia, de propósito.
 - **Links**: internos pulam e empilham a posição anterior (chip "Voltar à página N" e o voltar do
-  sistema); externos pedem confirmação e abrem no navegador (o app continua sem `INTERNET`).
+  sistema); externos pedem confirmação e abrem no navegador (o app não faz a conexão).
 - **Anotações** ficam no documento em memória (PDFium) e marcam `unsaved`; o arquivo só muda ao
   salvar. Texto livre vai como anotação **Stamp** com objetos de texto (fonte padrão Helvetica,
   Times ou Courier, `/Contents` com o texto), porque o PDFium não desenha aparência de FreeText;

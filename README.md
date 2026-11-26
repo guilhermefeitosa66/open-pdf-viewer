@@ -2,7 +2,7 @@
 
 <p align="center">
   A PDF reader and toolkit for Android. Free and open source, with no ads, no account and no
-  internet: read, annotate, fill and sign, organize pages, convert, compress, scan and OCR, all on
+  internet needed: read, annotate, fill and sign, organize pages, convert, compress, scan and OCR, all on
   the phone.
 </p>
 
@@ -68,8 +68,14 @@ English, Portuguese and Spanish.
 
 ## Privacy
 
-The app has no `INTERNET` permission and no storage permission. Files reach it only through the
-Android file picker or another app's "Open with" / Share, and nothing leaves the device.
+The app has no storage permission. Files reach it only through the Android file picker or another
+app's "Open with" / Share, and they never leave the device.
+
+The only network access is the update check: when the app opens, it asks the GitHub API once for
+the latest release (`api.github.com/repos/guilhermefeitosa66/open-pdf-viewer/releases/latest`) and,
+if there is a newer version, shows a notice on the home screen. Nothing about you or your files is
+sent. It is on by default and can be turned off in Settings › Updates; when it is off, the app makes
+no connection at all. This is why the app declares the `INTERNET` permission.
 
 ## Install
 

@@ -48,6 +48,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -75,6 +76,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.guilhermefeitosa66.openpdfviewer.BuildConfig
+import io.github.guilhermefeitosa66.openpdfviewer.data.UpdateState
+import io.github.guilhermefeitosa66.openpdfviewer.data.UpdateStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import io.github.guilhermefeitosa66.openpdfviewer.R
 import io.github.guilhermefeitosa66.openpdfviewer.data.Library
 import io.github.guilhermefeitosa66.openpdfviewer.data.LibraryFile
@@ -90,6 +95,28 @@ import kotlinx.coroutines.withContext
 
 private const val SOURCE_URL = "https://github.com/guilhermefeitosa66/open-pdf-viewer"
 
+/** Outlives the home screen, so leaving it does not cancel the one check of the process. */
+private val UpdateScope = CoroutineScope(SupervisorJob())
+
+/** A quiet card under the title: the new version, "View" (its release page) and "Not now". */
+@Composable
+private fun UpdateBanner(version: String, onView: () -> Unit, onNotNow: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+    ) {
+        Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.update_available, version), modifier = Modifier.weight(1f), fontSize = 14.sp)
+            // The container's own text color: the accent on the accent-tinted card is too faint.
+            val buttons = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+            TextButton(onClick = onNotNow, colors = buttons) { Text(stringResource(R.string.update_not_now)) }
+            TextButton(onClick = onView, colors = buttons) { Text(stringResource(R.string.update_view), fontWeight = FontWeight.Bold) }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> Unit) {
@@ -100,7 +127,12 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
         // The library (favorites, folders) is not needed for the first frame.
         androidx.compose.runtime.withFrameNanos { }
         Library.get(context).load()
+        // Off the document path: only from the home screen, after its first frame, once per process.
+        UpdateStore.get(context).checkOnce(UpdateScope)
     }
+    val updates = remember { UpdateStore.get(context) }
+    val update by updates.state.collectAsState()
+    val updateDismissed by updates.dismissed.collectAsState()
     val items by recent.items.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -177,6 +209,14 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                         )
                     }
                 }
+            }
+
+            (update as? UpdateState.Available)?.takeUnless { updateDismissed }?.let { found ->
+                UpdateBanner(
+                    found.release.version,
+                    onView = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(found.release.url))) } },
+                    onNotNow = updates::dismiss,
+                )
             }
 
             var tab by rememberSaveable { mutableIntStateOf(0) }

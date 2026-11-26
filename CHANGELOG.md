@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.52.0 (2026-11-25)
+
+- New-version notice: when the app opens, it asks GitHub once for the latest release and, if it is newer, shows a quiet notice on the home screen with "View" (opens the release page) and "Not now" (hidden until the next start). On by default; Settings › Updates turns it off. This is the app's only network access, so it now declares the `INTERNET` permission; the check never runs on the way to a document.
+
 ## 0.51.0 (2026-11-25)
 
 - About now links to the app page on libre-apps.org.
