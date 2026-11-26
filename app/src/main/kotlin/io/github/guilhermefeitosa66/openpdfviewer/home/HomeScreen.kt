@@ -256,6 +256,9 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                     TextButton(onClick = {
                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) }
                     }) { Text(stringResource(R.string.source_code)) }
+                    TextButton(onClick = {
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://libre-apps.org/open-pdf-viewer/"))) }
+                    }) { Text(stringResource(R.string.about_site)) }
                     TextButton(onClick = { about = false; licenses = true }) {
                         Text(stringResource(R.string.licenses))
                     }

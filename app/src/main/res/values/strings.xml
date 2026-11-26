@@ -448,4 +448,5 @@
     <string name="previous_page">Previous page</string>
     <string name="next_page">Next page</string>
     <string name="compress_item">Compress…</string>
+    <string name="about_site">Website: libre-apps.org</string>
 </resources>
