@@ -48,6 +48,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -469,29 +471,29 @@ private fun TopBar(
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 // Short on purpose: file actions first, then two panels for annotating and viewing.
                 if (vm.unsaved) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, onClick = { menu = false; vm.save() })
-                    DropdownMenuItem(text = { Text(stringResource(R.string.save_as)) }, onClick = { menu = false; vm.needsSaveAs = true })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, leadingIcon = { Icon(Icons.Outlined.Save, null) }, onClick = { menu = false; vm.save() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.save_as)) }, leadingIcon = { Icon(Icons.Outlined.SaveAs, null) }, onClick = { menu = false; vm.needsSaveAs = true })
                     HorizontalDivider()
                 }
-                DropdownMenuItem(text = { Text(stringResource(R.string.annotate)) }, onClick = { menu = false; panel = Panel.ANNOTATE })
-                DropdownMenuItem(text = { Text(stringResource(R.string.view_options)) }, onClick = { menu = false; panel = Panel.VIEW })
-                DropdownMenuItem(text = { Text(stringResource(R.string.tools)) }, onClick = { menu = false; panel = Panel.TOOLS })
+                DropdownMenuItem(text = { Text(stringResource(R.string.annotate)) }, leadingIcon = { Icon(Icons.Outlined.EditNote, null) }, onClick = { menu = false; panel = Panel.ANNOTATE })
+                DropdownMenuItem(text = { Text(stringResource(R.string.view_options)) }, leadingIcon = { Icon(Icons.Outlined.Visibility, null) }, onClick = { menu = false; panel = Panel.VIEW })
+                DropdownMenuItem(text = { Text(stringResource(R.string.tools)) }, leadingIcon = { Icon(Icons.Outlined.Handyman, null) }, onClick = { menu = false; panel = Panel.TOOLS })
                 val page = vp.currentPage
                 if (vm.isBookmarked(page)) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.remove_bookmark)) }, onClick = { menu = false; vm.removeBookmark(page) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.remove_bookmark)) }, leadingIcon = { Icon(Icons.Outlined.BookmarkRemove, null) }, onClick = { menu = false; vm.removeBookmark(page) })
                 } else {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.add_bookmark)) }, onClick = { menu = false; bookmarkPage = page })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.add_bookmark)) }, leadingIcon = { Icon(Icons.Outlined.BookmarkAdd, null) }, onClick = { menu = false; bookmarkPage = page })
                 }
-                DropdownMenuItem(text = { Text(stringResource(R.string.read_aloud)) }, onClick = { menu = false; vm.startReadAloud() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.read_aloud)) }, leadingIcon = { Icon(Icons.Outlined.RecordVoiceOver, null) }, onClick = { menu = false; vm.startReadAloud() })
                 HorizontalDivider()
-                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; onShare() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, leadingIcon = { Icon(Icons.Outlined.Share, null) }, onClick = { menu = false; onShare() })
                 if (!vm.unsaved) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; onSaveCopy() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, leadingIcon = { Icon(Icons.Outlined.SaveAlt, null) }, onClick = { menu = false; onSaveCopy() })
                 }
                 val copiedImage = stringResource(R.string.page_copied_image)
                 val copyFailed = stringResource(R.string.copy_failed)
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.copy_page_image)) },
+                    text = { Text(stringResource(R.string.copy_page_image)) }, leadingIcon = { Icon(Icons.Outlined.Image, null) },
                     onClick = {
                         menu = false
                         scope.launch {
@@ -500,8 +502,8 @@ private fun TopBar(
                         }
                     },
                 )
-                DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, onClick = { menu = false; vm.print(context) })
-                DropdownMenuItem(text = { Text(stringResource(R.string.document_info)) }, onClick = { menu = false; vm.loadInfo(); infoDialog = true })
+                DropdownMenuItem(text = { Text(stringResource(R.string.print)) }, leadingIcon = { Icon(Icons.Outlined.Print, null) }, onClick = { menu = false; vm.print(context) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.document_info)) }, leadingIcon = { Icon(Icons.Outlined.Info, null) }, onClick = { menu = false; vm.loadInfo(); infoDialog = true })
             }
         }
     }
@@ -745,12 +747,12 @@ private fun SelectionOverlay(vm: ViewerViewModel, vp: Viewport) {
             Box {
                 IconButton(onClick = { more = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options)) }
                 DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
-                    for ((type, label) in listOf(
-                        PdfDocument.Markup.UNDERLINE to R.string.underline,
-                        PdfDocument.Markup.STRIKEOUT to R.string.strikethrough,
-                        PdfDocument.Markup.SQUIGGLY to R.string.squiggly,
+                    for ((type, label, icon) in listOf(
+                        Triple(PdfDocument.Markup.UNDERLINE, R.string.underline, Icons.Outlined.FormatUnderlined),
+                        Triple(PdfDocument.Markup.STRIKEOUT, R.string.strikethrough, Icons.Outlined.StrikethroughS),
+                        Triple(PdfDocument.Markup.SQUIGGLY, R.string.squiggly, Icons.Outlined.Waves),
                     )) {
-                        DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = { more = false; vm.markSelection(type, settings.markupColor) })
+                        DropdownMenuItem(text = { Text(stringResource(label)) }, leadingIcon = { Icon(icon, null) }, onClick = { more = false; vm.markSelection(type, settings.markupColor) })
                     }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.markup_color)) },
@@ -758,8 +760,8 @@ private fun SelectionOverlay(vm: ViewerViewModel, vp: Viewport) {
                         onClick = { more = false; colorDialog = true },
                     )
                     HorizontalDivider()
-                    DropdownMenuItem(text = { Text(stringResource(R.string.select_all_page)) }, onClick = { more = false; vm.selectAllOnPage() })
-                    DropdownMenuItem(text = { Text(stringResource(R.string.share)) }, onClick = {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.select_all_page)) }, leadingIcon = { Icon(Icons.Outlined.SelectAll, null) }, onClick = { more = false; vm.selectAllOnPage() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.share)) }, leadingIcon = { Icon(Icons.Outlined.Share, null) }, onClick = {
                         more = false
                         scope.launch {
                             val text = vm.selectedText()
@@ -1354,7 +1356,7 @@ private fun ShapeToolbar(vm: ViewerViewModel, modifier: Modifier = Modifier) {
                             Text(stringResource(R.string.fill))
                         }
                         DropdownMenu(expanded = fillMenu, onDismissRequest = { fillMenu = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.no_fill)) }, onClick = { vm.shapeFill = 0; fillMenu = false })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.no_fill)) }, leadingIcon = { Icon(Icons.Outlined.FormatColorReset, null) }, onClick = { vm.shapeFill = 0; fillMenu = false })
                             for (c in MarkupPalette) {
                                 DropdownMenuItem(
                                     text = { Text(String.format("#%06X", c and 0xFFFFFF)) },
@@ -1378,11 +1380,13 @@ private fun ShapeToolbar(vm: ViewerViewModel, modifier: Modifier = Modifier) {
 private enum class Panel { ANNOTATE, VIEW, TOOLS }
 
 @Composable
-internal fun PanelItem(label: String, checked: Boolean? = null, onClick: () -> Unit) {
+internal fun PanelItem(label: String, checked: Boolean? = null, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 52.dp).padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(16.dp))
         Text(label, modifier = Modifier.weight(1f), fontSize = 16.sp)
         if (checked == true) Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.primary)
     }
@@ -1398,19 +1402,19 @@ private fun AnnotatePanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
     ) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
             Text(stringResource(R.string.annotate_hint), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            PanelItem(stringResource(R.string.add_note)) { onDismiss(); vm.placing = ViewerViewModel.Place.NOTE }
-            PanelItem(stringResource(R.string.add_text)) { onDismiss(); vm.placing = ViewerViewModel.Place.TEXT }
-            PanelItem(stringResource(R.string.draw)) { onDismiss(); vm.startDrawing() }
-            PanelItem(stringResource(R.string.shapes)) { onDismiss(); vm.startShapes() }
+            PanelItem(stringResource(R.string.add_note), icon = Icons.AutoMirrored.Outlined.StickyNote2) { onDismiss(); vm.placing = ViewerViewModel.Place.NOTE }
+            PanelItem(stringResource(R.string.add_text), icon = Icons.Outlined.TextFields) { onDismiss(); vm.placing = ViewerViewModel.Place.TEXT }
+            PanelItem(stringResource(R.string.draw), icon = Icons.Outlined.Gesture) { onDismiss(); vm.startDrawing() }
+            PanelItem(stringResource(R.string.shapes), icon = Icons.Outlined.Category) { onDismiss(); vm.startShapes() }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text(stringResource(R.string.fill_and_sign), modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            PanelItem(stringResource(R.string.signature)) { onDismiss(); vm.signatureSheetOpen = true }
-            PanelItem(stringResource(R.string.stamp)) { onDismiss(); vm.stampSheetOpen = true }
-            PanelItem(stringResource(R.string.digital_signature)) { onDismiss(); vm.digitalSignOpen = true }
-            PanelItem(stringResource(R.string.place_date)) { onDismiss(); vm.placing = ViewerViewModel.Place.DATE }
-            PanelItem(stringResource(R.string.place_check)) { onDismiss(); vm.placing = ViewerViewModel.Place.CHECK }
-            PanelItem(stringResource(R.string.place_cross)) { onDismiss(); vm.placing = ViewerViewModel.Place.CROSS }
-            PanelItem(stringResource(R.string.place_dot)) { onDismiss(); vm.placing = ViewerViewModel.Place.DOT }
+            PanelItem(stringResource(R.string.signature), icon = Icons.Outlined.Draw) { onDismiss(); vm.signatureSheetOpen = true }
+            PanelItem(stringResource(R.string.stamp), icon = Icons.Outlined.Approval) { onDismiss(); vm.stampSheetOpen = true }
+            PanelItem(stringResource(R.string.digital_signature), icon = Icons.Outlined.VerifiedUser) { onDismiss(); vm.digitalSignOpen = true }
+            PanelItem(stringResource(R.string.place_date), icon = Icons.Outlined.CalendarToday) { onDismiss(); vm.placing = ViewerViewModel.Place.DATE }
+            PanelItem(stringResource(R.string.place_check), icon = Icons.Outlined.Check) { onDismiss(); vm.placing = ViewerViewModel.Place.CHECK }
+            PanelItem(stringResource(R.string.place_cross), icon = Icons.Outlined.Close) { onDismiss(); vm.placing = ViewerViewModel.Place.CROSS }
+            PanelItem(stringResource(R.string.place_dot), icon = Icons.Outlined.FiberManualRecord) { onDismiss(); vm.placing = ViewerViewModel.Place.DOT }
         }
     }
 }
@@ -1426,17 +1430,21 @@ private fun ViewPanel(vp: Viewport, onLayout: () -> Unit, onDismiss: () -> Unit)
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-            PanelItem(stringResource(R.string.fit_width), checked = kotlin.math.abs(vp.zoom - 1f) < 0.01f) { vp.setZoomAndPage(1f, vp.currentPage); onDismiss() }
-            PanelItem(stringResource(R.string.fit_page)) { val p = vp.currentPage; vp.setZoomAndPage(vp.fitPageZoom(p), p); onDismiss() }
-            PanelItem(stringResource(R.string.layout)) { onLayout() }
+            PanelItem(stringResource(R.string.fit_width), icon = Icons.Outlined.SettingsEthernet, checked = kotlin.math.abs(vp.zoom - 1f) < 0.01f) { vp.setZoomAndPage(1f, vp.currentPage); onDismiss() }
+            PanelItem(stringResource(R.string.fit_page), icon = Icons.Outlined.FitScreen) { val p = vp.currentPage; vp.setZoomAndPage(vp.fitPageZoom(p), p); onDismiss() }
+            PanelItem(stringResource(R.string.layout), icon = Icons.Outlined.ViewAgenda) { onLayout() }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            for ((mode, label) in listOf(PageMode.NORMAL to R.string.page_normal, PageMode.NIGHT to R.string.page_night, PageMode.SEPIA to R.string.page_sepia)) {
-                PanelItem(stringResource(label), checked = settings.pageMode == mode) { settings.choosePageMode(mode) }
+            for ((mode, label, icon) in listOf(
+                Triple(PageMode.NORMAL, R.string.page_normal, Icons.Outlined.WbSunny),
+                Triple(PageMode.NIGHT, R.string.page_night, Icons.Outlined.DarkMode),
+                Triple(PageMode.SEPIA, R.string.page_sepia, Icons.Outlined.Coffee),
+            )) {
+                PanelItem(stringResource(label), checked = settings.pageMode == mode, icon = icon) { settings.choosePageMode(mode) }
             }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            PanelItem(stringResource(R.string.keep_screen_on), checked = settings.keepScreenOn) { settings.toggleKeepScreenOn() }
-            PanelItem(stringResource(R.string.lock_rotation), checked = settings.lockRotation) { settings.toggleLockRotation() }
-            PanelItem(stringResource(R.string.full_screen), checked = settings.fullScreen) { settings.toggleFullScreen() }
+            PanelItem(stringResource(R.string.keep_screen_on), icon = Icons.Outlined.Lightbulb, checked = settings.keepScreenOn) { settings.toggleKeepScreenOn() }
+            PanelItem(stringResource(R.string.lock_rotation), icon = Icons.Outlined.ScreenLockRotation, checked = settings.lockRotation) { settings.toggleLockRotation() }
+            PanelItem(stringResource(R.string.full_screen), icon = Icons.Outlined.Fullscreen, checked = settings.fullScreen) { settings.toggleFullScreen() }
         }
     }
 }

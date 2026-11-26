@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -157,13 +158,14 @@ private fun FolderContents(folder: LibraryFolder, panel: Color, fileActions: Fil
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.sort_by)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    for ((s, label) in listOf(
-                        Library.Companion.Sort.NAME to R.string.sort_name,
-                        Library.Companion.Sort.DATE to R.string.sort_date,
-                        Library.Companion.Sort.SIZE to R.string.sort_size,
+                    for ((s, label, icon) in listOf(
+                        Triple(Library.Companion.Sort.NAME, R.string.sort_name, Icons.Outlined.SortByAlpha),
+                        Triple(Library.Companion.Sort.DATE, R.string.sort_date, Icons.Outlined.Schedule),
+                        Triple(Library.Companion.Sort.SIZE, R.string.sort_size, Icons.Outlined.DataUsage),
                     )) {
                         DropdownMenuItem(
                             text = { Text(stringResource(label)) },
+                            leadingIcon = { Icon(icon, null) },
                             trailingIcon = { if (sort == s) Icon(Icons.Filled.Check, null) },
                             onClick = { sort = s; menu = false },
                         )
@@ -218,8 +220,8 @@ private fun LibraryRow(file: LibraryFile, panel: Color, fileActions: FileActions
         Box {
             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.file_options, file.name)) }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; fileActions.share(Uri.parse(file.uri), file.name) })
-                DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; fileActions.saveCopy(Uri.parse(file.uri), file.name) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, leadingIcon = { Icon(Icons.Outlined.Share, null) }, onClick = { menu = false; fileActions.share(Uri.parse(file.uri), file.name) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, leadingIcon = { Icon(Icons.Outlined.SaveAlt, null) }, onClick = { menu = false; fileActions.saveCopy(Uri.parse(file.uri), file.name) })
             }
         }
     }

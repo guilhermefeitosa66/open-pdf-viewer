@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -93,8 +94,8 @@ fun CropScreen(vm: ViewerViewModel, ready: DocState.Ready, page: Int) {
                     Box {
                         TextButton(onClick = { saveMenu = true }, enabled = changed || (detected && allPages)) { Text(stringResource(R.string.save)) }
                         DropdownMenu(expanded = saveMenu, onDismissRequest = { saveMenu = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, onClick = { saveMenu = false; save(false) })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.save_as_copy)) }, onClick = { saveMenu = false; save(true) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, leadingIcon = { Icon(Icons.Outlined.Save, null) }, onClick = { saveMenu = false; save(false) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.save_as_copy)) }, leadingIcon = { Icon(Icons.Outlined.SaveAs, null) }, onClick = { saveMenu = false; save(true) })
                         }
                     }
                 }

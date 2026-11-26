@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,20 +44,20 @@ import io.github.guilhermefeitosa66.openpdfviewer.tools.NumberPosition as P
 fun ToolsPanel(vm: ViewerViewModel, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-            PanelItem(stringResource(R.string.compress_item)) { onDismiss(); vm.compressOpen = true }
-            PanelItem(stringResource(R.string.page_numbers)) { onDismiss(); vm.pageNumbersOpen = true }
-            PanelItem(stringResource(R.string.watermark)) { onDismiss(); vm.watermarkOpen = true }
-            PanelItem(stringResource(R.string.export_images)) { onDismiss(); vm.imagesExportOpen = true }
-            PanelItem(stringResource(R.string.ocr)) { onDismiss(); vm.ocrOpen = true }
-            PanelItem(stringResource(R.string.compare)) { onDismiss(); vm.compareOpen = true }
-            PanelItem(stringResource(R.string.export_text)) { onDismiss(); vm.textExportOpen = true }
-            PanelItem(stringResource(R.string.extract_images)) { onDismiss(); vm.extractImagesOpen = true }
-            PanelItem(stringResource(R.string.edit_properties)) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
-            PanelItem(stringResource(R.string.redact)) { onDismiss(); vm.redactOpen = true }
-            PanelItem(stringResource(R.string.protect)) { onDismiss(); vm.protectOpen = true }
-            PanelItem(stringResource(R.string.unprotect)) { onDismiss(); vm.unprotectOpen = true }
-            PanelItem(stringResource(R.string.convert_pdfa)) { onDismiss(); vm.convertPdfA() }
-            PanelItem(stringResource(R.string.save_flattened)) { onDismiss(); vm.requestFlatten = true }
+            PanelItem(stringResource(R.string.compress_item), icon = Icons.Outlined.Compress) { onDismiss(); vm.compressOpen = true }
+            PanelItem(stringResource(R.string.page_numbers), icon = Icons.Outlined.FormatListNumbered) { onDismiss(); vm.pageNumbersOpen = true }
+            PanelItem(stringResource(R.string.watermark), icon = Icons.AutoMirrored.Outlined.BrandingWatermark) { onDismiss(); vm.watermarkOpen = true }
+            PanelItem(stringResource(R.string.export_images), icon = Icons.Outlined.Collections) { onDismiss(); vm.imagesExportOpen = true }
+            PanelItem(stringResource(R.string.ocr), icon = Icons.Outlined.DocumentScanner) { onDismiss(); vm.ocrOpen = true }
+            PanelItem(stringResource(R.string.compare), icon = Icons.Outlined.Compare) { onDismiss(); vm.compareOpen = true }
+            PanelItem(stringResource(R.string.export_text), icon = Icons.Outlined.Description) { onDismiss(); vm.textExportOpen = true }
+            PanelItem(stringResource(R.string.extract_images), icon = Icons.Outlined.PhotoLibrary) { onDismiss(); vm.extractImagesOpen = true }
+            PanelItem(stringResource(R.string.edit_properties), icon = Icons.Outlined.EditAttributes) { onDismiss(); vm.loadInfo(); vm.metadataOpen = true }
+            PanelItem(stringResource(R.string.redact), icon = Icons.Outlined.HideSource) { onDismiss(); vm.redactOpen = true }
+            PanelItem(stringResource(R.string.protect), icon = Icons.Outlined.Lock) { onDismiss(); vm.protectOpen = true }
+            PanelItem(stringResource(R.string.unprotect), icon = Icons.Outlined.LockOpen) { onDismiss(); vm.unprotectOpen = true }
+            PanelItem(stringResource(R.string.convert_pdfa), icon = Icons.Outlined.Archive) { onDismiss(); vm.convertPdfA() }
+            PanelItem(stringResource(R.string.save_flattened), icon = Icons.Outlined.Layers) { onDismiss(); vm.requestFlatten = true }
         }
     }
 }

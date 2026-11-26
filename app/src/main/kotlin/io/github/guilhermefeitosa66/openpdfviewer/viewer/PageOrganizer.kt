@@ -28,6 +28,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -175,8 +177,8 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                     Box {
                         IconButton(onClick = { insertMenu = true }) { Icon(Icons.Filled.Add, stringResource(R.string.insert_pages)) }
                         DropdownMenu(expanded = insertMenu, onDismissRequest = { insertMenu = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.insert_blank)) }, onClick = { insertMenu = false; blankDialog = true })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.insert_from_pdf)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.insert_blank)) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.NoteAdd, null) }, onClick = { insertMenu = false; blankDialog = true })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.insert_from_pdf)) }, leadingIcon = { Icon(Icons.Outlined.PostAdd, null) }, onClick = {
                                 insertMenu = false
                                 picker.launch(arrayOf("application/pdf"))
                             })
@@ -188,12 +190,12 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                         DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
                             // Split works on the document as saved, so it waits for page changes to be saved.
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.split)) },
+                                text = { Text(stringResource(R.string.split)) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.CallSplit, null) },
                                 enabled = !changed,
                                 onClick = { moreMenu = false; splitDialog = true },
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.crop_margins)) },
+                                text = { Text(stringResource(R.string.crop_margins)) }, leadingIcon = { Icon(Icons.Outlined.Crop, null) },
                                 enabled = !changed,
                                 onClick = {
                                     moreMenu = false
@@ -207,8 +209,8 @@ fun PageOrganizer(vm: ViewerViewModel, ready: DocState.Ready) {
                     Box {
                         TextButton(onClick = { saveMenu = true }, enabled = changed) { Text(stringResource(R.string.save)) }
                         DropdownMenu(expanded = saveMenu, onDismissRequest = { saveMenu = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, onClick = { saveMenu = false; save(false) })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.save_as_copy)) }, onClick = { saveMenu = false; save(true) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.save)) }, leadingIcon = { Icon(Icons.Outlined.Save, null) }, onClick = { saveMenu = false; save(false) })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.save_as_copy)) }, leadingIcon = { Icon(Icons.Outlined.SaveAs, null) }, onClick = { saveMenu = false; save(true) })
                         }
                     }
                 }

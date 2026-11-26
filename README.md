@@ -132,6 +132,6 @@ The app is licensed under the [Apache License 2.0](LICENSE).
 | sRGB ICC profile for PDF/A (`assets/icc/sRGB.icc`, made by `tools/make-srgb-icc.py`) | Apache-2.0, original work |
 | [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) 2.0.27.0 (digital signatures only) | Apache-2.0 |
 | [Bouncy Castle](https://www.bouncycastle.org) `bcprov`/`bcpkix-jdk15to18` 1.87 (digital signatures only) | MIT |
-| AndroidX (core, activity, lifecycle), Jetpack Compose, Material 3 | Apache-2.0 |
+| AndroidX (core, activity, lifecycle), Jetpack Compose, Material 3, Material Icons (core and extended) | Apache-2.0 |
 | JUnit (tests only) | EPL-1.0 |
 | org.json (tests only) | Public domain |

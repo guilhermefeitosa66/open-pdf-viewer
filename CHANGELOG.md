@@ -2,6 +2,10 @@
 
 All notable changes to Open PDF Viewer. Versions follow SemVer; the Android versionCode goes up by one each release.
 
+## 0.50.0 (2026-11-25)
+
+- Every item in the menus now has an icon: the viewer's "…" menu and its Annotate, View and Tools panels, the text selection menu, the home and file menus, the sort menu, and the page organizer and crop menus. Icons come from Material Icons (extended set, Apache-2.0); R8 keeps only the ones used.
+
 ## 0.49.2 (2026-11-24)
 
 - Start-up: a Baseline Profile for starting the app and opening a PDF is now shipped (installed by profileinstaller), and the app reports when the first page is drawn so start-up tools can measure it.

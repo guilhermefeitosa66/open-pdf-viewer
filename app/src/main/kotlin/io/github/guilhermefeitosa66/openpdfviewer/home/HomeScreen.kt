@@ -28,6 +28,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -150,27 +152,27 @@ fun HomeScreen(onOpen: (Uri) -> Unit, onPickFile: () -> Unit, onSettings: () -> 
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.merge_title)) },
+                            text = { Text(stringResource(R.string.merge_title)) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.MergeType, null) },
                             onClick = { menu = false; merging = true },
                         )
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.scan_to_pdf)) },
+                            text = { Text(stringResource(R.string.scan_to_pdf)) }, leadingIcon = { Icon(Icons.Outlined.DocumentScanner, null) },
                             onClick = { menu = false; scanning = true },
                         )
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.images_to_pdf)) },
+                            text = { Text(stringResource(R.string.images_to_pdf)) }, leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, null) },
                             onClick = { menu = false; imagesToPdf = true },
                         )
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.repair_pdf)) },
+                            text = { Text(stringResource(R.string.repair_pdf)) }, leadingIcon = { Icon(Icons.Outlined.Healing, null) },
                             onClick = { menu = false; repairing = true },
                         )
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.settings)) },
+                            text = { Text(stringResource(R.string.settings)) }, leadingIcon = { Icon(Icons.Outlined.Settings, null) },
                             onClick = { menu = false; onSettings() },
                         )
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.about)) },
+                            text = { Text(stringResource(R.string.about)) }, leadingIcon = { Icon(Icons.Outlined.Info, null) },
                             onClick = { menu = false; about = true },
                         )
                     }
@@ -363,15 +365,16 @@ private fun RecentRow(
                 Icon(Icons.Filled.MoreVert, stringResource(R.string.file_options, entry.name))
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, onClick = { menu = false; onShare() })
-                DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, onClick = { menu = false; onSaveCopy() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.share_file)) }, leadingIcon = { Icon(Icons.Outlined.Share, null) }, onClick = { menu = false; onShare() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.save_copy)) }, leadingIcon = { Icon(Icons.Outlined.SaveAlt, null) }, onClick = { menu = false; onSaveCopy() })
                 // Looked up only when the menu opens: nothing extra on the first frame.
                 val starred = remember(menu) { Library.get(ctx).isFavorite(entry.uri) }
                 DropdownMenuItem(
                     text = { Text(stringResource(if (starred) R.string.remove_favorite else R.string.add_favorite)) },
+                    leadingIcon = { Icon(if (starred) Icons.Outlined.StarOutline else Icons.Outlined.Star, null) },
                     onClick = { menu = false; onToggleFavorite() },
                 )
-                DropdownMenuItem(text = { Text(stringResource(R.string.remove_from_list)) }, onClick = { menu = false; onRemove() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.remove_from_list)) }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menu = false; onRemove() })
             }
         }
     }
@@ -394,7 +397,7 @@ private fun LicensesDialog(onDismiss: () -> Unit) {
                     Text(text, fontSize = 12.sp, lineHeight = 16.sp)
                 } else {
                     Text(
-                        "Kotlin, kotlinx.coroutines, AndroidX, Jetpack Compose, Material 3: Apache License 2.0.\n" +
+                        "Kotlin, kotlinx.coroutines, AndroidX, Jetpack Compose, Material 3, Material Icons: Apache License 2.0.\n" +
                             "PDFium: BSD-3-Clause / Apache License 2.0. Its bundled libraries are listed below.\n" +
                             "File tools and digital signatures: PdfBox-Android (Apache License 2.0) and Bouncy Castle (MIT).\n" +
                             "OCR: Tesseract4Android and Tesseract (Apache License 2.0) with Leptonica (BSD-2-Clause), " +
